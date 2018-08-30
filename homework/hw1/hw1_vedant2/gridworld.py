@@ -48,24 +48,47 @@ agent to A0. From state B, all actions yield a reward of +5 and take the agent t
             return row*ncol + col
         
         def inc(row, col, a):
+		reward = 0;
+		#check if in A or B
+		if (row == 0 && col == 1 ):
+			reward = 10;
+			row = nrow-1;
+		elif (row == 0 && col == 3 ):
+			reward = 5;
+			row = 2;
+		else:
             if a==0: # West
-                col = max(col-1,0)
+				col = col-1;
+				if (col<0):
+					col = 0;
+					reward = -1;
             elif a==1: # South
-                row = min(row+1,nrow-1)
+                row = row+1
+				if (row>nrow-1);
+					row = nrow-1;
+					reward = -1;
             elif a==2: # East
-                col = min(col+1,ncol-1)
+                col = col+1;
+				if(col>ncol-1):
+					col = ncol-1;
+					reward = -1;
             elif a==3: # North
-                row = max(row-1,0)
-            return (row, col)
+                row = row-1;
+				if (row<0):
+					row = 0;
+					reward = -1;
+            return (row, col,reward)
 
         for row in range(nrow):
             for col in range(ncol):
                 s = to_s(row, col)
                 for a in range(4):
                     li = P[s][a]
-                    letter = desc[row, col]
-                    if letter in b'GH':
-                        li.append((1.0, s, 0, True))
+                    Goal = desc[row, col]
+                    if letter in b'A':
+                        li.append((10, s, 0, True))
+					elif letter in b'B':
+                        li.append((5, s, 0, True))
                     else:
 						newrow, newcol = inc(row, col, a)
 						newstate = to_s(newrow, newcol)
