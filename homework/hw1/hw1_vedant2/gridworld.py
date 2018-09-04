@@ -32,15 +32,12 @@ of −1. Other actions result in a reward of 0, except those that move the agent
 special states A and B. From state A, all four actions yield a reward of +10 and take the
 agent to A0. From state B, all actions yield a reward of +5 and take the agent to B0.
     """
-
+metadata = {'render.modes': ['human', 'ansi']}
     def __init__(self):
         self.nrow, self.ncol = 5, 5
 
         nA = 4
         nS = nrow * ncol
-
-        #isd = np.array(desc == b'S').astype('float64').ravel()
-        #isd /= isd.sum()
 
         P = {s : {a : [] for a in range(nA)} for s in range(nS)}
 
@@ -84,19 +81,10 @@ agent to A0. From state B, all actions yield a reward of +5 and take the agent t
                 s = to_s(row, col)
                 for a in range(4):
                     li = P[s][a]
-                    Goal = desc[row, col]
-                    if letter in b'A':
-                        li.append((10, s, 0, True))
-					elif letter in b'B':
-                        li.append((5, s, 0, True))
-                    else:
-						newrow, newcol = inc(row, col, a)
-						newstate = to_s(newrow, newcol)
-						newletter = desc[newrow, newcol]
-						done = bytes(newletter) in b'GH'
-						rew = float(newletter == b'G')
-						li.append((1.0, newstate, rew, done))
-        sNorther(GirdWorldEnv, self).__init__(nS, nA, P, isd)
+		    newrow, newcol = inc(row, col, a)
+		    newstate = to_s(newrow, newcol)
+		    li.append((1.0, newstate, rew, done))
+        super(GirdWorldEnv, self).__init__(nS, nA, P)
 
     def render(self, mode='human'):
         outfile = StringIO() if mode == 'ansi' else sys.stdout
