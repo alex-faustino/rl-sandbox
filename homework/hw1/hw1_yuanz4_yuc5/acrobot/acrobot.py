@@ -33,6 +33,8 @@ class AcroBot(core.Env):
 
     MAX_VEL_1 = 4 * np.pi
     MAX_VEL_2 = 9 * np.pi
+    
+    AVAIL_TORQUE = [-1., 0., +1]
 
     def __init__(self):
         self.viewer = None
