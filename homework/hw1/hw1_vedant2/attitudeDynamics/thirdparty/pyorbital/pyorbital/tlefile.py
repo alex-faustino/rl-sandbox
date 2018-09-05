@@ -59,8 +59,9 @@ class Tle(object):
             tle = ""
             for url in urls:
                 fp = open_func(url)
+                
                 for l0 in fp:
-                    l1, l2 = fp.next(), fp.next()
+                    l1, l2 = fp.readline(), fp.readline()
                     if l0.strip() == platform:
                         tle = l1.strip() + "\n" + l2.strip()
                         break
@@ -69,7 +70,7 @@ class Tle(object):
                     break
             
             if not tle:
-                raise AttributeError, "Found no TLE entry for '%s'" % platform
+                raise (AttributeError, "Found no TLE entry for '%s'" % platform)
 
         self._platform = platform
         self._line1, self._line2 = tle.split('\n')
@@ -149,4 +150,4 @@ class Tle(object):
 
 if __name__ == '__main__':
     tle = read('noaa 19')
-    print tle
+    print(tle)

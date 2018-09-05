@@ -1,6 +1,6 @@
 #graphics support library
 
-from mayavi import *
+from mayavi import mlab
 import numpy as np
 #from osl import *
 import mod_orbit_dynamics as osl

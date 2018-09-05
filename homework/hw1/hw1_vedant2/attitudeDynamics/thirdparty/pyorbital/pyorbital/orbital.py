@@ -569,11 +569,11 @@ class _SGDP4(object):
         self.t2cof = 1.5 * self.c1
         
         # Check for possible divide-by-zero for X/(1+cos(xincl)) when calculating xlcof */
-    	temp0 = 1.0 + self.cosIO
-    	if np.abs(temp0) < EPS_COS:
+        temp0 = 1.0 + self.cosIO
+        if np.abs(temp0) < EPS_COS:
     	    temp0 = np.sign(temp0) * EPS_COS
     	    
-    	self.xlcof = 0.125 * A3OVK2 * self.sinIO * (3.0 + 5.0 * self.cosIO) / temp0
+        self.xlcof = 0.125 * A3OVK2 * self.sinIO * (3.0 + 5.0 * self.cosIO) / temp0
 
         self.aycof = 0.25 * A3OVK2 * self.sinIO
         
@@ -769,4 +769,4 @@ if __name__ == "__main__":
         lon, lat = np.rad2deg((lon, lat))
         az, el = o.get_observer_look(t, obs_lon, obs_lat, obs_alt)
         ob = o.get_orbit_number(t, tbus_style=True)
-        print az, el, ob
+        print( az, el, ob)

@@ -58,7 +58,7 @@ class Simulation:
         pygame.init()
  
         self.screen = pygame.display.set_mode((win_width, win_height))
-        pygame.display.set_caption("Simulation of a rotating 3D Cube (<a class="vglnk" href="http://codeNtronix.com" rel="nofollow"><span>http</span><span>://</span><span>codeNtronix</span><span>.</span><span>com</span></a>)")
+        pygame.display.set_caption("Simulation of a rotating 3D Cube")
  
         self.clock = pygame.time.Clock()
  

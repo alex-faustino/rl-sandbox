@@ -83,7 +83,7 @@ def skew4(x):
 #    
 #    return array([qx,qy,qz,qw])
     
-'''def quaternion_from_euler(euler):
+def quaternion_from_euler(euler):
     """
     Convert euler angles to a quaternion with scalar first representation
     """
@@ -94,10 +94,10 @@ def skew4(x):
     
     # check if pitch is not in [-90, 90] deg domain
     if euler[1] >= pi/2:
-        print ">>> WARNING! Pitch is more than 90 deg. Results may not be accurate"
+        print (">>> WARNING! Pitch is more than 90 deg. Results may not be accurate")
         
     if euler[1] <= -pi/2:
-        print ">>> WARNING! Pitch is less than -90 deg. Results may not be accurate"
+        print (">>> WARNING! Pitch is less than -90 deg. Results may not be accurate")
                 
         
     #angles = array([r, p, y])
@@ -126,7 +126,7 @@ def skew4(x):
 
     #scalar first
     return array([ q0, q1, q2, q3])
-'''
+
 
 # before quaternion2euler_aero
 def euler_from_quaternion(q):
@@ -309,7 +309,7 @@ def attitude_dynamics(X, t, Torque, Inertia):
     domega = dot(inv(Inertia), dot( dot(-skew(omega_b_i), Inertia), omega_b_i) + Torque)
 
     
-    dX = concatenate((dq,domega),1)
+    dX = concatenate((dq,domega))
     #print t,dx
     # return state vector q, omega
     return dX

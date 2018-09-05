@@ -28,12 +28,12 @@ dirname, filename = os.path.split(os.path.abspath(__file__))
 #print dirname
 
 # get the current script file path
-this_folder      = os.path.dirname(os.path.abspath(__file__))+'/'
-modules_folder   = this_folder+'modules/'
-geomag_folder    = this_folder+'thirdparty/geomag-0.9/'
-sgp4_folder      = this_folder+'thirdparty/sgp4/'
-pyorbital_folder = this_folder+'thirdparty/pyorbital/'
-tle_folder       = this_folder+'thirdparty/tle/'
+this_folder      = os.path.dirname(os.path.abspath(__file__))+'\\'
+modules_folder   = this_folder+'modules\\'
+geomag_folder    = this_folder+'thirdparty\\geomag-0.9\\'
+sgp4_folder      = this_folder+'thirdparty\\sgp4\\'
+pyorbital_folder = this_folder+'thirdparty\\pyorbital\\'
+tle_folder       = this_folder+'data\\tle\\'
 
 # add the folders to the system path so we don't have to install the folders
 # althought that is recommended
@@ -69,10 +69,10 @@ from math import pow, degrees, radians, pi, sin, cos, sqrt
 from scipy import mat,  arctan, arctan2, integrate #pi, cos, sin,
 
 # graphics modules
-#from mayavi import mlab
+from mayavi import mlab
 import matplotlib.pyplot as plt
-#from pylab import ion #, plots
-#from tvtk.tools import visual
+from pylab import ion #, plots
+from tvtk.tools import visual
 
 
 
