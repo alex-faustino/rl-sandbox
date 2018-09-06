@@ -1,6 +1,0 @@
-from gym.envs.registration import register
-
-register(
-    id='WORLDGRIDENV-v0',
-    entry_point='GridWorldEnv.gridworld:GridWorld',
-)
