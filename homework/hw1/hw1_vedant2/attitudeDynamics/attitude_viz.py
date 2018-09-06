@@ -19,8 +19,8 @@ import numpy as np
 class Point3D:
     def __init__(self, x = 0, y = 0, z = 0):
         
-        self.vec = np.matrix([x],[y],[z])
-        self.x, self.y, self.z = float(self.vec[0]), float(self.vec[1]), float([2])
+        self.vec = np.matrix([[x],[y],[z]])
+        self.x, self.y, self.z = float(self.vec[0]), float(self.vec[1]), float(self.vec[2])
  
     def rotate(self, R):
         """ Rotates the point around the Y axis by the given angle in degrees. """
@@ -36,7 +36,7 @@ class Point3D:
  
 class Simulation:
     def __init__(self, win_width = 640, win_height = 480):
-        pygame.init()
+        
  
         self.screen = pygame.display.set_mode((win_width, win_height))
         pygame.display.set_caption("Simulation of a rotating 3D Cube")
@@ -107,6 +107,3 @@ class Simulation:
             self.angle += 1
  
             pygame.display.flip()
- 
-if __name__ == "__main__":
-    Simulation().run()

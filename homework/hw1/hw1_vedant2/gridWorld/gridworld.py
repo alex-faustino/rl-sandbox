@@ -34,13 +34,15 @@ agent to A0. From state B, all actions yield a reward of +5 and take the agent t
     """
 metadata = {'render.modes': ['human', 'ansi']}
 
-def __init__(self, hard=None):
-        
-    self.nrow, self.ncol = 5, 5;
-
+def __init__(self):
+    
+    self.desc = desc = np.asarray(MAP,dtype='c');    
+    self.nrow, self.ncol = nrow, ncol = desc.shape;
+    self.reward_range = (-1, 0, 5, 10)
+    
     nA = 4;
     nS = nrow * ncol;
-    desc = np.asarray(MAP,dtype='c');
+    
     isd = np.array(desc == b'S').astype('float64').ravel();
     isd /= isd.sum();
 
@@ -50,7 +52,7 @@ def __init__(self, hard=None):
         return row*ncol + col;
 
     def inc(row, col, a):
-        probability = 1.0/4.0;
+        probability = 1.0;
         reward = 0;
         #check if in A or B
         if (row == 0 & col == 1 ):

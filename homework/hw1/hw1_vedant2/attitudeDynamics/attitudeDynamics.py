@@ -17,7 +17,7 @@ from time import time as Time
 from time import sleep
 
 from attitudeDynamics.modules import mod_attitude
-
+import pygame
 
 import pdb;
 
@@ -66,7 +66,7 @@ class attitudeDynamics(core.Env):
     I_yy=2.4444;
     I_zz=2.6052;
     
-    MAX_VEL = 5*180 * np.pi
+    MAX_VEL = 5*np.pi/180
     #I_xx=1;
     #I_yy=1;
     #I_zz=1;
@@ -100,9 +100,9 @@ class attitudeDynamics(core.Env):
         return [seed]
 
     def reset(self):
-        q_init = np.array([1,0,0,0])
+        q_init = np.array([1.0,0.0,0.0,0.0])
         self.state = np.append(q_init, self.np_random.uniform(low=-self.MAX_VEL, high=self.MAX_VEL, size=(3,)))
-        return self._get_ob()
+        return self.state
 
     def step(self, a):
         s = self.state
@@ -118,10 +118,7 @@ class attitudeDynamics(core.Env):
         self.state = ns
         terminal = self._terminal()
         reward = 1. if terminal else 0.
-        return (self._get_ob(), reward, terminal, {})
-    def _get_ob(self):
-        s = self.state
-        return np.array([cos(s[0]), np.sin(s[0]), cos(s[1]), sin(s[1]), s[2], s[3]])
+        return (s, reward, False, {})
 
     def _terminal(self):
         s = self.state
@@ -132,7 +129,10 @@ class attitudeDynamics(core.Env):
         q = s[0:4]
         R = mod_attitude.dcm_from_quaternion(q)
         from attitudeDynamics import attitude_viz
-        
+        if self.viewer is None:
+            self.viewer = attitude_viz.Point3D()
+            pygame.init()
+        attitude_viz.Simulation.run(np.matrix(R))
         return 0
 
     def close(self):
