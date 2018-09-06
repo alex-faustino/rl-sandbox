@@ -2,6 +2,8 @@ import gym
 import random
 import numpy as np
 import time
+from grid_world import GridWorldEnv
+from drop import DropEnv
 
 # env = gym.make('GridWorld-v0')
 # env = env.unwrapped
@@ -17,14 +19,14 @@ import time
 #     print('time = {}, action = {}, goto = {}, reward = {}'.format(
 #         t, action_map[action], observation, reward))
 
-env = gym.make('Drop-v0')
+env = DropEnv()
 env = env.unwrapped
-observation = env.reset()
+observation = env._reset()
 print('initial state =', observation)
 for t in range(40):
-    env.render('human')
+    env._render('human')
     action = env.new_drop(3)
-    observation, reward, done, info = env.step(action)
+    observation, reward, done, info = env._step(action)
     time.sleep(0.5)
     print('time = {}, new_drop = {}, goto = {}, reward = {}'.format(
         t, action, observation, reward))
