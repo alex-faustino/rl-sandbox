@@ -10,19 +10,26 @@ import attitudeDynamics
 import numpy as np
 
 env = gym.make('attitudeDynamics-v0')
-#env = gym.make('CartPole-v0')
-num_episodes = 200
-max_timestep = 1000
+
+
 
 def run_episode(env, parameters):
+    action_list = []
+    reward_list= []
+    observation_list= []
     observation = env.reset()
     totalreward = 0
-    for i in range(5000):
+    for i in range(500):
         env.render()
         action = env.action_space.sample()
         observation, reward, done, info = env.step(action)
         totalreward += reward
-    return totalreward
+        #action_list = np.append(action_list, (action))
+        reward_list= np.append(reward_list, reward)
+        #observation_list= np.append(observation_list, (observation))
+        action_list.append(action)
+        observation_list.append(observation)
+    return totalreward, action_list, reward_list, observation_list
 parameters = np.random.rand(4) * 2 - 1
-reward = run_episode(env,parameters)
+reward, action_list, reward_list, observation_list = run_episode(env,parameters)
 env.close()
