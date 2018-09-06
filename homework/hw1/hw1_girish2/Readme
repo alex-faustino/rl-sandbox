@@ -1,0 +1,16 @@
+Homework-1
+Name: Girish Joshi
+netID: girishj2
+
+Environments Implemented.
+
+1)GridWorld
+2)Acrobot
+3)Quadrotor
+
+The example implementation of each environemtn is provided in jupyter notebook. The render option only works on IDE and not
+in jupyter notebook code.
+
+Part 3) Enviroment of choice: I have implemented the 6DOF qudrotor model. The agent should learn to stabalize the quad.
+Trajectory tracking (outer loop control can be implemented) in that case innner loop attitude control will be done using PID.
+
