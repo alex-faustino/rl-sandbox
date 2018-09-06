@@ -4,6 +4,7 @@ from gym.utils import seeding
 import numpy as np
 from numpy import sin, cos, pi
 from time import sleep
+import matplotlib.pyplot as plt
 
 __copyright__ = "Copyleft"
 __license__ = "None"
@@ -63,9 +64,9 @@ class LanderEnv(core.Env):
         # self.s_continuous = ns_continuous[-1] # We only care about the state
         # at the ''final timestep'', self.dt
         
-        Fuel = -1
-        Time = -1
-        Speed = -1
+        Fuel = -0.01
+        Time = -0.001
+        Speed = -0.1
         self.reward = self.reward + Fuel*self.thrust + Time
 
         self.state = ns
@@ -186,17 +187,46 @@ def rk4(derivs, y0, t, *args, **kwargs):
     return yout
 
 env = LanderEnv()
-for i_episode in range(1):
+
+episode_num = 1
+time_horizon = 800
+
+reward_vector = np.zeros(time_horizon)
+x = np.zeros(time_horizon)
+x_dot = np.zeros(time_horizon)
+action_vector = np.zeros(time_horizon)
+T = np.zeros(time_horizon)
+
+for i_episode in range(episode_num):
     observation = env.reset()
-    for t in range(2000):
+    for t in range(time_horizon):
         env.render()
         action = env.action_space.sample()
         observation, reward, term, x = env.step(action)
-        sleep(0.02)
-        print(observation)
-        print(action)
-        print(reward)
+
+        reward_vector[t] = reward
+        action_vector[t] = action
+        x[t] = observation[0]
+        x_dot[t] = observation[1]
+        T[t] = t
+        print(x[t], x_dot[t],T[t])
         if term:
             print("Episode finished after {} timesteps".format(t+1))
             break
+    env.close()
 
+plt.plot(T, reward_vector, 'r')
+plt.ylabel('reward')
+plt.xlabel('time index')
+plt.show()
+
+plt.plot(T, action_vector, 'b')
+plt.ylabel('action')
+plt.xlabel('time index')
+plt.show()
+
+plt.plot(T, x, 'b')
+plt.plot(T, x_dot, 'r')
+plt.ylabel('x and xdot')
+plt.xlabel('time index')
+plt.show()
