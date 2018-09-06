@@ -1,8 +1,10 @@
 import gym
-env = gym.make('GymWorld-v0')
-for i_episode in range(20):
+import GridWorldLib
+env = gym.make('WorldGrid-v0')
+for i_episode in range(1):
     observation = env.reset()
-    for t in range(100):
+    for t in range(10):
+        env.render('human')
         print(observation)
         action = env.action_space.sample()
         observation, reward, done, info = env.step(action)

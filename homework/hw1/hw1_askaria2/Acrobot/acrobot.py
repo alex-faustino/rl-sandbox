@@ -1,29 +1,19 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Wed Sep  4 13:09:42 2018
-
-@author: Vedant
-"""
-
 """classic Acrobot task"""
 from gym import core, spaces
 from gym.utils import seeding
 import numpy as np
-from scipy.integrate import solve_ivp
 from numpy import sin, cos, pi
+from time import sleep
+import matplotlib.pyplot as plt
 
-# SOURCE:
-# https://github.com/rlpy/rlpy/blob/master/rlpy/Domains/Acrobot.py
+__copyright__ = "Copyleft"
+__license__ = "None"
+__author__ = "Alireza Askarian <askaria2@illinois.edu>"
 
-class acrobot_vedant(core.Env):
+class AcrobotEnv(core.Env):
 
     """
-    Acrobot is a 2-link pendulum with only the second joint actuated
-    Intitially, both links point downwards. The goal is to swing the
-    end-effector at a height at least the length of one link above the base.
-    Both links can swing freely and can pass by each other, i.e., they don't
-    collide when they have the same angle.
-    
+    Describtion goes here
     """
 
     metadata = {
@@ -31,8 +21,10 @@ class acrobot_vedant(core.Env):
         'video.frames_per_second' : 15
     }
 
-    dt = .2
+    #time-step
+    dt = .02
 
+    #define system variables
     LINK_LENGTH_1 = 1.  # [m]
     LINK_LENGTH_2 = 1.  # [m]
     LINK_MASS_1 = 1.  #: [kg] mass of link 1
@@ -41,27 +33,18 @@ class acrobot_vedant(core.Env):
     LINK_COM_POS_2 = 0.5  #: [m] position of the center of mass of link 2
     LINK_MOI = 1.  #: moments of inertia for both links
 
-    MAX_VEL_1 = 10 * np.pi
-    MAX_VEL_2 = 10 * np.pi
-
-    torque_max = 1.0
-    delta = 0.1*np.pi/180
-    torque_noise_max = 0.
-
-    #: use dynamics equations from the nips paper or the book
-    book_or_nips = "book"
-    action_arrow = None
-    domain_fig = None
-    actions_num = 1
+    MAX_VEL_1 = 4 * np.pi
+    MAX_VEL_2 = 9 * np.pi
 
     def __init__(self):
         self.viewer = None
-        high = np.array([1.0, 1.0, 1.0, 1.0, self.MAX_VEL_1, self.MAX_VEL_2])
-        low = -high
-        self.observation_space = spaces.Box(low=low, high=high)
-        high = np.array([self.torque_max])
-        low = -high
-        self.action_space = spaces.Box(low=low, high=high)
+        high = np.array([np.pi, np.pi, self.MAX_VEL_1, self.MAX_VEL_2])
+        low = np.array([-np.pi, -np.pi, -self.MAX_VEL_1, -self.MAX_VEL_2])
+        self.observation_space = spaces.Box(low=low, high=high, dtype=np.float32)
+        high1 = np.array([10.0])
+        low1 = np.array([-10.0])
+        self.action_space = spaces.Box(low=low1, high=high1, dtype=np.float32)
+        self.reward = 0
         self.state = None
         self.seed()
 
@@ -71,25 +54,18 @@ class acrobot_vedant(core.Env):
 
     def reset(self):
         self.state = self.np_random.uniform(low=-0.1, high=0.1, size=(4,))
+        self.reward = 0
         return self._get_ob()
 
     def step(self, a):
         s = self.state
-        if (np.abs(a)<self.torque_max):
-            torque = a;
-        else:
-            torue = 0;
-                
-        # Add noise to the force action
-        if self.torque_noise_max > 0:
-            torque += self.np_random.uniform(-self.torque_noise_max, self.torque_noise_max)
+        torque = a
 
         # Now, augment the state with our force action so it can be passed to
         # _dsdt
         s_augmented = np.append(s, torque)
-        #ns = rk4(self._dsdt, s_augmented, [0, self.dt])
-        ns = solve_ivp(self._dsdt, [0.0, self.dt],s_augmented )
-        ns = np.transpose(ns.y)
+
+        ns = rk4(self._dsdt, s_augmented, [0, self.dt])
         # only care about final timestep of integration returned by integrator
         ns = ns[-1]
         ns = ns[:4]  # omit action
@@ -104,18 +80,21 @@ class acrobot_vedant(core.Env):
         ns[3] = bound(ns[3], -self.MAX_VEL_2, self.MAX_VEL_2)
         self.state = ns
         terminal = self._terminal()
-        reward = 1. if terminal else 0.
-        return (self._get_ob(), reward, False, {})
+        delta = 0.1
+        if ns[0] < (-np.pi + delta) or ns[0] > (np.pi - delta):
+            if ns[1] < delta or ns[1] > - delta:
+                self.reward = self.reward + 1
+        return (self._get_ob(), self.reward, terminal, {})
 
     def _get_ob(self):
         s = self.state
-        return np.array([cos(s[0]), np.sin(s[0]), cos(s[1]), sin(s[1]), s[2], s[3]])
+        return np.array([s[0], s[1], s[2], s[3]])
 
     def _terminal(self):
         s = self.state
-        return bool((np.abs(s[0]-(np.pi/2))<self.delta) & (np.abs(s[0])<self.delta))
+        return bool(-np.cos(s[0]) - np.cos(s[1] + s[0]) > 1.)
 
-    def _dsdt(self, t,s_augmented):
+    def _dsdt(self, s_augmented, t):
         m1 = self.LINK_MASS_1
         m2 = self.LINK_MASS_2
         l1 = self.LINK_LENGTH_1
@@ -137,15 +116,9 @@ class acrobot_vedant(core.Env):
         phi1 = - m2 * l1 * lc2 * dtheta2 ** 2 * np.sin(theta2) \
                - 2 * m2 * l1 * lc2 * dtheta2 * dtheta1 * np.sin(theta2)  \
             + (m1 * lc1 + m2 * l1) * g * np.cos(theta1 - np.pi / 2) + phi2
-        if self.book_or_nips == "nips":
-            # the following line is consistent with the description in the
-            # paper
-            ddtheta2 = (a + d2 / d1 * phi1 - phi2) / \
-                (m2 * lc2 ** 2 + I2 - d2 ** 2 / d1)
-        else:
-            # the following line is consistent with the java implementation and the
-            # book
-            ddtheta2 = (a + d2 / d1 * phi1 - m2 * l1 * lc2 * dtheta1 ** 2 * np.sin(theta2) - phi2) \
+
+        #dynamical equations of motion
+        ddtheta2 = (a + d2 / d1 * phi1 - m2 * l1 * lc2 * dtheta1 ** 2 * np.sin(theta2) - phi2) \
                 / (m2 * lc2 ** 2 + I2 - d2 ** 2 / d1)
         ddtheta1 = -(d2 * ddtheta2 + phi1) / d1
         return (dtheta1, dtheta2, ddtheta1, ddtheta2, 0.)
@@ -213,3 +186,118 @@ def bound(x, m, M=None):
         m = m[0]
     # bound x between min (m) and Max (M)
     return min(max(x, m), M)
+
+
+def rk4(derivs, y0, t, *args, **kwargs):
+    """
+    Integrate 1D or ND system of ODEs using 4-th order Runge-Kutta.
+    This is a toy implementation which may be useful if you find
+    yourself stranded on a system w/o scipy.  Otherwise use
+    :func:`scipy.integrate`.
+    *y0*
+        initial state vector
+    *t*
+        sample times
+    *derivs*
+        returns the derivative of the system and has the
+        signature ``dy = derivs(yi, ti)``
+    *args*
+        additional arguments passed to the derivative function
+    *kwargs*
+        additional keyword arguments passed to the derivative function
+    Example 1 ::
+        ## 2D system
+        def derivs6(x,t):
+            d1 =  x[0] + 2*x[1]
+            d2 =  -3*x[0] + 4*x[1]
+            return (d1, d2)
+        dt = 0.0005
+        t = arange(0.0, 2.0, dt)
+        y0 = (1,2)
+        yout = rk4(derivs6, y0, t)
+    Example 2::
+        ## 1D system
+        alpha = 2
+        def derivs(x,t):
+            return -alpha*x + exp(-t)
+        y0 = 1
+        yout = rk4(derivs, y0, t)
+    If you have access to scipy, you should probably be using the
+    scipy.integrate tools rather than this function.
+    """
+
+    try:
+        Ny = len(y0)
+    except TypeError:
+        yout = np.zeros((len(t),), np.float_)
+    else:
+        yout = np.zeros((len(t), Ny), np.float_)
+
+    yout[0] = y0
+
+
+    for i in np.arange(len(t) - 1):
+
+        thist = t[i]
+        dt = t[i + 1] - thist
+        dt2 = dt / 2.0
+        y0 = yout[i]
+
+        k1 = np.asarray(derivs(y0, thist, *args, **kwargs))
+        k2 = np.asarray(derivs(y0 + dt2 * k1, thist + dt2, *args, **kwargs))
+        k3 = np.asarray(derivs(y0 + dt2 * k2, thist + dt2, *args, **kwargs))
+        k4 = np.asarray(derivs(y0 + dt * k3, thist + dt, *args, **kwargs))
+        yout[i + 1] = y0 + dt / 6.0 * (k1 + 2 * k2 + 2 * k3 + k4)
+    return yout
+
+env = AcrobotEnv()
+
+episode_num = 1
+time_horizon = 1000
+
+reward_vector = np.zeros(time_horizon)
+theta1 = np.zeros(time_horizon)
+theta2 = np.zeros(time_horizon)
+theta1_dot = np.zeros(time_horizon)
+theta2_dot = np.zeros(time_horizon)
+action_vector = np.zeros(time_horizon)
+T = np.zeros(time_horizon)
+
+for i_episode in range(episode_num):
+    observation = env.reset()
+    for t in range(time_horizon):
+        env.render()
+        action = env.action_space.sample()
+        observation, reward, term, x = env.step(action)
+
+        reward_vector[t] = reward
+        action_vector[t] = action
+        theta1[t] = (180/pi) * observation[0]
+        theta2[t] = (180/pi) * observation[1]
+        theta1_dot[t] = observation[2]
+        theta2_dot[t] = observation[3]
+        T[t] = t
+    env.close()
+
+plt.plot(T, reward_vector, 'r')
+plt.ylabel('reward')
+plt.xlabel('time index')
+plt.show()
+
+plt.plot(T, action_vector, 'b')
+plt.ylabel('torque')
+plt.xlabel('time index')
+plt.show()
+
+
+plt.plot(T, theta1, 'b')
+plt.plot(T, theta2, 'r')
+plt.ylabel('joints angle (deg)')
+plt.xlabel('time index')
+plt.show()
+
+plt.plot(T, theta1_dot, 'b')
+plt.plot(T, theta2_dot, 'r')
+plt.ylabel('joints angular velocity (rad/s)')
+plt.xlabel('time index')
+plt.show()

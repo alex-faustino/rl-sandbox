@@ -2,7 +2,6 @@ import gym
 from gym import error, spaces, core
 from gym.utils import seeding
 import numpy as np
-import scipy as sp
 from numpy import sin, cos, pi
 from gym.envs.classic_control import rendering
 def wrap(x, m, M):
@@ -14,6 +13,28 @@ def wrap(x, m, M):
 
 def bound(x, m, M):
     return min(max(x,m), M)
+
+def rk4(derivs, y0, t, *args, **kwargs):
+    try:
+        Ny = len(y0)
+    except TypeError:
+        yout = np.zeros((len(t),), np.float_)
+    else:
+        yout = np.zeros((len(t), Ny), np.float_)
+    yout[0] = y0
+
+    for i in np.arange(len(t) - 1):
+        thist = t[i]
+        dt = t[i + 1] - thist
+        dt2 = dt / 2.0
+        y0 = yout[i]
+        k1 = np.asarray(derivs(y0, thist, *args, **kwargs))
+        k2 = np.asarray(derivs(y0 + dt2 * k1, thist + dt2, *args, **kwargs))
+        k3 = np.asarray(derivs(y0 + dt2 * k2, thist + dt2, *args, **kwargs))
+        k4 = np.asarray(derivs(y0 + dt * k3, thist + dt, *args, **kwargs))
+        yout[i + 1] = y0 + dt / 6.0 * (k1 + 2 * k2 + 2 * k3 + k4)
+    return yout
+
 
 class AcroBot(core.Env):
     metadata = {
@@ -33,8 +54,6 @@ class AcroBot(core.Env):
 
     MAX_VEL_1 = 4 * np.pi
     MAX_VEL_2 = 9 * np.pi
-    
-    AVAIL_TORQUE = [-1., 0., +1]
 
     def __init__(self):
         self.viewer = None
@@ -46,16 +65,15 @@ class AcroBot(core.Env):
         self.seed()
 
     def seed(self, seed = None):
-        self.np_random, seed = seding.np_random(seed)
+        self.np_random, seed = seeding.np_random(seed)
         return [seed]
 
     def step(self, action):
         s = self.state
-        torque = self.AVAIL_TORQUE[a]
+        torque = action
 
         s_augmented = np.append(s,torque)
-
-        st = sp.integrate.RK45(self._dsdt, s_augmented, [0, self.dt])
+        st = rk4(self._dsdt, s_augmented, [0, self.dt])
         st = st[-1]
         st = st[:4]
         st[0] = wrap(st[0], -pi, pi)
@@ -64,14 +82,20 @@ class AcroBot(core.Env):
         st[3] = bound(st[3], -self.MAX_VEL_2, self.MAX_VEL_2)
         self.state = st
         reward = 1. if self._reward else 0.
-        return (self._get(), reward, self._terminal, {})
+        return (self._get(), reward, self._terminal(), {})
 
     def reset(self):
         self.state = self.np_random.uniform(low = -0.1, high = 0.1, size = (4,))
-        return self._get_ob()
+        return self._get()
 
     def render(self, mode = 'human', close = False):
+        from gym.envs.classic_control import rendering
         s= self.state
+
+        if self.viewer is None:
+            self.viewer = rendering.Viewer(500,500)
+            self.viewer.set_bounds(-2.2,2.2,-2.2,2.2)
+
         if s is None: return None
         p1 = [-self.LINK_LENGTH_1 *
               np.cos(s[0]), self.LINK_LENGTH_1 * np.sin(s[0])]
@@ -97,11 +121,12 @@ class AcroBot(core.Env):
 
     def _get(self):
         s = self.state
-        return np.array([cos(s[0])], sin(s[0]), cos(s[1]), sin(s[1]), s[2], s[3])
+        return np.array([s[0], s[1], s[2], s[3]])
 
 
     def _terminal(self):
         s = self.state
+        print(bool(-cos(s[0])-cos(s[0]+s[1])>1))
         return bool(-cos(s[0])-cos(s[0]+s[1])>1)
 
     def _reward(self):
