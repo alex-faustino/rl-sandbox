@@ -369,12 +369,11 @@ class CapEnv(gym.Env):
                 print("No valid policy for blue team and no actions provided")
                 exit()
         elif type(entities_action) is int:
+            move_list_blue = []
             if entities_action >= len(self.ACTION) ** (NUM_BLUE + NUM_UAV):
                 sys.exit("ERROR: You entered too many moves. \
                          There are " + str(NUM_BLUE + NUM_UAV) + " entities.")
-            while len(move_list) < (NUM_BLUE + NUM_UAV):
-                move_list_blue.append(entities_action % 5)
-                entities_action = int(entities_action / 5)
+            move_list_blue = np.asarray(entities_action)
         else:
             if len(entities_action) > NUM_BLUE + NUM_UAV:
                 sys.exit("ERROR: You entered too many moves. \
