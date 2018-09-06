@@ -5,32 +5,32 @@ import numpy as np
 from numpy import sin, cos, pi
 #from scipy.integrate import ode, RK45
 
+"""
+In this implementation we focused on the following important changes mentioned in the HW. 
+we mentioned these in the code where the design considerations have been implemented
+1. the time step is fixed; 
+2. the agent can observe joint angles and joint velocities (perfect measurements) at the start of each time step;
+3. the control input is constant throughout each time step (i.e., zero-order hold);
+4. the reward is +1 when the first joint angle is in the interval [(pi / 2) - delta, (pi / 2) + delta] and 
+the second joint angle is in the interval [0 - delta, 0 + delta], and 0 otherwise;
+5. the initial joint angles and joint velocities are each sampled from a unit normal distribution about zero.
+
+Basic description of Acrobot: 
+Acrobot is a 2-link pendulum with only the second joint actuated
+Intitially, both links point downwards. The goal is to swing the
+end-effector at a height at least the length of one link above the base.
+Both links can swing freely and can pass by each other, i.e., they don't
+collide when they have the same angle.
+**STATE:**
+The state consists of the sin() and cos() of the two rotational joint
+angles and the joint angular velocities :
+[cos(theta1) sin(theta1) cos(theta2) sin(theta2) thetaDot1 thetaDot2].
+For the first link, an angle of 0 corresponds to the link pointing downwards.
+The angle of the second link is relative to the angle of the first link.
+An angle of 0 corresponds to having the same angle between the two links.
+"""
+
 class AcroEnvNew(core.Env):
-
-    """
-    In this implementation we focused on the following important changes mentioned in the HW. 
-    we mentioned these in the code where the design considerations have been implemented
-    1. the time step is fixed; 
-    2. the agent can observe joint angles and joint velocities (perfect measurements) at the start of each time step;
-    3. the control input is constant throughout each time step (i.e., zero-order hold);
-    4. the reward is +1 when the first joint angle is in the interval [(pi / 2) - delta, (pi / 2) + delta] and 
-    the second joint angle is in the interval [0 - delta, 0 + delta], and 0 otherwise;
-    5. the initial joint angles and joint velocities are each sampled from a unit normal distribution about zero.
-
-    Basic description of Acrobot: 
-    Acrobot is a 2-link pendulum with only the second joint actuated
-    Intitially, both links point downwards. The goal is to swing the
-    end-effector at a height at least the length of one link above the base.
-    Both links can swing freely and can pass by each other, i.e., they don't
-    collide when they have the same angle.
-    **STATE:**
-    The state consists of the sin() and cos() of the two rotational joint
-    angles and the joint angular velocities :
-    [cos(theta1) sin(theta1) cos(theta2) sin(theta2) thetaDot1 thetaDot2].
-    For the first link, an angle of 0 corresponds to the link pointing downwards.
-    The angle of the second link is relative to the angle of the first link.
-    An angle of 0 corresponds to having the same angle between the two links.
-    """
 
     metadata = {
         'render.modes': ['human', 'rgb_array'],
