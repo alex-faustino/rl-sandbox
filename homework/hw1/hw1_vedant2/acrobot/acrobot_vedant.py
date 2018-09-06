@@ -45,7 +45,7 @@ class acrobot_vedant(core.Env):
     MAX_VEL_2 = 10 * np.pi
 
     torque_max = 1.0
-    delta = 0.1*180/np.pi
+    delta = 0.1*np.pi/180
     torque_noise_max = 0.
 
     #: use dynamics equations from the nips paper or the book
@@ -105,7 +105,7 @@ class acrobot_vedant(core.Env):
         self.state = ns
         terminal = self._terminal()
         reward = 1. if terminal else 0.
-        return (self._get_ob(), reward, terminal, {})
+        return (self._get_ob(), reward, False, {})
 
     def _get_ob(self):
         s = self.state

@@ -13,12 +13,11 @@ from gym.envs.registration import register, registry, make, spec
 
 register(
     id='GridWorld-v0',
-    entry_point='gridWorld.gridWorld:gridWorld',
+    entry_point='gridWorld.gridWorld2:gridWorld',
 )
-'''
+
 register(
-    id='hard_gridWorld-v0',
-    entry_point='gridWorld.gridWorld:gridWorld',
+    id='hard_GridWorld-v0',
+    entry_point='gridWorld.gridWorld2:gridWorld',
     kwargs={'hard': True},
 )
-'''
