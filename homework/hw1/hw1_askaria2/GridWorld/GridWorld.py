@@ -2,6 +2,7 @@
 from gym import core, spaces
 import numpy as np
 from time import sleep
+import matplotlib.pyplot as plt
 
 __copyright__ = "Copyleft"
 __license__ = "None"
@@ -114,12 +115,47 @@ class GridWorld(core.Env):
             self.viewer.close()
 
 env = GridWorld()
-for i_episode in range(20):
+
+episode_num = 1
+time_horizon = 100
+
+reward_vector = np.zeros(time_horizon)
+pos_x = np.zeros(time_horizon)
+pos_y = np.zeros(time_horizon)
+action_vector = np.zeros(time_horizon)
+T = np.zeros(time_horizon)
+
+for i_episode in range(episode_num):
     observation = env.reset()
-    for t in range(100):
+    for t in range(time_horizon):
         env.render()
         action = env.action_space.sample()
         observation, reward = env.step(action)
+
+        reward_vector[t] = reward
+        action_vector[t] = action
+        pos_x[t] = observation[0]
+        pos_y[t] = observation[1]
+        T[t] = t
         print(observation)
         print(reward)
+    env.close()
 
+
+plt.plot(T, reward_vector, 'r')
+plt.ylabel('reward')
+plt.xlabel('time index')
+plt.show()
+
+plt.plot(T, action_vector, 'b')
+plt.ylabel('action')
+plt.xlabel('time index')
+plt.show()
+
+plt.plot(T, pos_x, 'b')
+plt.plot(T, pos_y, 'r')
+plt.annotate('x trajectory', xy=(T[24]+0.05, pos_x[24]+0.05), xytext=(T[24]+0.5, pos_x[24]+0.5), arrowprops=dict(facecolor='magenta', shrink=0.1),)
+plt.annotate('y trajectory', xy=(T[55]+0.05, pos_y[55]+0.05), xytext=(T[55]+0.5, pos_y[55]+0.5), arrowprops=dict(facecolor='magenta', shrink=0.1),)
+plt.ylabel('x and y')
+plt.xlabel('time index')
+plt.show()
