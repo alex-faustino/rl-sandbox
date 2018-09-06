@@ -14,37 +14,18 @@ Created on Wed Sep  5 01:16:54 2018
 """
 import sys, math, pygame
 from operator import itemgetter
+import numpy as np
  
 class Point3D:
     def __init__(self, x = 0, y = 0, z = 0):
-        self.x, self.y, self.z = float(x), float(y), float(z)
+        
+        self.vec = np.matrix([x],[y],[z])
+        self.x, self.y, self.z = float(self.vec[0]), float(self.vec[1]), float([2])
  
-    def rotateX(self, angle):
-        """ Rotates the point around the X axis by the given angle in degrees. """
-        rad = angle * math.pi / 180
-        cosa = math.cos(rad)
-        sina = math.sin(rad)
-        y = self.y * cosa - self.z * sina
-        z = self.y * sina + self.z * cosa
-        return Point3D(self.x, y, z)
- 
-    def rotateY(self, angle):
+    def rotate(self, R):
         """ Rotates the point around the Y axis by the given angle in degrees. """
-        rad = angle * math.pi / 180
-        cosa = math.cos(rad)
-        sina = math.sin(rad)
-        z = self.z * cosa - self.x * sina
-        x = self.z * sina + self.x * cosa
-        return Point3D(x, self.y, z)
- 
-    def rotateZ(self, angle):
-        """ Rotates the point around the Z axis by the given angle in degrees. """
-        rad = angle * math.pi / 180
-        cosa = math.cos(rad)
-        sina = math.sin(rad)
-        x = self.x * cosa - self.y * sina
-        y = self.x * sina + self.y * cosa
-        return Point3D(x, y, self.z)
+        v_r = R*self.vec
+        return Point3D(v_r[0], v_r[1], v_r[2])
  
     def project(self, win_width, win_height, fov, viewer_distance):
         """ Transforms this 3D point to 2D using a perspective projection. """
@@ -82,7 +63,7 @@ class Simulation:
  
         self.angle = 0
  
-    def run(self):
+    def run(self,R):
         """ Main Loop """
         while 1:
             for event in pygame.event.get():
@@ -98,7 +79,7 @@ class Simulation:
  
             for v in self.vertices:
                 # Rotate the point around X axis, then around Y axis, and finally around Z axis.
-                r = v.rotateX(self.angle).rotateY(self.angle).rotateZ(self.angle)
+                r = v.rotate(R)
                 # Transform the point from 3D to 2D
                 p = r.project(self.screen.get_width(), self.screen.get_height(), 256, 4)
                 # Put the point in the list of transformed vertices

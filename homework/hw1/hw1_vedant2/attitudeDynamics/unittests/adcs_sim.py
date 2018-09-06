@@ -103,15 +103,7 @@ error_last = array([0.0,0.0,0.0]);
     
 for k in enumerate(time_data):
     #print time_data[k]
-    Xk = integrate.odeint(attitude_dynamics, X, [0,dt/2.,dt], args=(Torque,Inertia))
-    X = Xk[-1]
-    X_data[k[0],:] = X 
     
-    #pdb.set_trace()
-    # compute control Torque
-    # 
-    q     = X[0:4];
-    euler = euler_from_quaternion(q)
     
     # compute error
     error = euler_ref - euler
