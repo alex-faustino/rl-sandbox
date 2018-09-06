@@ -15,6 +15,7 @@ class GridWorld(gym.Env):
 	def __init__(self):
 		#print('GridWorld loaded')
 		self.state = None
+		self.level = None
 
 	def step(self, action):
 		rown = self.state[0]
@@ -39,6 +40,20 @@ class GridWorld(gym.Env):
 
 		new_row, new_col = rown, coln
 		reward = 0
+
+		#change action if level is hard
+		if self.level=='hard':
+			rand_n = np.random.rand(1)[0]
+			if rand_n <= 0.6:
+				action = action
+			elif rand_n <= 0.7:
+				action = "N"
+			elif rand_n <= 0.8:
+				action = "S"
+			elif rand_n <= 0.9:
+				action = "E"
+			elif rand_n <= 1.0:
+				action = "W"
 
 		if action=="N":
 			if rown==0:
@@ -65,8 +80,9 @@ class GridWorld(gym.Env):
 		return self.state, reward, done, info
 
 
-	def reset(self):
+	def reset(self, curr_level='easy'):
 		self.state = np.random.randint(5, size=2)
+		self.level = curr_level
 		#print('Generate random initial state:', self.state)	
 		return self.state
 
