@@ -13,8 +13,7 @@ class GOLEnv(core.Env):
         self.nS = nx*ny
         
         self.observation_space = spaces.Discrete(self.nS)
-        self.action_space = spaces.Discrete(self.nS//4) #alive or died
-        #self.grid = numpy.zeros(self.nS, dtype='i').reshape(nx,ny)
+        self.action_space = spaces.Discrete(self.nS//4) #Nb of alive cell at time = 0
         
 
 
@@ -29,7 +28,7 @@ class GOLEnv(core.Env):
         return j*self.nx + i
 
     def _aliveNeighbours(self, i, j):
-        """ Count the number of live neighbours around point (i, j). """
+        ##Count the number of live neighbours around point (i, j).
         count = 0 #
         for x in [i-1, i, i+1]:
             for y in [j-1, j, j+1]:
