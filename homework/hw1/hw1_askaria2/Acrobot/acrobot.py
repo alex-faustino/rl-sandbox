@@ -4,6 +4,7 @@ from gym.utils import seeding
 import numpy as np
 from numpy import sin, cos, pi
 from time import sleep
+import matplotlib.pyplot as plt
 
 __copyright__ = "Copyleft"
 __license__ = "None"
@@ -250,13 +251,53 @@ def rk4(derivs, y0, t, *args, **kwargs):
     return yout
 
 env = AcrobotEnv()
-for i_episode in range(1):
+
+episode_num = 1
+time_horizon = 1000
+
+reward_vector = np.zeros(time_horizon)
+theta1 = np.zeros(time_horizon)
+theta2 = np.zeros(time_horizon)
+theta1_dot = np.zeros(time_horizon)
+theta2_dot = np.zeros(time_horizon)
+action_vector = np.zeros(time_horizon)
+T = np.zeros(time_horizon)
+
+for i_episode in range(episode_num):
     observation = env.reset()
-    for t in range(1000):
+    for t in range(time_horizon):
         env.render()
         action = env.action_space.sample()
         observation, reward, term, x = env.step(action)
-        sleep(0.02)
-        print(observation)
-        print(reward)
 
+        reward_vector[t] = reward
+        action_vector[t] = action
+        theta1[t] = (180/pi) * observation[0]
+        theta2[t] = (180/pi) * observation[1]
+        theta1_dot[t] = observation[2]
+        theta2_dot[t] = observation[3]
+        T[t] = t
+    env.close()
+
+plt.plot(T, reward_vector, 'r')
+plt.ylabel('reward')
+plt.xlabel('time index')
+plt.show()
+
+plt.plot(T, action_vector, 'b')
+plt.ylabel('torque')
+plt.xlabel('time index')
+plt.show()
+
+
+plt.plot(T, theta1, 'b')
+plt.plot(T, theta2, 'r')
+plt.ylabel('joints angle (deg)')
+plt.xlabel('time index')
+plt.show()
+
+plt.plot(T, theta1_dot, 'b')
+plt.plot(T, theta2_dot, 'r')
+plt.ylabel('joints angular velocity (rad/s)')
+plt.xlabel('time index')
+plt.show()
