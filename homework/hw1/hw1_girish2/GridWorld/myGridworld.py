@@ -107,4 +107,5 @@ class gridWorldEnv():
 
     def reset(self):
         self.state = np.random.randint(low=0, high=self.nCell)
+        return self.state
 
