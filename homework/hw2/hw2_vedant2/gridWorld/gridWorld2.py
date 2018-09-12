@@ -30,7 +30,7 @@ class gridWorld(discrete.DiscreteEnv):
         self.desc = desc = np.asarray(GRID['G1'],dtype='c')
         self.nrow, self.ncol = nrow, ncol = desc.shape
         self.reward_range = (-1, 0, 5, 10)
-
+		self.lastaction = 0;
         nA = 4
         nS = nrow * ncol
 
@@ -42,6 +42,7 @@ class gridWorld(discrete.DiscreteEnv):
         def to_s(row, col):
             return row*ncol + col
         def inc(row, col, a):
+			self.lastaction = a;
             if hard:
                 if np.random.rand(1,1)>0.8:
                     a = np.random.randint(0,4)
