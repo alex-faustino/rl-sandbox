@@ -16,7 +16,7 @@ if not test:
         
         obs = env.reset()
         act = aSARSA.greedy(obs)
-        
+        sumR = 0
         if i_episode == num_episodes-1:
             aSARSA.activeSave()
         for t in range(time_horizon):
@@ -27,7 +27,8 @@ if not test:
             obs, r, done, info = env.step(act)
             act = aSARSA.greedy(obs)
             aSARSA.updateSARSA(act_prev,act,obs_prev,obs,r)
-            aSARSA.saveHistory(obs_prev,r,t)
+            sumR += r
+            aSARSA.saveHistory(obs_prev,sumR,t)
         
 
         (posX,posY,cr,time) = aSARSA.getHistory()
@@ -43,7 +44,7 @@ if test:
         
         obs = env.reset()
         act = aQ.greedy(obs)
-        
+        sumR = 0
         if i_episode == num_episodes-1:
             aQ.activeSave()
         for t in range(time_horizon):
@@ -54,7 +55,8 @@ if test:
             obs, r, done, info = env.step(act)
             act = aQ.greedy(obs)
             aQ.updateQ(act_prev,obs_prev,obs,r)
-            aQ.saveHistory(obs_prev,r,t)
+            sumR += r
+            aQ.saveHistory(obs_prev,sumR,t)
         
 
         (QposX,QposY,Qcr,Qtime) = aQ.getHistory()
