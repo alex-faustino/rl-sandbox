@@ -3,7 +3,7 @@
 AE 598RL Homework-2
 Author: Girish Joshi
 Email: girishj2@illinois.edu
-This Code implements the SARSA Learning Algorithm
+This Code implements the Q-Learning Algorithm
 #-------------------------------------------
 '''
 import numpy as np
