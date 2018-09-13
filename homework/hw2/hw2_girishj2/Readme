@@ -1,11 +1,11 @@
-This code implements the Q Learning and SARSA on Stochastic and Deterministic GridWorld
-
-Q Learning and SARSA
+This code implements the Q Learning and SARSA Algorithms on Stochastic and Deterministic GridWorld
 
 User Inputs to grid world Env:
 
 1) mode  Easy = True/False
 This selection chooses between probabilistic and determinitic GridWorld model
+
+Learning Parameters:
 
 maxEpisode = 5000
 epLength = 50 (Since there is no terminal state, I restrict each epsiode to be of length 50)
