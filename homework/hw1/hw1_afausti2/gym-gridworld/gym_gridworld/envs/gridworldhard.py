@@ -16,9 +16,8 @@ class GridWorldHardEnv(gym.Env):
         self.action_space = spaces.Discrete(4)
 
         # set observation space
-        self.obs_high = 4
-        self.observation_space = spaces.Box(low=0, high=self.obs_high,
-                                            shape=[self.obs_high, self.obs_high], dtype=np.uint8)
+        self.obs_box_high = 4
+        self.observation_space = spaces.Discrete((self.obs_box_high + 1)**2)
 
         self.seed()
         self.viewer = None
@@ -33,53 +32,55 @@ class GridWorldHardEnv(gym.Env):
         if np.random.rand() < .1:
             action = self.action_space.sample()
 
-        assert self.action_space.contains(action), "%r (%s) invalid" % (action, type(action))
-        x1, x2 = self.state
+        assert self.action_space.contains(action), "%{0} ({1}) invalid".format(action, type(action))
+        s = self.state
+        x1 = s % 5
+        x2 = s // 5
 
         # handle special cases
         if x1 == 1 and x2 == 4:
             reward = 10
-            self.state = [1, 0]
+            self.state = 1
         elif x1 == 3 and x2 == 4:
             reward = 5
-            self.state = [3, 2]
+            self.state = 13
         # handle edge cases
-        elif (x1 == 0 and action == 3) or (x1 == self.obs_high and action == 1) \
-                or (x2 == 0 and action == 2) or (x2 == self.obs_high and action == 0):
+        elif (x1 == 0 and action == 3) or (x1 == self.obs_box_high and action == 1) \
+                or (x2 == 0 and action == 2) or (x2 == self.obs_box_high and action == 0):
             reward = -1
-            self.state = [x1, x2]
+            self.state = s
         # normal cases
         else:
             reward = 0
             if action == 0:
-                x2 += 1
+                s += 5
             if action == 1:
-                x1 += 1
+                s += 1
             if action == 2:
-                x2 += -1
+                s += -5
             if action == 3:
-                x1 += -1
-            self.state = [x1, x2]
+                s += -1
+            self.state = s
 
         done = False
-        return np.array(self.state), reward, done, []
+        return self.state, reward, done, []
 
     def reset(self):
-        self.state = self.np_random.randint(low=0, high=self.obs_high, size=(2,))
-        return np.array(self.state)
+        self.state = self.np_random.randint(low=0, high=self.observation_space.n - 1)
+        return self.state
 
     def render(self, mode='human'):
         screen_width = 600
         screen_height = 600
 
-        world_width = self.obs_high + 1
+        world_width = self.obs_box_high + 1
         scale = screen_width / world_width
 
         if self.viewer is None:
             from gym.envs.classic_control import rendering
             self.viewer = rendering.Viewer(screen_width, screen_height)
             # draw grid
-            for i in range(self.obs_high + 2):
+            for i in range(self.obs_box_high + 2):
                 v_line = self.viewer.draw_line((i * scale, 0.), (i * scale, screen_height))
                 h_line = self.viewer.draw_line((0., i * scale), (screen_width, i * scale))
                 self.viewer.add_geom(v_line)
@@ -95,7 +96,8 @@ class GridWorldHardEnv(gym.Env):
         if self.state is None:
             return None
 
-        self.agent_trans.set_translation(self.state[0] * scale + scale / 2, self.state[1] * scale + scale / 2)
+        render_state = [self.state % 5, self.state // 5]
+        self.agent_trans.set_translation(render_state[0] * scale + scale / 2, render_state[1] * scale + scale / 2)
 
         return self.viewer.render(return_rgb_array=mode == 'rgb_array')
 

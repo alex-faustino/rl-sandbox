@@ -1,66 +1,100 @@
 import numpy as np
-import pandas as pd
 
 # Pretty standard implementations of SARSA and Q-Learning in Python
 # Adapted from: github.com/MorvanZhou/Reinforcement-learning-with-tensorflow
 
 
 class GenTableMethodsRL(object):
-    def __init__(self, action_space, learning_rate, reward_decay, eps):
-        self.actions = action_space
+    def __init__(self, env, learning_rate, reward_decay, eps):
+        self.env = env
         self.learning_rate = learning_rate
         self.reward_decay = reward_decay
         self.eps = eps
 
-        self.q_table = pd.DataFrame(columns=self.actions, dtype=np.float64)
+        self.q_table = np.zeros((self.env.observation_space.n, self.env.action_space.n))
 
-    def check_state_in_table(self, state):
-        if state not in self.q_table.index:
-            # append new state to q table
-            self.q_table = self.q_table.append(
-                pd.Series([0]*len(self.actions), index=self.q_table.columns, name=state,)
-            )
-
-    def choose_action(self, observation):
-        self.check_state_in_table(observation)
-        # action selection
+    def choose_action(self, s):
         if np.random.rand() < (1 - self.eps):
             # exploitation
-            state_action = self.q_table.loc[observation, :]
-            # some actions may have the same value, randomly choose one in these actions
-            action = np.random.choice(state_action[state_action == np.max(state_action)].index)
+            a = self.q_table[s, :].argmax()
         else:
             # exploration
-            action = np.random.choice(self.actions)
-        return action
+            a = self.env.action_space.sample()
+        return a
+
+    def train(self, *args):
+        pass
 
     def learn(self, *args):
         pass
 
 
 class Sarsa(GenTableMethodsRL):
-    def __init__(self, actions, learning_rate, reward_decay, eps):
-        super(Sarsa, self).__init__(actions, learning_rate, reward_decay, eps)
+    def __init__(self, env, learning_rate, reward_decay, eps):
+        super(Sarsa, self).__init__(env, learning_rate, reward_decay, eps)
+
+    def train(self, s, a, max_episode_length, viz):
+        cum_reward = 0
+        for t in range(max_episode_length):
+            if viz:
+                self.env.render()
+
+            s_plus1, r, done, info = self.env.step(a)
+            a_plus1 = self.choose_action(s_plus1)
+            if t == max_episode_length - 1:  # temporary way to end each episode cleanly
+                s_plus1 = 'terminal'
+
+            # update q
+            self.learn(s, a, r, s_plus1, a_plus1)
+
+            # cycle
+            s = s_plus1
+            a = a_plus1
+
+            # accumulate reward
+            cum_reward += r
+
+        return cum_reward
 
     def learn(self, s, a, r, s_plus1, a_plus1):
-        self.check_state_in_table(s_plus1)
-        q_predict = self.q_table.loc[s, a]
+        q_predict = self.q_table[s, a]
         if s_plus1 != 'terminal':
-            q_target = r + self.reward_decay*self.q_table.loc[s_plus1, a_plus1]
+            q_target = r + self.reward_decay*self.q_table[s_plus1, a_plus1]
         else:
             q_target = r
-        self.q_table.loc[s, a] += self.learning_rate*(q_target - q_predict)
+        self.q_table[s, a] += self.learning_rate*(q_target - q_predict)
 
 
 class QLearning(GenTableMethodsRL):
-    def __init__(self, actions, learning_rate, reward_decay, eps):
-        super(QLearning, self).__init__(actions, learning_rate, reward_decay, eps)
+    def __init__(self, env, learning_rate, reward_decay, eps):
+        super(QLearning, self).__init__(env, learning_rate, reward_decay, eps)
+
+    def train(self, s, max_episode_length, viz):
+        cum_reward = 0
+        for t in range(max_episode_length):
+            if viz:
+                self.env.render()
+
+            a = self.choose_action(s)
+            s_plus1, r, done, info = self.env.step(a)
+            if t == max_episode_length - 1:  # temporary way to end each episode cleanly
+                s_plus1 = 'terminal'
+
+            # update q
+            self.learn(s, a, r, s_plus1)
+
+            # cycle
+            s = s_plus1
+
+            # accumulate reward
+            cum_reward += r
+
+        return cum_reward
 
     def learn(self, s, a, r, s_plus1):
-        self.check_state_in_table(s_plus1)
-        q_predict = self.q_table.loc[s, a]
+        q_predict = self.q_table[s, a]
         if s_plus1 != 'terminal':
-            q_target = r + self.reward_decay*self.q_table.loc[s_plus1, :].max()
+            q_target = r + self.reward_decay*self.q_table[s_plus1, :].max()
         else:
             q_target = r
-        self.q_table.loc[s, a] += self.learning_rate * (q_target - q_predict)
+        self.q_table[s, a] += self.learning_rate * (q_target - q_predict)
