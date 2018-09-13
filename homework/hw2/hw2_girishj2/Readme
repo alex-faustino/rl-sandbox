@@ -1,4 +1,4 @@
-#This code implements the Q Learning and SARSA Algorithms on Stochastic and Deterministic GridWorld
+This code implements the Q Learning and SARSA Algorithms on Stochastic and Deterministic GridWorld
 
 User Inputs to grid world Env:
 
