@@ -30,16 +30,8 @@ class GridWorldHardEnv(gym.Env):
 
     def step(self, action):
         # randomly choose another action 10% of the time
-        hard_factor = np.random.rand()
-        if hard_factor < .1:
-            if hard_factor < .025:
-                action = 0
-            elif hard_factor < .05:
-                action = 1
-            elif hard_factor < .075:
-                action = 2
-            else:
-                action = 3
+        if np.random.rand() < .1:
+            action = self.action_space.sample()
 
         assert self.action_space.contains(action), "%r (%s) invalid" % (action, type(action))
         x1, x2 = self.state
