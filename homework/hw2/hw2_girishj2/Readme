@@ -14,3 +14,5 @@ epsilon decay = 0.999
 gamma = 0.99
 learning rate = 0.05
 
+Codes: sarsa_gridWorld.py and QLearning_gridWorld.py
+
