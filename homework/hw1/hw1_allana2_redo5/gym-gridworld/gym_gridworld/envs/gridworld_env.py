@@ -25,7 +25,8 @@ class GridworldEnv(gym.Env):
         self.inv_actions = [0, 2, 1, 4, 3]
         self.action_space = spaces.Discrete(5)
         self.action_pos_dict = {0: [0,0], 1:[-1, 0], 2:[1,0], 3:[0,-1], 4:[0,1]}
- 
+        self.reward = np.matrix('0 0 0 0 0 0 0;0 3.3 8.8 4.4 5.4 1.5 0;0 1.5 3.0 2.3 1.9 0.5 0;0 0.1 0.7 0.7 0.4 -0.4 0; 0 -1.0 -0.4 -0.4 -0.6 -1.2 0;0 -1.9 -1.3 -1.2 -1.4 -2.0 0;0 0 0 0 0 0 0') 
+
         ''' set observation space '''
         self.obs_shape = [128, 128, 3]  # observation space shape
         self.observation_space = spaces.Box(low=0, high=1, shape=self.obs_shape, dtype=np.float32)
@@ -40,6 +41,8 @@ class GridworldEnv(gym.Env):
 
         ''' agent state: start, target, current state '''
         self.agent_start_state, self.agent_target_state = self.get_agent_start_target_state(self.start_grid_map)
+#        self.agent_start_state[0] = 3
+#        self.agent_start_state[1] = 6
         self.agent_state = copy.deepcopy(self.agent_start_state)
 
         ''' set other parameters '''
@@ -80,7 +83,7 @@ class GridworldEnv(gym.Env):
             elif org_color == 6 or org_color == 7:
                 self.current_grid_map[self.agent_state[0], self.agent_state[1]] = org_color-4 
                 self.current_grid_map[nxt_agent_state[0], nxt_agent_state[1]] = 4
-            self.agent_state = copy.deepcopy(nxt_agent_state)
+            #self.agent_state = copy.deepcopy(nxt_agent_state)
         elif new_color == 1: # gray
             info['success'] = False
             return (self.observation, 0, False, info)
@@ -164,6 +167,8 @@ class GridworldEnv(gym.Env):
     def change_start_state(self, sp):
         ''' change agent start state '''
         ''' Input: sp: new start state '''
+        sp[0] = np.random.randint(1,7) # does not include the upper limit integer
+        sp[1] = np.random.randint(1,7) # does not include the upper limit integer
         if self.agent_start_state[0] == sp[0] and self.agent_start_state[1] == sp[1]:
             _ = self.reset()
             return True
@@ -191,7 +196,7 @@ class GridworldEnv(gym.Env):
         else:
             t_pos = copy.deepcopy(self.agent_target_state)
             self.start_grid_map[t_pos[0], t_pos[1]] = 0
-            self.start_grid_map[tg[0], tg[1]] = 3
+            self.start_grid_map[tg[0], tg[1]] = 3 # target state
             self.current_grid_map = copy.deepcopy(self.start_grid_map)
             self.agent_target_state = [tg[0], tg[1]]
             self.observation = self.gridmap_to_observation(self.current_grid_map)
@@ -208,9 +213,9 @@ class GridworldEnv(gym.Env):
         ''' get current start state '''
         return self.agent_start_state
 
-    def get_target_state(self):
-        ''' get current target state '''
-        return self.agent_target_state
+#    def get_target_state(self):
+#        ''' get current target state '''
+#        return self.agent_target_state
 
     def jump_to_state(self, to_state):
         ''' move agent to another state '''
