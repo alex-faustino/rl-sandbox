@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+# %load "gridWorld/gridWorld2"
 """
 Created on Thu Sep  6 05:40:09 2018
 
@@ -30,7 +30,7 @@ class gridWorld(discrete.DiscreteEnv):
         self.desc = desc = np.asarray(GRID['G1'],dtype='c')
         self.nrow, self.ncol = nrow, ncol = desc.shape
         self.reward_range = (-1, 0, 5, 10)
-		self.lastaction = 0;
+        self.lastaction = 0;
         nA = 4
         nS = nrow * ncol
 
@@ -42,18 +42,18 @@ class gridWorld(discrete.DiscreteEnv):
         def to_s(row, col):
             return row*ncol + col
         def inc(row, col, a):
-			self.lastaction = a;
+            self.lastaction = a;
             if hard:
                 if np.random.rand(1,1)>0.8:
                     a = np.random.randint(0,4)
             probability = 1.0;
             reward = 0;
             #check if in A or B
-            if (row == 0 & col == 1 ):
+            if ((row == 0) & (col == 1 )):
                 reward = 10;
                 row = nrow-1;
                 probability = 1.0;
-            elif (row == 0 & col == 3 ):
+            elif ((row == 0) & (col == 3 )):
                 reward = 5;
                 row = 2;
                 probability = 1.0;
@@ -90,6 +90,7 @@ class gridWorld(discrete.DiscreteEnv):
                     li.append((probability, newstate, rew, False))
 
         super(gridWorld, self).__init__(nS, nA, P, isd)
+
 
     def render(self, mode='human'):
         outfile = StringIO() if mode == 'ansi' else sys.stdout

@@ -1,6 +1,8 @@
 import numpy as np
 import pandas as pd
-from gym import spaces
+
+# Pretty standard implementations of SARSA and Q-Learning in Python
+# Adapted from: github.com/MorvanZhou/Reinforcement-learning-with-tensorflow
 
 
 class GenTableMethodsRL(object):
@@ -23,12 +25,12 @@ class GenTableMethodsRL(object):
         self.check_state_in_table(observation)
         # action selection
         if np.random.rand() < (1 - self.eps):
-            # choose best action
+            # exploitation
             state_action = self.q_table.loc[observation, :]
             # some actions may have the same value, randomly choose one in these actions
             action = np.random.choice(state_action[state_action == np.max(state_action)].index)
         else:
-            # choose random action
+            # exploration
             action = np.random.choice(self.actions)
         return action
 
@@ -37,7 +39,6 @@ class GenTableMethodsRL(object):
 
 
 class Sarsa(GenTableMethodsRL):
-
     def __init__(self, actions, learning_rate, reward_decay, eps):
         super(Sarsa, self).__init__(actions, learning_rate, reward_decay, eps)
 
@@ -45,7 +46,21 @@ class Sarsa(GenTableMethodsRL):
         self.check_state_in_table(s_plus1)
         q_predict = self.q_table.loc[s, a]
         if s_plus1 != 'terminal':
-            q_target = r + self.reward_decay*self.q_table.loc[s_plus1, a_plus1]  # next state is not terminal
+            q_target = r + self.reward_decay*self.q_table.loc[s_plus1, a_plus1]
         else:
-            q_target = r  # next state is terminal
-        self.q_table.loc[s, a] += self.learning_rate*(q_target - q_predict)  # update
+            q_target = r
+        self.q_table.loc[s, a] += self.learning_rate*(q_target - q_predict)
+
+
+class QLearning(GenTableMethodsRL):
+    def __init__(self, actions, learning_rate, reward_decay, eps):
+        super(QLearning, self).__init__(actions, learning_rate, reward_decay, eps)
+
+    def learn(self, s, a, r, s_plus1):
+        self.check_state_in_table(s_plus1)
+        q_predict = self.q_table.loc[s, a]
+        if s_plus1 != 'terminal':
+            q_target = r + self.reward_decay*self.q_table.loc[s_plus1, :].max()
+        else:
+            q_target = r
+        self.q_table.loc[s, a] += self.learning_rate * (q_target - q_predict)
