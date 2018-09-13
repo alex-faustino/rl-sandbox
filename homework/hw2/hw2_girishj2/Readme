@@ -2,7 +2,7 @@ This code implements the Q Learning and SARSA Algorithms on Stochastic and Deter
 
 User Inputs to grid world Env:
 
-1) mode  Easy = True/False
+Mode  Easy = True/False
 This selection chooses between probabilistic and determinitic GridWorld model
 
 Learning Parameters:
