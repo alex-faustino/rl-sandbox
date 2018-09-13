@@ -1,5 +1,0 @@
-name: gridworld
-dependencies:
-    - python=3.5.2
-    - pillow
-    - matplotlib

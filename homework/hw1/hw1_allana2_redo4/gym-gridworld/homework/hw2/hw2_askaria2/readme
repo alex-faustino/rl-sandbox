@@ -1,3 +1,0 @@
-Learning.py includes Q-learning and SARSA reinforcement learning algorithms as utility classes.
-GridWorld.py includes grid world environment object required to simulate grid world.
-Test.py include code to run learning algorithm on grid world.
