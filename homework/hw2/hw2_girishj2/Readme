@@ -1,1 +1,16 @@
 This code implements the Q Learning and SARSA
+
+Q Learning and SARSA
+
+User Inputs to grid world Env:
+
+1) mode  Easy = True/False
+This selection chooses between probabilistic and determinitic GridWorld model
+
+maxEpisode = 5000
+epLength = 50 (Since there is no terminal state, I restrict each epsiode to be of length 50)
+epsilon = 0.3
+epsilon decay = 0.999
+gamma = 0.99
+learning rate = 0.05
+
