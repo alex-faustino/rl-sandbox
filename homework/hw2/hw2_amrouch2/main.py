@@ -20,7 +20,8 @@ if not test:
         if i_episode == num_episodes-1:
             aSARSA.activeSave()
         for t in range(time_horizon):
-            env.render('human')
+            if i_episode == num_episodes-1:
+                env.render('human')
             obs_prev = obs
             act_prev = act
             obs, r, done, info = env.step(act)
@@ -46,7 +47,8 @@ if test:
         if i_episode == num_episodes-1:
             aQ.activeSave()
         for t in range(time_horizon):
-            env.render('human')
+            if i_episode == num_episodes-1:
+                env.render('human')
             obs_prev = obs
             act_prev = act
             obs, r, done, info = env.step(act)
@@ -63,14 +65,15 @@ if test:
 plt.plot(time, cr, 'b')
 plt.plot(time, Qcr, 'r')
 
-plt.ylabel(textlabel[0]+' and '+textlabel[1])
+plt.ylabel(textlabel[0]+' and '+textlabel[1]+ ' Cummulative reward')
 plt.xlabel('time')
 plt.show()
 
 fig = plt.subplot()
 fig.scatter(posX, posY)
 plt.plot(posX, posY, 'r--')
-
+fig.annotate('start', xy=(posX[0]+0.05, posY[0]+0.05), xytext=(posX[0]+0.5, posY[0]+0.5), arrowprops=dict(facecolor='magenta', shrink=0.01),)
+fig.annotate('end', xy=(posX[-1]+0.05, posY[-1]+0.05), xytext=(posX[-1]+0.5, posY[-1]+0.5), arrowprops=dict(facecolor='magenta', shrink=0.01),)
 plt.ylabel('y')
 plt.xlabel('x')
 plt.show()
@@ -78,7 +81,8 @@ plt.show()
 fig = plt.subplot()
 fig.scatter(QposX, QposY)
 plt.plot(QposX, QposY, 'r--')
-
+fig.annotate('start', xy=(QposX[0]+0.05, QposY[0]+0.05), xytext=(QposX[0]+0.5, QposY[0]+0.5), arrowprops=dict(facecolor='magenta', shrink=0.01),)
+fig.annotate('end', xy=(QposX[-1]+0.05, QposY[-1]+0.05), xytext=(QposX[-1]+0.5, QposY[-1]+0.5), arrowprops=dict(facecolor='magenta', shrink=0.01),)
 plt.ylabel('y')
 plt.xlabel('x')
 plt.show()
