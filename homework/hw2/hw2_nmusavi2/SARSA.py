@@ -11,9 +11,9 @@ import matplotlib.pyplot as plt
 class SARSA():
 
     def __init__(self):
-        mode = 'hard'
-        n_episodes = 2000
-        n_steps = 50
+        mode = 'easy'
+        n_episodes = 10000
+        n_steps = 100
         min_alpha = 0.1
         min_epsilon = 0.1
         gamma = 0.9
@@ -118,6 +118,7 @@ class SARSA():
             r = r + reward
             reward_vector.append(reward)
             print('reaches state ', current_state)
+            '''
             if (current_state[0] == self.env.prime_A_x and current_state[1] == self.env.prime_A_y) or (current_state[0] == self.env.prime_B_x and current_state[1] == self.env.prime_B_y):
                 if current_state[0] == self.env.prime_A_x and current_state[1] == self.env.prime_A_y:
                     prime_state = 'A\''
@@ -128,6 +129,7 @@ class SARSA():
         print('------------------------')
         print('Done!')
         print('agent reaches', prime_state, ' after ', e+1, ' steps')
+        '''
 
         fig = plt.subplot()
         fig.scatter(state_x, state_y)
