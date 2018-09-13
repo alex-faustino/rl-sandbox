@@ -25,12 +25,14 @@ class QlearningAlgo(object):
 
     def updateSARSA(self, a,anext, s, snext, r):
         alpha = np.power(1./self.alpha[s][a],.8)
+        #alpha = .9
         self.Q[s][a] += alpha * (r + self.gamma*self.Q[snext][anext]-self.Q[s][a])
         self.alpha[s][a] += 1.
 
 
     def updateQ(self, a, s, snext, r):
         alpha = np.power(1./self.alpha[s][a],.8)
+        #alpha = .9
         self.Q[s][a] += alpha * (r + self.gamma*np.max(self.Q[snext][:])-self.Q[s][a])
 
         self.alpha[s][a] +=  1.

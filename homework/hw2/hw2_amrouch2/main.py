@@ -5,13 +5,15 @@ import matplotlib.pyplot as plt
 
 test = 0
 textlabel = ['SARSA','Q']
-
+QallR = SallR = []
+QallRv = SallRv = 0
 if not test:
     env = gym.make('WorldGrid-v0')
     aSARSA = QlearningAlgo(env,.1,.96)
     
     num_episodes = 100
     time_horizon = 100
+    
     for i_episode in range(num_episodes):
         
         obs = env.reset()
@@ -29,6 +31,9 @@ if not test:
             aSARSA.updateSARSA(act_prev,act,obs_prev,obs,r)
             sumR += r
             aSARSA.saveHistory(obs_prev,sumR,t)
+            SallRv += r
+            if t%3 == 0:
+                SallR = np.append(SallR,SallRv)
         
 
         (posX,posY,cr,time) = aSARSA.getHistory()
@@ -57,7 +62,9 @@ if test:
             aQ.updateQ(act_prev,obs_prev,obs,r)
             sumR += r
             aQ.saveHistory(obs_prev,sumR,t)
-        
+            QallRv += r
+            if t%3 == 0 :
+                QallR = np.append(QallR,QallRv)
 
         (QposX,QposY,Qcr,Qtime) = aQ.getHistory()
 
@@ -67,7 +74,15 @@ if test:
 plt.plot(time, cr, 'b')
 plt.plot(time, Qcr, 'r')
 
-plt.ylabel(textlabel[0]+' and '+textlabel[1]+ ' Cummulative reward')
+plt.ylabel(textlabel[0]+'(b) and '+textlabel[1]+ '(r) Cummulative reward')
+plt.xlabel('time')
+plt.show()
+
+
+plt.plot( SallR, 'b')
+plt.plot( QallR, 'r')
+
+plt.ylabel(textlabel[0]+'(b) and '+textlabel[1]+ '(r) Cummulative reward')
 plt.xlabel('time')
 plt.show()
 
