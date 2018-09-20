@@ -35,8 +35,8 @@ class AcrobotEnv(core.Env):
         reward = 0
 
         # compute derivatives with given state and action
-        if a == 1: u = 1
-        elif a == 2: u = -1
+        if a == 1: u = 2
+        elif a == 2: u = -2
         else: u = 0
 
         dq1, dq2, ddq1, ddq2 = self._dsdt(self.state, u, self.dt)
