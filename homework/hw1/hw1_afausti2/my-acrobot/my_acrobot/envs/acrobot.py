@@ -31,17 +31,17 @@ class MyAcrobotEnv(gym.Env):
     MAX_VEL_1 = 4 * np.pi
     MAX_VEL_2 = 9 * np.pi
 
-    AVAIL_TORQUE = [-1., 0., +1]
-
     # Tolerance to earn reward
-    DELTA = 0.05
+    DELTA = np.pi/4
 
     def __init__(self):
         self.viewer = None
         high = np.array([1.0, 1.0, 1.0, 1.0, self.MAX_VEL_1, self.MAX_VEL_2])
         low = -high
+        M = 5
         self.observation_space = spaces.Box(low=low, high=high)
         self.action_space = spaces.Discrete(3)
+        self.avail_torque = [-M, 0., M]
         self.state = None
         self.seed()
 
@@ -55,7 +55,7 @@ class MyAcrobotEnv(gym.Env):
 
     def step(self, a):
         s = self.state
-        torque = self.AVAIL_TORQUE[a]
+        torque = self.avail_torque[a]
 
         # Now, augment the state with our force action so it can be passed to
         # _dsdt
@@ -148,6 +148,7 @@ class MyAcrobotEnv(gym.Env):
     def close(self):
         if self.viewer:
             self.viewer.close()
+
 
 def wrap(x, m, M):
     """
