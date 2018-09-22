@@ -109,11 +109,11 @@ class acrobot_vedant(core.Env):
 
     def _get_ob(self):
         s = self.state
-        return np.array([cos(s[0]), np.sin(s[0]), cos(s[1]), sin(s[1]), s[2], s[3]])
+        return np.array([s])
 
     def _terminal(self):
-        s = self.state
-        return bool((np.abs(s[0]-(np.pi/2))<self.delta) & (np.abs(s[0])<self.delta))
+        
+        return False
 
     def _dsdt(self, t,s_augmented):
         m1 = self.LINK_MASS_1
