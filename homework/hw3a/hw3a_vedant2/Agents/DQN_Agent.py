@@ -47,16 +47,28 @@ class DQN(nn.Module):
 
     def __init__(self):
         super(DQN, self).__init__()
-        self.fc1 = nn.Linear(7, 7)
-        self.fc2 = nn.Linear(7, 7)
-        self.fc3 = nn.Linear(7, 7)
-        self.head = nn.Linear(7, 1)
+        self.fc1 = nn.Linear(6, 6)
+        self.fc2 = nn.Linear(6, 6)
+        self.fc3 = nn.Linear(6, 6)
+        self.head = nn.Linear(6, 1)
 
     def forward(self, x):
+        #x = x.view(-1, self.num_flat_features(x))
+        #x = x.transpose(0,1)
         x = F.relu(self.fc1(x))
+        #x = x.view(-1, self.num_flat_features(x))
         x = F.relu(self.fc2(x))
+        #x = x.view(-1, self.num_flat_features(x))
         x = F.relu(self.fc3(x))
-        return self.head(x.view(x.size(0), -1))
+        return self.head(x)
+        
+    
+    def num_flat_features(self, x):
+        size = x.size()[1:]  # all dimensions except the batch dimension
+        num_features = 1
+        for s in size:
+            num_features *= s
+        return num_features
     
 Transition = namedtuple('Transition',
                         ('state', 'action', 'next_state', 'reward'))
@@ -86,7 +98,8 @@ def DQN_Agent(env,BATCH_SIZE = 128,GAMMA = 0.999,EPS_START = 0.9,EPS_END = 0.05,
     
     def select_action(state,epsilon):
         action=0
-        state = Variable(torch.from_numpy(state))
+        #state = state.reshape(state.shape+(1,))
+        state = (torch.from_numpy(state))
         if np.random.uniform(0, 1) > epsilon:
             action = Q_net(state)
         else:
@@ -139,7 +152,7 @@ def DQN_Agent(env,BATCH_SIZE = 128,GAMMA = 0.999,EPS_START = 0.9,EPS_END = 0.05,
         non_final_next_states = torch.cat([s for s in batch.next_state
                                                     if s is not None])
         state_batch = torch.cat(batch.state)
-        #action_batch = torch.cat(batch.action)
+        action_batch = torch.cat(batch.action)
         reward_batch = torch.cat(batch.reward)
     
         # Compute Q(s_t, a) - the model computes Q(s_t), then we select the
