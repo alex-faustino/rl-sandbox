@@ -53,10 +53,22 @@ class DQN(nn.Module):
         self.head = nn.Linear(6, 1)
 
     def forward(self, x):
+        #x = x.view(-1, self.num_flat_features(x))
+        #x = x.transpose(0,1)
         x = F.relu(self.fc1(x))
+        #x = x.view(-1, self.num_flat_features(x))
         x = F.relu(self.fc2(x))
+        #x = x.view(-1, self.num_flat_features(x))
         x = F.relu(self.fc3(x))
-        return self.head(x.view(x.size(0), -1))
+        return self.head(x)
+        
+    
+    def num_flat_features(self, x):
+        size = x.size()[1:]  # all dimensions except the batch dimension
+        num_features = 1
+        for s in size:
+            num_features *= s
+        return num_features
     
 Transition = namedtuple('Transition',
                         ('state', 'action', 'next_state', 'reward'))
@@ -76,19 +88,20 @@ def DQN_Agent(env,BATCH_SIZE = 128,GAMMA = 0.999,EPS_START = 0.9,EPS_END = 0.05,
     # if gpu is to be used
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
-    policy_net = DQN().to(device)
-    target_net = DQN().to(device)
-    target_net.load_state_dict(policy_net.state_dict())
-    target_net.eval()
+    Q_net = DQN().to(device)
+    Q_target_net = DQN().to(device)
+    Q_target_net.load_state_dict(Q_net.state_dict())
+    Q_target_net.eval()
     
-    optimizer = optim.RMSprop(policy_net.parameters())
+    optimizer = optim.RMSprop(Q_net.parameters())
     memory = ReplayMemory(10000)
     
     def select_action(state,epsilon):
         action=0
-        state = Variable(torch.from_numpy(state))
+        #state = state.reshape(state.shape+(1,))
+        state = (torch.from_numpy(state))
         if np.random.uniform(0, 1) > epsilon:
-            action = policy_net(state)
+            action = Q_net(state)
         else:
             action = env.action_space.sample()
         return action
@@ -100,7 +113,7 @@ def DQN_Agent(env,BATCH_SIZE = 128,GAMMA = 0.999,EPS_START = 0.9,EPS_END = 0.05,
         steps_done += 1
         if sample > eps_threshold:
             with torch.no_grad():
-                return policy_net(state).max(1)[1].view(1, 1)
+                return Q_net(state).max(1)[1].view(1, 1)
         else:
             return torch.tensor([[random.randrange(2)]], device=device, dtype=torch.long)
     '''
@@ -144,11 +157,11 @@ def DQN_Agent(env,BATCH_SIZE = 128,GAMMA = 0.999,EPS_START = 0.9,EPS_END = 0.05,
     
         # Compute Q(s_t, a) - the model computes Q(s_t), then we select the
         # columns of actions taken
-        state_action_values = policy_net(state_batch).gather(1, action_batch)
+        state_action_values = Q_net(state_batch)
     
         # Compute V(s_{t+1}) for all next states.
         next_state_values = torch.zeros(BATCH_SIZE)
-        next_state_values[non_final_mask] = target_net(non_final_next_states).max(1)[0].detach()
+        next_state_values[non_final_mask] = Q_Q_target_net(non_final_next_states)
         # Compute the expected Q values
         expected_state_action_values = (next_state_values * GAMMA) + reward_batch
     
@@ -158,7 +171,7 @@ def DQN_Agent(env,BATCH_SIZE = 128,GAMMA = 0.999,EPS_START = 0.9,EPS_END = 0.05,
         # Optimize the model
         optimizer.zero_grad()
         loss.backward()
-        for param in policy_net.parameters():
+        for param in Q_net.parameters():
             param.grad.data.clamp_(-1, 1)
         optimizer.step()
         
@@ -202,7 +215,7 @@ def DQN_Agent(env,BATCH_SIZE = 128,GAMMA = 0.999,EPS_START = 0.9,EPS_END = 0.05,
                 break
         # Update the target network
         if i_episode % TARGET_UPDATE == 0:
-            target_net.load_state_dict(policy_net.state_dict())
+            Q_Q_target_net.load_state_dict(Q_net.state_dict())
     
     print('Complete')
     env.render()
