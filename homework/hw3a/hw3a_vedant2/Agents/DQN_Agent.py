@@ -102,6 +102,8 @@ def DQN_Agent(env,BATCH_SIZE = 128,GAMMA = 0.999,EPS_START = 0.9,EPS_END = 0.05,
         state = (torch.from_numpy(state))
         if np.random.uniform(0, 1) > epsilon:
             action = Q_net(state)
+            action = action.detach()
+            action = action.numpy()
         else:
             action = env.action_space.sample()
         return action
@@ -147,13 +149,12 @@ def DQN_Agent(env,BATCH_SIZE = 128,GAMMA = 0.999,EPS_START = 0.9,EPS_END = 0.05,
         batch = Transition(*zip(*transitions))
     
         # Compute a mask of non-final states and concatenate the batch elements
-        non_final_mask = torch.tensor(tuple(map(lambda s: s is not None,
-                                              batch.next_state)), dtype=torch.uint8)
-        non_final_next_states = torch.cat([s for s in batch.next_state
-                                                    if s is not None])
-        state_batch = torch.cat(batch.state)
-        action_batch = torch.cat(batch.action)
-        reward_batch = torch.cat(batch.reward)
+        non_final_mask = torch.tensor(tuple(map(lambda s: s is not None,batch.next_state)), dtype=torch.uint8)
+        #nfns = [s for s in batch.next_state if s is not None]
+        non_final_next_states = torch.tensor([s for s in batch.next_state if s is not None])
+        state_batch = torch.tensor(batch.state)
+        action_batch = torch.tensor(batch.action)
+        reward_batch = torch.tensor(batch.reward)
     
         # Compute Q(s_t, a) - the model computes Q(s_t), then we select the
         # columns of actions taken
@@ -161,7 +162,7 @@ def DQN_Agent(env,BATCH_SIZE = 128,GAMMA = 0.999,EPS_START = 0.9,EPS_END = 0.05,
     
         # Compute V(s_{t+1}) for all next states.
         next_state_values = torch.zeros(BATCH_SIZE)
-        next_state_values[non_final_mask] = Q_Q_target_net(non_final_next_states)
+        next_state_values[non_final_mask] = Q_target_net(non_final_next_states)
         # Compute the expected Q values
         expected_state_action_values = (next_state_values * GAMMA) + reward_batch
     
@@ -215,7 +216,7 @@ def DQN_Agent(env,BATCH_SIZE = 128,GAMMA = 0.999,EPS_START = 0.9,EPS_END = 0.05,
                 break
         # Update the target network
         if i_episode % TARGET_UPDATE == 0:
-            Q_Q_target_net.load_state_dict(Q_net.state_dict())
+            Q_target_net.load_state_dict(Q_net.state_dict())
     
     print('Complete')
     env.render()
