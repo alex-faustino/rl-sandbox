@@ -149,9 +149,9 @@ def DQN_Agent(env,BATCH_SIZE = 128,GAMMA = 0.999,EPS_START = 0.9,EPS_END = 0.05,
         batch = Transition(*zip(*transitions))
     
         # Compute a mask of non-final states and concatenate the batch elements
-        non_final_mask = torch.tensor(tuple(map(lambda s: s is not None,batch.next_state)), dtype=torch.uint8)
+        #non_final_mask = torch.tensor(tuple(map(lambda s: s is not None,batch.next_state)), dtype=torch.uint8)
         #nfns = [s for s in batch.next_state if s is not None]
-        non_final_next_states = torch.tensor([s for s in batch.next_state if s is not None])
+        #non_final_next_states = torch.tensor([s for s in batch.next_state if s is not None])
         state_batch = torch.tensor(batch.state)
         action_batch = torch.tensor(batch.action)
         reward_batch = torch.tensor(batch.reward)
@@ -161,8 +161,10 @@ def DQN_Agent(env,BATCH_SIZE = 128,GAMMA = 0.999,EPS_START = 0.9,EPS_END = 0.05,
         state_action_values = Q_net(state_batch)
     
         # Compute V(s_{t+1}) for all next states.
-        next_state_values = torch.zeros(BATCH_SIZE)
-        next_state_values[non_final_mask] = Q_target_net(non_final_next_states)
+        #next_state_values = torch.zeros(BATCH_SIZE)
+        #next_state_values[non_final_mask] = Q_target_net(non_final_next_states)
+        next_state_values = Q_target_net(state_batch)
+        
         # Compute the expected Q values
         expected_state_action_values = (next_state_values * GAMMA) + reward_batch
     
