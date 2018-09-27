@@ -164,12 +164,12 @@ def DQN_Agent(env,BATCH_SIZE = 128,GAMMA = 0.999,EPS_START = 0.9,EPS_END = 0.05,
         #next_state_values = torch.zeros(BATCH_SIZE)
         #next_state_values[non_final_mask] = Q_target_net(non_final_next_states)
         next_state_values = Q_target_net(state_batch)
-        
+        nsv_t = next_state_values.transpose(0,1)
         # Compute the expected Q values
-        expected_state_action_values = (next_state_values * GAMMA) + reward_batch
+        expected_state_action_values = (nsv_t * GAMMA) + reward_batch
         esav_nograd =  Variable(expected_state_action_values, requires_grad=False)
         # Compute Huber loss
-        loss = F.smooth_l1_loss(state_action_values, esav_nograd.unsqueeze(1))
+        loss = F.smooth_l1_loss(state_action_values, esav_nograd.transpose(0,1))
     
         # Optimize the model
         optimizer.zero_grad()
@@ -221,9 +221,9 @@ def DQN_Agent(env,BATCH_SIZE = 128,GAMMA = 0.999,EPS_START = 0.9,EPS_END = 0.05,
             Q_target_net.load_state_dict(Q_net.state_dict())
     
     print('Complete')
-    env.render()
+    #env.render()
     env.close()
-    plt.ioff()
-    plt.show()
+    #plt.ioff()
+    #plt.show()
     
         
