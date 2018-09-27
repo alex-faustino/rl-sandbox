@@ -47,10 +47,11 @@ class DQN(nn.Module):
 
     def __init__(self):
         super(DQN, self).__init__()
-        self.fc1 = nn.Linear(7,7)
-        self.fc2 = nn.Linear(7,7)
-        self.fc3 = nn.Linear(7,7)
-        self.head = nn.Linear(7, 1)
+        self.fc1 = nn.Linear(7,5)
+        self.fc2 = nn.Linear(5,3)
+        self.fc3 = nn.Linear(3,3)
+        self.fc4 = nn.Linear(3,3)
+        self.head = nn.Linear(3, 1)
 
     def forward(self, x):
         #x = x.view(-1, self.num_flat_features(x))
@@ -60,6 +61,7 @@ class DQN(nn.Module):
         x = F.relu(self.fc2(x))
         #x = x.view(-1, self.num_flat_features(x))
         x = F.relu(self.fc3(x))
+        x = F.relu(self.fc4(x))
         return self.head(x)
         
     
@@ -73,9 +75,9 @@ class DQN(nn.Module):
 Transition = namedtuple('Transition',
                         ('state', 'action', 'next_state', 'reward'))
 
-def DQN_Agent(env,BATCH_SIZE = 128,GAMMA = 0.999,EPS_START = 0.9,EPS_END = 0.05,EPS_DECAY = 200,TARGET_UPDATE = 10
-              ,initial_epsilon = 1, final_epsilon = 0.01,total_episodes = 1000, annealing_period = None,max_steps = 25
-              ,lr_rate = 0.9,gamma = 0.9, decay_rate = None):
+def DQN_Agent(env,BATCH_SIZE = 100,GAMMA = 0.99,TARGET_UPDATE = 20,initial_epsilon = 1, 
+              final_epsilon = 0.01,total_episodes = 100, annealing_period = None,max_steps = 25
+              , decay_rate = None,plot = False):
     
     if (annealing_period == None):
         annealing_period = total_episodes;
@@ -184,24 +186,25 @@ def DQN_Agent(env,BATCH_SIZE = 128,GAMMA = 0.999,EPS_START = 0.9,EPS_END = 0.05,
             param.grad.data.clamp_(-1, 1)
         optimizer.step()
         
-    num_episodes = 50
-    for i_episode in range(num_episodes):
+    av_r = []
+    for i_episode in range(total_episodes):
         # Initialize the environment and state
         observation = env.reset()
         #last_screen = get_screen()
         #current_screen = get_screen()
         #state = current_screen - last_screen
-        nstep = 100
-        for t in range(nstep):
+        epi_reward = []
+        #nstep = 100
+        for t in range(max_steps):
             # Select and perform an action
-            env.render()
+            #env.render()
             if decay_rate != None:
                 epsilon = initial_epsilon + (final_epsilon - initial_epsilon) * np.exp(-decay_rate * t) 
-            epsilon = initial_epsilon + (final_epsilon - initial_epsilon) * (t+1)/nstep
+            epsilon = initial_epsilon + (final_epsilon - initial_epsilon) * (t+1)/max_steps
             action = select_action(observation,epsilon)
             new_observation, reward, done, info = env.step(action)
             #reward = torch.tensor([reward], device=device)
-    
+            epi_reward.append(reward)
             # Observe new state
             #last_screen = current_screen
             #current_screen = get_screen()
@@ -219,17 +222,21 @@ def DQN_Agent(env,BATCH_SIZE = 128,GAMMA = 0.999,EPS_START = 0.9,EPS_END = 0.05,
             observation = new_observation
             # Perform one step of the optimization (on the target network)
             optimize_model()
-            if done:
-                episode_durations.append(t + 1)
-                plot_durations()
-                break
+            #if done:
+        if plot:
+            episode_durations.append(t + 1)
+            plot_durations()
+            #    break
         # Update the target network
+        #plt.plot(np.array(epi_reward))
         if i_episode % TARGET_UPDATE == 0:
             Q_target_net.load_state_dict(Q_net.state_dict())
-    
+            
+        av_r.append(np.array(epi_reward))
     print('Complete')
+    return av_r
     #env.render()
-    env.close()
+    #env.close()
     #plt.ioff()
     #plt.show()
 

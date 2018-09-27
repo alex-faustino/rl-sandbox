@@ -45,7 +45,7 @@ class acrobot_vedant(core.Env):
     MAX_VEL_2 = 10 * np.pi
 
     torque_max = 1.5
-    delta = 0.1*np.pi/180
+    delta = 5*np.pi/180
     torque_noise_max = 0.
 
     #: use dynamics equations from the nips paper or the book
@@ -74,6 +74,7 @@ class acrobot_vedant(core.Env):
         return self._get_ob()
 
     def step(self, a):
+        reward = 0
         s = self.state
         if (np.abs(a)<self.torque_max):
             torque = a;
@@ -104,7 +105,10 @@ class acrobot_vedant(core.Env):
         ns[3] = bound(ns[3], -self.MAX_VEL_2, self.MAX_VEL_2)
         self.state = ns
         terminal = self._terminal()
-        reward = 1. if terminal else 0.
+        reward = -((np.abs(s[0]-(np.pi)))-(np.abs(s[1])))
+        reward += (5. if terminal else 0.)
+        #reward = self.LINK_MASS_1
+        #reward = 
         return (self._get_ob(), reward, False, {})
 
     def _get_ob(self):
@@ -113,7 +117,7 @@ class acrobot_vedant(core.Env):
 
     def _terminal(self):
         s = self.state
-        return bool((np.abs(s[0]-(np.pi/2))<self.delta) & (np.abs(s[0])<self.delta))
+        return bool((np.abs(s[0]-(np.pi))<self.delta) & (np.abs(s[1])<self.delta))
 
     def _dsdt(self, t,s_augmented):
         m1 = self.LINK_MASS_1
