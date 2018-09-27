@@ -31,7 +31,7 @@ class FFNeuralNet(object):
         
     def get_Qvalue(self):
             #return pointers to the input_actions and Q value
-        return self.Q, self.input_action 
+        return self.Q, self.input_action,self.input_observation
 
     def get_Output_NN(self):
         return self.predict
@@ -44,14 +44,15 @@ class DQNet:
 
     def __init__(self):
 
-        self.action = output_size = 3
-        self.state = input_size = 6
+        self.num_of_actions = output_size = 3
+        self.num_of_states = input_size = 6
         self.epsilon = 0.1
         self.layer1 = layer1 = 30
 
-        self.trainer = tf.train.AdamOptimizer()
+        self.learningRate = 1e-3
+        self.trainer = tf.train.AdamOptimizer(self.learningRate)
 
-        self.input_size = self.state 
+        self.input_size = self.num_of_states 
         self.sess = sess =  tf.Session()
 
         #Action-Value Qfunc
@@ -69,26 +70,44 @@ class DQNet:
 
         
         self.y_target = y_target = tf.placeholder(shape= [1] , dtype= tf.float32)
-        Qvalue,_ = Q.get_Qvalue()
+        Qvalue,_,_ = Q.get_Qvalue()
         
         self.loss = loss = tf.reduce_sum(tf.square(y_target-Qvalue))
         self.optim = self.trainer.minimize(loss)
+        
         self.maxActionQ = tf.argmax(Q.get_Output_NN(),axis = 0)
+        self.maxQ_pred = tf.reduce_max(Q_pred.get_Output_NN(),axis = 0)
+        
+    def updateQ(self,feed_dico):
+        _,actions,states = self.Q.get_Qvalue()
+        y = self.y_target
+        feed_ = {states: feed_dico['s'],
+                 actions: feed_dico['a'],
+                 y: feed_dico['y']}
+
+        self.sess.run(self.optim,feed_dict=feed_)
+
+
+    def MakeQpredEqQ(self):
+        initQp = self.initQp
+        initQ = self.initQ
+        
+        sess.run([initQp[i].assign(initQ[i]) for i in range(len(initQ))]) 
 
         
-    def updateModel(self):
-        return self.optim
-
-
     def Session(self):
         return self.sess
 
-    def ActionSelection(self, s,random_sample_action, greedy = 1):
+    def MaxActionQ_pred(self,s):
+         Action = self.sess.run(self.maxQ_pred,feed_dict= {self.Q.get_Input():np.reshape(s,[self.num_of_states,1])})[0]
+         
+         
+    def NextAction(self, s,random_sample_action_Handler, greedy = True):
 
         # implements a greedy method for selection of action
         #greedy = 0 for greedy 1 otherewise
         
-        if greedy >= 0.5:
+        if greedy:
             greed_sel = np.random.random_sample()
         else:
             greed_sel = 1
@@ -97,10 +116,10 @@ class DQNet:
 
 
         if greed_sel >= self.epsilon:
-            predicted_Action = self.sess.run(self.maxActionQ,feed_dict= {self.Q.get_Input():np.reshape(s,[self.state,1])})[0]
+            predicted_Action = self.sess.run(self.maxActionQ,feed_dict= {self.Q.get_Input():np.reshape(s,[self.num_of_states,1])})[0]
             
         else:
-            predicted_Actionx =  random_sample_action()
+            predicted_Actionx =  random_sample_action_Handler()
 
         return predicted_Action
         
