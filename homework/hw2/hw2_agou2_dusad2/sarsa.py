@@ -65,7 +65,7 @@ class Sarsa():
         states.append(state)
         
         for _ in range(steps):
-            action = self.epsilon_greedy(state, train=True)
+            action = self.epsilon_greedy(state, train=False)
             state, _, _, _ = self.env.step(action)
             states.append(state)
         return states
