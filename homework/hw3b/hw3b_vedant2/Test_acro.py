@@ -14,5 +14,5 @@ env = gym.make('vedant_acrobot-v0')
 
 
 #Q, rewards = 
-r = DQNA.DQN_Agent(env,BATCH_SIZE = 150,GAMMA = 0.999,TARGET_UPDATE = 50,initial_epsilon = 1, 
-              final_epsilon = 0.1,total_episodes = 5000, annealing_period = None,max_steps = 100)
+r = DQNA.DQN_Agent(env,input_layer = 7,BATCH_SIZE = 150,GAMMA = 0.999,TARGET_UPDATE = 50,initial_epsilon = 1, 
+              final_epsilon = 0.1,total_episodes = 50, annealing_period = None,max_steps = 100)

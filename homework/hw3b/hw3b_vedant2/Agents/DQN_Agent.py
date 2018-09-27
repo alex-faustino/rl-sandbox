@@ -45,9 +45,9 @@ class ReplayMemory(object):
     
 class DQN(nn.Module):
 
-    def __init__(self):
+    def __init__(self,inp = 7):
         super(DQN, self).__init__()
-        self.fc1 = nn.Linear(7,5)
+        self.fc1 = nn.Linear(inp,5)
         self.fc2 = nn.Linear(5,3)
         self.fc3 = nn.Linear(3,3)
         self.fc4 = nn.Linear(3,3)
@@ -75,7 +75,7 @@ class DQN(nn.Module):
 Transition = namedtuple('Transition',
                         ('state', 'action', 'next_state', 'reward'))
 
-def DQN_Agent(env,BATCH_SIZE = 100,GAMMA = 0.99,TARGET_UPDATE = 20,initial_epsilon = 1, 
+def DQN_Agent(env,input_layer = 7,BATCH_SIZE = 100,GAMMA = 0.99,TARGET_UPDATE = 20,initial_epsilon = 1, 
               final_epsilon = 0.01,total_episodes = 100, annealing_period = None,max_steps = 25
               , decay_rate = None,plot = False):
     
@@ -90,8 +90,8 @@ def DQN_Agent(env,BATCH_SIZE = 100,GAMMA = 0.99,TARGET_UPDATE = 20,initial_epsil
     # if gpu is to be used
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
-    Q_net = DQN().to(device)
-    Q_target_net = DQN().to(device)
+    Q_net = DQN(input_layer).to(device)
+    Q_target_net = DQN(input_layer).to(device)
     Q_target_net.load_state_dict(Q_net.state_dict())
     Q_target_net.eval()
     
@@ -197,7 +197,7 @@ def DQN_Agent(env,BATCH_SIZE = 100,GAMMA = 0.99,TARGET_UPDATE = 20,initial_epsil
         #nstep = 100
         for t in range(max_steps):
             # Select and perform an action
-            #env.render()
+            #
             if decay_rate != None:
                 epsilon = initial_epsilon + (final_epsilon - initial_epsilon) * np.exp(-decay_rate * t) 
             epsilon = initial_epsilon + (final_epsilon - initial_epsilon) * (t+1)/max_steps
@@ -205,6 +205,7 @@ def DQN_Agent(env,BATCH_SIZE = 100,GAMMA = 0.99,TARGET_UPDATE = 20,initial_epsil
             new_observation, reward, done, info = env.step(action)
             #reward = torch.tensor([reward], device=device)
             epi_reward.append(reward)
+            env.render()
             # Observe new state
             #last_screen = current_screen
             #current_screen = get_screen()
@@ -236,7 +237,7 @@ def DQN_Agent(env,BATCH_SIZE = 100,GAMMA = 0.99,TARGET_UPDATE = 20,initial_epsil
     print('Complete')
     return av_r
     #env.render()
-    #env.close()
+    env.close()
     #plt.ioff()
     #plt.show()
 
