@@ -167,9 +167,9 @@ def DQN_Agent(env,BATCH_SIZE = 128,GAMMA = 0.999,EPS_START = 0.9,EPS_END = 0.05,
         
         # Compute the expected Q values
         expected_state_action_values = (next_state_values * GAMMA) + reward_batch
-    
+        esav_nograd =  Variable(expected_state_action_values, requires_grad=False)
         # Compute Huber loss
-        loss = F.smooth_l1_loss(state_action_values, expected_state_action_values.unsqueeze(1))
+        loss = F.smooth_l1_loss(state_action_values, esav_nograd.unsqueeze(1))
     
         # Optimize the model
         optimizer.zero_grad()
