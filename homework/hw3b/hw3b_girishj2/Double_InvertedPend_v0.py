@@ -101,13 +101,20 @@ class doublePendulum():
 
         # Shaped Reward Model-1
         
-        cost = -(0.1*(abs(self._angle_normalize(th_1))-np.pi)**2 + 0.05*(self._angle_normalize(th_2))**2 + 0.01*thdot_1**2 + 0.01*thdot_2**2)
+        # cost = -(0.1*(abs(self._angle_normalize(th_1))-np.pi)**2 + 0.05*(self._angle_normalize(th_2))**2 + 0.01*thdot_1**2 + 0.01*thdot_2**2)
         
         # Shaped Reward Model-2
 
         # normalized_height = (self.L1*np.cos(self._angle_normalize(th_1)+np.pi) + self.L2*np.cos(self._angle_normalize(th_1) + self._angle_normalize(th_2)+np.pi) + self.L1 + self.L2)/(2*(self.L1 + self.L2))
 
         # cost = np.exp(-0.5*(1-normalized_height)**2 - 0.01*thdot_1**2 - 0.01*thdot_2**2)-1
+
+        # Shaped Reward Model-3
+
+        cost  = self.L1*np.cos(abs(th_1) - np.pi) + self.L2*np.cos(abs(th_1 + th_2) - np.pi)
+
+        if cost > 0:
+            cost = 2*cost
         
         obs = self._observation(self.state)
 
@@ -132,7 +139,7 @@ class doublePendulum():
         pass
 
     def reset(self):
-        high = np.array([np.pi,1,np.pi, 1])
+        high = np.array([np.deg2rad(10),0.5,np.deg2rad(10), 0.5])
         self.state = np.random.uniform(low = -high, high= high, size=None)
         obs = self._observation(self.state)
         return obs
