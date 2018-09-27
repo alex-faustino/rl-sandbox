@@ -26,11 +26,11 @@ class GridWorld(core.Env):
         self.action_space = spaces.Discrete(4)
         self.position = self.observation_space.sample()
         
-        self.a = np.array([1,1])
-        self.a_prime = np.array([3,3])
+        self.a = np.array([1,2])
+        self.a_prime = np.array([5,2])
         
-        self.b = np.array([2,2])
-        self.b_prime = np.array([5,5])
+        self.b = np.array([1,4])
+        self.b_prime = np.array([3,4])
         
         self._action_delta = {
             0: np.array([0, 1]),
