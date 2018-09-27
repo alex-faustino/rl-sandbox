@@ -44,7 +44,7 @@ class acrobot_vedant(core.Env):
     MAX_VEL_1 = 10 * np.pi
     MAX_VEL_2 = 10 * np.pi
 
-    torque_max = 1.0
+    torque_max = 1.5
     delta = 0.1*np.pi/180
     torque_noise_max = 0.
 
@@ -78,7 +78,7 @@ class acrobot_vedant(core.Env):
         if (np.abs(a)<self.torque_max):
             torque = a;
         else:
-            torue = 0;
+            torque = 0;
                 
         # Add noise to the force action
         if self.torque_noise_max > 0:

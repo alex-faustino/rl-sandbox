@@ -47,10 +47,10 @@ class DQN(nn.Module):
 
     def __init__(self):
         super(DQN, self).__init__()
-        self.fc1 = nn.Linear(6, 6)
-        self.fc2 = nn.Linear(6, 6)
-        self.fc3 = nn.Linear(6, 6)
-        self.head = nn.Linear(6, 1)
+        self.fc1 = nn.Linear(7,7)
+        self.fc2 = nn.Linear(7,7)
+        self.fc3 = nn.Linear(7,7)
+        self.head = nn.Linear(7, 1)
 
     def forward(self, x):
         #x = x.view(-1, self.num_flat_features(x))
@@ -97,16 +97,21 @@ def DQN_Agent(env,BATCH_SIZE = 128,GAMMA = 0.999,EPS_START = 0.9,EPS_END = 0.05,
     memory = ReplayMemory(10000)
     
     def select_action(state,epsilon):
-        action=0
+        action=np.array([-1.0,1.0])
+        state_action_options = []
+        for a in action:
+            state_action = np.append(state,a)
+            state_action_options.append(state_action)
+        state_action_options = np.array(state_action_options)
         #state = state.reshape(state.shape+(1,))
         state = (torch.from_numpy(state))
         if np.random.uniform(0, 1) > epsilon:
-            action = Q_net(state)
-            action = action.detach()
-            action = action.numpy()
+            return action[torch.argmax(Q_net(torch.from_numpy(state_action_options)))]
+            
         else:
-            action = env.action_space.sample()
-        return action
+            #bug
+            return action[np.random.randint(2)]
+
     '''
         global steps_done
         sample = random.random()
@@ -149,25 +154,28 @@ def DQN_Agent(env,BATCH_SIZE = 128,GAMMA = 0.999,EPS_START = 0.9,EPS_END = 0.05,
         batch = Transition(*zip(*transitions))
     
         # Compute a mask of non-final states and concatenate the batch elements
-        non_final_mask = torch.tensor(tuple(map(lambda s: s is not None,batch.next_state)), dtype=torch.uint8)
+        #non_final_mask = torch.tensor(tuple(map(lambda s: s is not None,batch.next_state)), dtype=torch.uint8)
         #nfns = [s for s in batch.next_state if s is not None]
-        non_final_next_states = torch.tensor([s for s in batch.next_state if s is not None])
+        #non_final_next_states = torch.tensor([s for s in batch.next_state if s is not None])
         state_batch = torch.tensor(batch.state)
-        action_batch = torch.tensor(batch.action)
+        #action_batch = torch.tensor(batch.action)
+        action_batch = torch.tensor([batch.action]).transpose(0,1)
         reward_batch = torch.tensor(batch.reward)
-    
+        sa_batch = torch.cat((state_batch,action_batch),1)
         # Compute Q(s_t, a) - the model computes Q(s_t), then we select the
         # columns of actions taken
-        state_action_values = Q_net(state_batch)
+        state_action_values = Q_net(sa_batch)
     
         # Compute V(s_{t+1}) for all next states.
-        next_state_values = torch.zeros(BATCH_SIZE)
-        next_state_values[non_final_mask] = Q_target_net(non_final_next_states)
+        #next_state_values = torch.zeros(BATCH_SIZE)
+        #next_state_values[non_final_mask] = Q_target_net(non_final_next_states)
+        next_state_values = Q_target_net(sa_batch)
+        nsv_t = next_state_values.transpose(0,1)
         # Compute the expected Q values
-        expected_state_action_values = (next_state_values * GAMMA) + reward_batch
-    
+        expected_state_action_values = (nsv_t * GAMMA) + reward_batch
+        esav_nograd =  Variable(expected_state_action_values, requires_grad=False)
         # Compute Huber loss
-        loss = F.smooth_l1_loss(state_action_values, expected_state_action_values.unsqueeze(1))
+        loss = F.smooth_l1_loss(state_action_values, esav_nograd.transpose(0,1))
     
         # Optimize the model
         optimizer.zero_grad()
@@ -186,6 +194,7 @@ def DQN_Agent(env,BATCH_SIZE = 128,GAMMA = 0.999,EPS_START = 0.9,EPS_END = 0.05,
         nstep = 100
         for t in range(nstep):
             # Select and perform an action
+            env.render()
             if decay_rate != None:
                 epsilon = initial_epsilon + (final_epsilon - initial_epsilon) * np.exp(-decay_rate * t) 
             epsilon = initial_epsilon + (final_epsilon - initial_epsilon) * (t+1)/nstep
@@ -219,9 +228,10 @@ def DQN_Agent(env,BATCH_SIZE = 128,GAMMA = 0.999,EPS_START = 0.9,EPS_END = 0.05,
             Q_target_net.load_state_dict(Q_net.state_dict())
     
     print('Complete')
-    env.render()
+    #env.render()
     env.close()
-    plt.ioff()
-    plt.show()
-    
+    #plt.ioff()
+    #plt.show()
+
+
         
