@@ -134,8 +134,9 @@ if __name__ == '__main__':
 
                 
             i_update_QPred += 1
-            if i_update_QPred %10 == 0:
-                env.render()
+            #if i_update_QPred %10 == 0:
+            if avReward>.4:
+                env.Render()
             if i_update_QPred>freq_update_Qpred:
                 Qlearn.MakeQpredEqQ()
                 

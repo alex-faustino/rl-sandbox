@@ -63,3 +63,11 @@ class AcroBotMEnv(AcrobotEnv):
             
         return (self._get_ob(), float(reward), terminal) 
 
+
+
+    def Render(self):
+        try:
+            this.render()
+        except:
+            this.close()
+        
