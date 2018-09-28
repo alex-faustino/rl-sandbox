@@ -60,7 +60,8 @@ class PostProcess(object):
         self.counter += 1
         
     def logger(self,epoch):
-        print "Epoch: ",epoch, " | ","Average reward",self.cuReward/self.counter
+        
+        print( "Epoch: ",epoch, " | ","Average reward",self.cuReward/self.counter)
         return self.cuReward/self.counter
 if __name__ == '__main__':
 
