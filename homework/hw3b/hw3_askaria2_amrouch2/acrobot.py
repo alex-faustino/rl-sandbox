@@ -36,7 +36,7 @@ class AcroBotMEnv(AcrobotEnv):
         self._dsdt(self, s_pp, t) 
 
     def idx_to_action(self,idx):
-        return ACTION_SET[idx]
+        return self.ACTION_SET[idx]
 
     def step(self, a):
         s = self.state

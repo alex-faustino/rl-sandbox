@@ -20,7 +20,7 @@ class FFNeuralNet(object):
         self.b2 = tf.Variable(tf.random_normal([output_size]), name='b2')
 
         # calculate the output of the hidden layer
-        self.hidden_out = tf.nn.relu(tf.add(tf.matmul(self.input_observation,self.W1), self.b1))
+        self.hidden_out = tf.nn.sigmoid(tf.add(tf.matmul(self.input_observation,self.W1), self.b1))
 
         # now calculate the hidden layer output - in this case, let's use a softmax activated
         # output layer
@@ -46,8 +46,10 @@ class DQNet:
 
         self.num_of_actions = output_size = 3
         self.num_of_states = input_size = 6
-        self.epsilon = 0.1
-        self.layer1 = layer1 = 30
+        self.epsilon = 0.9
+        self.epsMax = .9
+        self.epsMin = .001
+        self.layer1 = layer1 = 150
 
         self.learningRate = 1e-3
         self.trainer = tf.train.AdamOptimizer(self.learningRate)
@@ -126,7 +128,13 @@ class DQNet:
             predicted_Action =  random_sample_action_Handler()
 
         return predicted_Action
-        
+
+
+    def update_epsilon(self,coef):
+        if self.epsilon>self.epsMax  or self.epsilon <self.epsMin:
+            return
+
+        self.epsilon *= coef
 
 
 
