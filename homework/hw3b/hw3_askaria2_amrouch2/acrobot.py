@@ -5,7 +5,7 @@ from gym.utils import seeding
 import numpy as np
 from numpy import sin, cos, pi
 
-ACTION_SET = [-2.3,0, 2.3]
+
 
 class AcroBotMEnv(AcrobotEnv):
     
@@ -24,7 +24,7 @@ class AcroBotMEnv(AcrobotEnv):
          self.MAX_VEL_1 = 4 * np.pi
          self.MAX_VEL_2 = 9 * np.pi
          self.MAX_TORQUE = 5.;
-
+         self.ACTION_SET = [-self.MAX_TORQUE,0, self.MAX_TORQUE]
          #hi = np.array([self.MAX_TORQUE])
          self.nA = 3
          self.action_space = spaces.Discrete(self.nA)
@@ -40,7 +40,7 @@ class AcroBotMEnv(AcrobotEnv):
 
     def step(self, a):
         s = self.state
-        torque = this.idx_to_action(a)
+        torque = self.idx_to_action(a)
   
         # Now, augment the state with our force action so it can be passed to the physEngine
         
@@ -61,5 +61,5 @@ class AcroBotMEnv(AcrobotEnv):
         reward = (ns[0] >= np.pi / 2 - delta) & (ns[0] <= np.pi / 2 + delta)
         reward &= (ns[1] >= -delta) & (ns[1] <=  delta)
             
-        return (self._get_ob(), float(reward), terminal, {}) 
+        return (self._get_ob(), float(reward), terminal) 
 
