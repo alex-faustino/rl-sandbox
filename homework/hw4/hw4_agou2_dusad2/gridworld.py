@@ -1,6 +1,9 @@
 from gym import core, spaces
 from gym.utils import seeding
 import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+import seaborn as sns
 
 
 class GridWorld(core.Env):
@@ -14,7 +17,7 @@ class GridWorld(core.Env):
     """
 
     metadata = {
-        'render.modes': ['human', 'rgb_array'],
+        'render.modes': ['ansi', 'human', 'rgb_array'],
         'video.frames_per_second' : 15
     }
 
@@ -77,7 +80,10 @@ class GridWorld(core.Env):
         # return self.observation_space.contains(position)
 
     def render(self, mode='ansi'):
-        return self.print_grid()
+        if mode == 'ansi':
+            return self.print_grid()
+        elif mode == 'rgb_array':
+            return self.plot_grid()
 
     def close(self):
         if self.viewer: self.viewer.close()
@@ -117,3 +123,13 @@ class GridWorld(core.Env):
                     grid += empty_space
             grid += "|\n" + row
         return grid
+    def plot_grid(self):
+        size = self.observation_space.high[0]
+        grid = np.zeros(size**2).reshape((size,size))
+        grid[self.position[0]-1, self.position[1]-1] = 1
+        ax = sns.heatmap(grid, cbar=False, linecolor='black', linewidths=1)
+        width, height = ax.figure.get_size_inches() * ax.figure.get_dpi()
+        canvas = FigureCanvas(ax.figure)
+        canvas.draw()       # draw the canvas, cache the renderer
+        image = np.fromstring(canvas.tostring_rgb(), dtype='uint8')
+        return image.reshape((int(height), int(width), 3))
