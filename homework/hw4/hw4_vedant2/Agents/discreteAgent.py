@@ -111,3 +111,72 @@ def QLearn(env,initial_epsilon = 1, final_epsilon = 0.01,total_episodes = 1000, 
     return (Q, erewards)
     #with open("frozenLake_qTable_sarsa.pkl", 'wb') as f:
         #pickle.dump(Q, f)
+        
+def Reinforce(env,initial_epsilon = 1, final_epsilon = 0.01,total_episodes = 1000, annealing_period = None,max_steps = 25,lr_rate = 0.9,gamma = 0.9, decay_rate = None):
+    if (annealing_period == None):
+        annealing_period = total_episodes;
+    if(annealing_period > total_episodes):
+        print('Annealing period cannot be more than training period, setting annealing period equal to training period')
+        annealing_period = total_episodes;
+    theta_list = np.ones((env.observation_space.n, env.action_space.n))
+    norm = np.linalg.norm(theta_list,2,0)
+    theta_list = theta_list/norm(0)
+    epsilon = initial_epsilon;
+    
+    def softmax(x):
+        """Compute softmax values for each sets of scores in x."""
+        e_x = np.exp(x - np.max(x))
+        return e_x / e_x.sum()
+
+    def choose_action(state):
+        '''action=0
+        if np.random.uniform(0, 1) < epsilon:
+            action = env.action_space.sample()
+        else:
+            action_prob = (theta_list[state])
+        return action
+        '''
+        action = np.random.choice(env.action_space.n , 1 , theta_list[state])
+        return action
+
+    def learn(state, state2, reward, action):
+        ds = state - state2;
+        da = action;
+        
+        grad_log_p = ds*(da - p(state,action));
+        
+        
+        grad_J = 1/N*np.sum(np.sum(grad_log_p)*np.sum(reward))
+        
+        
+        theta_list = theta_list + lr_rate * grad_J
+    # Start
+    erewards=[]
+    for episode in range(total_episodes):
+        crewards=0
+        t = 0
+        state = env.reset()
+       
+        while t < max_steps:
+            action = choose_action(state)
+            #env.render('human')
+            state2, reward, done, info = env.step(action)
+            learn(state, state2, reward, action)
+            state = state2
+            t += 1
+            crewards+=reward
+            if done:
+                print(episode)
+                break
+        if decay_rate != None:
+            epsilon = initial_epsilon + (final_epsilon - initial_epsilon) * np.exp(-decay_rate * episode) 
+        epsilon = initial_epsilon + (final_epsilon - initial_epsilon) * (episode+1)/total_episodes
+        erewards.append(crewards);
+        #print(episode, epsilon)
+      # os.system('clear')
+            #time.sleep(0.1)
+    #print ("Score over time: ", rewards/total_episodes)
+    #print ("Score in last trial: ", erewards)
+    return (theta_list, erewards)
+    #with open("frozenLake_qTable_sarsa.pkl", 'wb') as f:
+        #pickle.dump(Q, f)
