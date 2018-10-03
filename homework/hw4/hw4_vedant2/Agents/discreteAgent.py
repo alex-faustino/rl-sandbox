@@ -120,12 +120,20 @@ def Reinforce(env,initial_epsilon = 1, final_epsilon = 0.01,total_episodes = 100
         annealing_period = total_episodes;
     theta_list = np.ones((env.observation_space.n, env.action_space.n))
     norm = np.linalg.norm(theta_list,2,0)
+    
+    p = np.zeros((env.observation_space.n, env.action_space.n))
+    def p_from_theta(theta_list):
+        for q in range(env.observation_space.n):
+            p[q] = theta_list[q]/softmax(theta_list[q])
+        return p
+    p = p_from_theta(theta_list)
     theta_list = theta_list/norm(0)
     epsilon = initial_epsilon;
     
+    
     def softmax(x):
         """Compute softmax values for each sets of scores in x."""
-        e_x = np.exp(x - np.max(x))
+        e_x = np.exp(x - np.max(x,axis = 1))
         return e_x / e_x.sum()
 
     def choose_action(state):
