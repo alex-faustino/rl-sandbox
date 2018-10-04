@@ -119,23 +119,21 @@ def Reinforce(env,initial_epsilon = 1, final_epsilon = 0.01,total_episodes = 100
         print('Annealing period cannot be more than training period, setting annealing period equal to training period')
         annealing_period = total_episodes;
     theta_list = np.ones((env.observation_space.n, env.action_space.n))
-    norm = np.linalg.norm(theta_list,2,0)
-    
-    p = np.zeros((env.observation_space.n, env.action_space.n))
-    def p_from_theta(theta_list):
-        for q in range(env.observation_space.n):
-            p[q] = theta_list[q]/softmax(theta_list[q])
-        return p
-    p = p_from_theta(theta_list)
-    theta_list = theta_list/norm(0)
-    epsilon = initial_epsilon;
-    
+    #norm = np.linalg.norm(theta_list,2,0)
+    #theta_list = theta_list/norm[0]
+    P = np.zeros((env.observation_space.n, env.action_space.n))
     
     def softmax(x):
         """Compute softmax values for each sets of scores in x."""
-        e_x = np.exp(x - np.max(x,axis = 1))
+        e_x = np.exp(x - np.max(x))
         return e_x / e_x.sum()
-
+    def p_from_theta(P,theta_list):
+        for q in range(env.observation_space.n):
+            P[q] = softmax(theta_list[q])
+    p_from_theta(P,theta_list)
+    
+    epsilon = initial_epsilon;
+    
     def choose_action(state):
         '''action=0
         if np.random.uniform(0, 1) < epsilon:
@@ -144,38 +142,49 @@ def Reinforce(env,initial_epsilon = 1, final_epsilon = 0.01,total_episodes = 100
             action_prob = (theta_list[state])
         return action
         '''
-        action = np.random.choice(env.action_space.n , 1 , theta_list[state])
-        return action
+        action = np.random.choice(env.action_space.n , 1 , p = P[state])
+        return action[0]
 
-    def learn(state, state2, reward, action):
-        ds = state - state2;
-        da = action;
+    def update(states, actions, rewards):
         
-        grad_log_p = ds*(da - p(state,action));
+        G = np.zeros(len(rewards))
+        G[-1] = rewards[-1]
+        for i in range(2, len(G) + 1):
+            G[-i] =  G[-i + 1] + rewards[-i]
         
-        
-        grad_J = 1/N*np.sum(np.sum(grad_log_p)*np.sum(reward))
-        
-        
-        theta_list = theta_list + lr_rate * grad_J
+        for i in range(len(G)):
+            action = np.zeros((env.action_space.n))
+            action[actions[i]] = 1 
+            pmf = P[states[i]]
+            grad_ln_pi = action - pmf
+            update = lr_rate * G[i] * grad_ln_pi
+            theta_list[states[i]] += update
+            theta_list[states[i]] = theta_list[states[i]]/np.linalg.norm(theta_list[states[i]])
     # Start
     erewards=[]
     for episode in range(total_episodes):
+        action_list = []
+        state_list = []
+        reward_list = []
         crewards=0
         t = 0
         state = env.reset()
-       
+        state_list.append(state)
         while t < max_steps:
             action = choose_action(state)
             #env.render('human')
+
             state2, reward, done, info = env.step(action)
-            learn(state, state2, reward, action)
             state = state2
+            action_list.append(action)
+            state_list.append(state)
+            reward_list.append(reward)
             t += 1
             crewards+=reward
             if done:
                 print(episode)
                 break
+        update(state_list, action_list, reward_list)
         if decay_rate != None:
             epsilon = initial_epsilon + (final_epsilon - initial_epsilon) * np.exp(-decay_rate * episode) 
         epsilon = initial_epsilon + (final_epsilon - initial_epsilon) * (episode+1)/total_episodes
