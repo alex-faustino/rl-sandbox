@@ -12,7 +12,7 @@ class GridWorldEnv(Env):
         self.xdim = 5
         self.ydim = 5
 
-        self.moves = {'north':0,'south':1,'east':2,'west':3}
+        self.moves = {'north':0,'south':1,'west':2,'east':3}
 
         self.action_space = spaces.Discrete(4)
         self.observation_space = spaces.Discrete(self.xdim * self.ydim)
