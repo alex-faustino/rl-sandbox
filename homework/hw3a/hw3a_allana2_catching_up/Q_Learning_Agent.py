@@ -8,9 +8,9 @@ from gym.utils import seeding
 import matplotlib.ticker as plticker
 
 class qLearning(object):
-    def __init__(self, env): 
+    def __init__(self, env, render_input): 
         self.env = env
-        self.render_label = 'f'
+        self.render_label = render_input
         self.gridnum = int(7) #size of gridagent
         self.location_x = np.random.randint(int(1),self.gridnum-1)
         self.location_y = np.random.randint(int(1),self.gridnum-1)
@@ -61,8 +61,8 @@ class qLearning(object):
             self.my_q_function[self.previous_previous_x,self.previous_previous_y,self.previous_action-1])
         pass
     def work(self):
-        if self.render_label == 't':
-            fig, (ax) = self.render_init()
+        if self.render_label == 'render':
+            fig, (ax) = self.env.render_init(self.render_label)
         k=0 # counter for episodic cumulative reward
         for i in range(0,self.episode_length * self.num_episodes - 1):
             self.update_reward_model()
@@ -86,8 +86,8 @@ class qLearning(object):
             progress_checker = np.floor(0.1*self.episode_length*self.num_episodes)
             if np.mod(i+1,progress_checker) == 0:
                 sys.stdout.write("\r"+"%s" % int(10+np.floor(i/progress_checker)*10) + '%')#updates progress without excessive output
-            if self.render_label == 't':
-                self.render(fig,ax,i)
+            if self.render_label == 'render':
+                self.env.render(fig,ax,i,self.render_label)
         sys.stdout.write("\r"+'done' + '\n')#displays progress and prints results on new lines
         fig1, (ax1)=plt.subplots()
         ax1.plot(self.my_episodic_cumulative_reward_log[0,0:-1])
