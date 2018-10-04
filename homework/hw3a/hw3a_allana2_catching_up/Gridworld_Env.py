@@ -71,22 +71,21 @@ class gridworld(gym.Env):
     self.episode_counter += 1
     return self.location_x, self.location_y, self.previous_x, self.previous_y, self.previous_previous_x, self.previous_previous_y, self.update_q_label, self.episode_counter
   def step(self, my_reward, desired_action, location_x, location_y, previous_x, previous_y, previous_previous_x, previous_previous_y):
+    (self.my_reward, self.location_x, self.location_y, self.previous_x, self.previous_y, self.previous_previous_x, self.previous_previous_y) = (my_reward, location_x, location_y, previous_x, previous_y, previous_previous_x, previous_previous_y)
     self.previous_previous_x = self.previous_x
     self.previous_previous_y = self.previous_y
     self.previous_x = self.location_x# only accurate for second step in episode
     self.previous_y = self.location_y# only accurate for second step in episode
 #    desired_action = self.action
+    self.action = desired_action
     if np.random.rand() <= 0.1: # this part of the method is to enforce a 10% chance of a random transition
         self.action = self.allowed_actions[0,np.random.randint(0,self.allowed_actions.shape[1])]#think the 1 should be changed to a 0 for the first argument of randint
-    if self.my_reward[self.location_y,self.location_x] > 0:
-        self.location_x = 3+1
-        self.location_y = 2+1
-    elif self.my_reward[self.location_y,self.location_x] > 5:
+    if self.my_reward[self.location_y,self.location_x] > 5:
         self.location_x = 1+1
         self.location_y = 0+1
-#    elif self.my_reward[self.location_y,self.location_x] < 0:
-#        self.location_y = self.previous_y
-#        self.location_x = self.previous_x
+    elif self.my_reward[self.location_y,self.location_x] > 0:
+        self.location_x = 3+1
+        self.location_y = 2+1
     elif self.action == 1: # this part of the method is to select the desired deterministic action
         self.location_y += 1
     elif self.action == 2:
@@ -95,7 +94,6 @@ class gridworld(gym.Env):
         self.location_x += -1
     elif self.action == 4:
         self.location_x += 1
-    self.action = desired_action# reports selected action, but has the agent move according to transition probability
     return (self.location_x, self.location_y, self.previous_x, self.previous_y, self.previous_previous_x, self.previous_previous_y)
   def work(self):
    if world.render_label == 't':

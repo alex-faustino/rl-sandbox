@@ -45,8 +45,7 @@ class qLearning(object):
     def my_policy(self):
         if self.update_q_label > 1:
             self.previous_action = self.action # still want this because the agent selected a poor action and should evaluate it
-        self.action = self.allowed_actions[0,\
-        np.argmax(self.my_q_function[self.location_x,self.location_y,self.allowed_actions-1])]
+        self.action = self.allowed_actions[0,np.argmax(self.my_q_function[self.location_x,self.location_y,self.allowed_actions-1])]
         self.my_exploit_action_log[self.location_y,self.location_x] = int(self.action)
         if np.random.rand() <= self.my_epsilon:
             self.action = self.allowed_actions[0,np.random.randint(0,self.allowed_actions.shape[1])]
@@ -65,22 +64,20 @@ class qLearning(object):
         if self.render_label == 't':
             fig, (ax) = self.render_init()
         k=0 # counter for episodic cumulative reward
-        for i in range(1,self.episode_length * self.num_episodes - 1):
+        for i in range(0,self.episode_length * self.num_episodes - 1):
             self.update_reward_model()
             self.my_reward_log[0,i] = self.my_reward[self.location_y,self.location_x]
             self.my_state_log[:,i] = np.array([self.location_x,self.location_y])[np.newaxis]
             self.update_my_q_function()#update is for previous state, so put before state reversion
             self.update_q_label += 1# default is to update the q function after the first iteration
             if self.my_reward[self.location_y,self.location_x] < 0:
-              print('episode',k,'time step',i)
-              print('current then previous',self.location_x,self.location_y,self.previous_x,self.previous_y)
+#              print('need to reset location',self.location_x,self.location_y)
               self.location_y = self.previous_y
               self.location_x = self.previous_x
-              print('current',self.location_x,self.location_y)
+#              print('reset location',self.location_x,self.location_y)
             self.my_policy() # closest to pragmatic results here
             (location_x, location_y, previous_x, previous_y, previous_previous_x, previous_previous_y) = self.env.step(self.my_reward, self.action, self.location_x, self.location_y, self.previous_x, self.previous_y, self.previous_previous_x, self.previous_previous_y)# current state is AFTER action
             (self.location_x, self.location_y, self.previous_x, self.previous_y, self.previous_previous_x, self.previous_previous_y) = (location_x, location_y, previous_x, previous_y, previous_previous_x, previous_previous_y)
-            print('after policy current',self.location_x,self.location_y)
             if np.mod(i+1,self.episode_length) == 0:
                 self.my_episodic_cumulative_reward_log[0,k] = \
                 np.sum(self.my_reward_log[0,(k*self.episode_length):(i+1)])# sums from k*episode_length to i
@@ -91,7 +88,7 @@ class qLearning(object):
                 sys.stdout.write("\r"+"%s" % int(10+np.floor(i/progress_checker)*10) + '%')#updates progress without excessive output
             if self.render_label == 't':
                 self.render(fig,ax,i)
-        sys.stdout.write("\r"+'done' + '\n')#displays complete progress and prints results on new lines
+        sys.stdout.write("\r"+'done' + '\n')#displays progress and prints results on new lines
         fig1, (ax1)=plt.subplots()
         ax1.plot(self.my_episodic_cumulative_reward_log[0,0:-1])
         plt.xlabel('episode number')
@@ -115,4 +112,3 @@ class qLearning(object):
         print('Exploit policy of agent, where: 1 is up, 2 is down, 3 is left and 4 is right')
         print(np.flipud(self.my_exploit_action_log[1:6,1:6]).astype(int))
         pass 
-#agent = qLearning(env)
