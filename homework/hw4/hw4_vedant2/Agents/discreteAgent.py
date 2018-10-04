@@ -8,7 +8,7 @@ Created on Wed Sep 12 22:03:38 2018
 import time, pickle, os
 import numpy as np
 
-def SARSA(env,initial_epsilon = 1, final_epsilon = 0.01,total_episodes = 1000, annealing_period = None,max_steps = 25,lr_rate = 0.9,gamma = 0.9, decay_rate = None):
+def SARSA(env,initial_epsilon = 1, final_epsilon = 0.01,total_episodes = 5000, annealing_period = None,max_steps = 25,lr_rate = 0.99,gamma = 0.9, decay_rate = None):
     if (annealing_period == None):
         annealing_period = total_episodes;
     if(annealing_period > total_episodes):
@@ -61,7 +61,7 @@ def SARSA(env,initial_epsilon = 1, final_epsilon = 0.01,total_episodes = 1000, a
     #with open("frozenLake_qTable_sarsa.pkl", 'wb') as f:
         #pickle.dump(Q, f)
         
-def QLearn(env,initial_epsilon = 1, final_epsilon = 0.01,total_episodes = 1000, annealing_period = None,max_steps = 25,lr_rate = 0.9,gamma = 0.9, decay_rate = None):
+def QLearn(env,initial_epsilon = 1, final_epsilon = 0.01,total_episodes = 5000, annealing_period = None,max_steps = 25,lr_rate = 0.99,gamma = 0.9, decay_rate = None):
     if (annealing_period == None):
         annealing_period = total_episodes;
     if(annealing_period > total_episodes):
@@ -112,70 +112,87 @@ def QLearn(env,initial_epsilon = 1, final_epsilon = 0.01,total_episodes = 1000, 
     #with open("frozenLake_qTable_sarsa.pkl", 'wb') as f:
         #pickle.dump(Q, f)
         
-def Reinforce(env,initial_epsilon = 1, final_epsilon = 0.01,total_episodes = 1000, annealing_period = None,max_steps = 25,lr_rate = 0.9,gamma = 0.9, decay_rate = None):
+def Reinforce(env,initial_epsilon = 1, final_epsilon = 0.01,total_episodes = 5000, annealing_period = None,max_steps = 25,lr_rate = 0.9, gamma = 1,decay_rate = None, batch_size = 10):
     if (annealing_period == None):
         annealing_period = total_episodes;
     if(annealing_period > total_episodes):
         print('Annealing period cannot be more than training period, setting annealing period equal to training period')
         annealing_period = total_episodes;
-    theta_list = np.ones((env.observation_space.n, env.action_space.n))
-    norm = np.linalg.norm(theta_list,2,0)
-    
-    p = np.zeros((env.observation_space.n, env.action_space.n))
-    def p_from_theta(theta_list):
-        for q in range(env.observation_space.n):
-            p[q] = theta_list[q]/softmax(theta_list[q])
-        return p
-    p = p_from_theta(theta_list)
-    theta_list = theta_list/norm(0)
-    epsilon = initial_epsilon;
-    
+    #theta_list = np.ones((env.observation_space.n, env.action_space.n))
+    #norm = np.linalg.norm(theta_list,2,0)
+    #theta_list = theta_list/norm[0]
     
     def softmax(x):
         """Compute softmax values for each sets of scores in x."""
-        e_x = np.exp(x - np.max(x,axis = 1))
+        e_x = np.exp(x - np.max(x))
         return e_x / e_x.sum()
-
+    
+    epsilon = initial_epsilon;
+    P = np.ones((env.observation_space.n, env.action_space.n))
+    
+    def apply_softmax(P):
+        for q in range(env.observation_space.n):
+            P[q] = softmax(P[q])
+        return P
+    
+    P = apply_softmax(P)
+    
     def choose_action(state):
-        '''action=0
+        action=0
         if np.random.uniform(0, 1) < epsilon:
             action = env.action_space.sample()
         else:
-            action_prob = (theta_list[state])
-        return action
-        '''
-        action = np.random.choice(env.action_space.n , 1 , theta_list[state])
+            action = np.random.choice(env.action_space.n , 1 , p = P[state])
+            action = action[0]
         return action
 
-    def learn(state, state2, reward, action):
-        ds = state - state2;
-        da = action;
+    def update(states, actions, rewards):
+        update = np.zeros((env.observation_space.n, env.action_space.n))
+    
+        G = np.zeros(len(rewards))
+        #G[-1] = rewards[-1]
+        for i in range(2, len(G)):
+            G[i] =  G[i-1] + rewards[i]
         
-        grad_log_p = ds*(da - p(state,action));
-        
-        
-        grad_J = 1/N*np.sum(np.sum(grad_log_p)*np.sum(reward))
-        
-        
-        theta_list = theta_list + lr_rate * grad_J
+        for i in range(len(G)):
+            action = np.zeros((env.action_space.n))
+            action[actions[i]] = 1.0 
+            pmf = P[states[i]]
+            grad_ln_pi = action - pmf
+            update[states[i]] += G[i] * grad_ln_pi
+        return update
+            #theta_list[states[i]] = theta_list[states[i]]/np.linalg.norm(theta_list[states[i]])
     # Start
     erewards=[]
-    for episode in range(total_episodes):
-        crewards=0
+    for episode in range(int(total_episodes)):
+        action_list = []
+        state_list = []
+        reward_list = []
+        crewards=0.0
         t = 0
         state = env.reset()
-       
-        while t < max_steps:
-            action = choose_action(state)
-            #env.render('human')
-            state2, reward, done, info = env.step(action)
-            learn(state, state2, reward, action)
-            state = state2
-            t += 1
-            crewards+=reward
-            if done:
-                print(episode)
-                break
+        state_list.append(state)
+        cumilative_update = np.zeros((env.observation_space.n, env.action_space.n))
+        for b in range(batch_size):
+            
+            while t < max_steps:
+                action = choose_action(state)
+                #env.render('human')
+    
+                state2, reward, done, info = env.step(action)
+                state = state2
+                action_list.append(action)
+                state_list.append(state)
+                reward_list.append(reward)
+                t += 1
+                crewards+=reward
+                if done:
+                    print(episode)
+                    break
+            cumilative_update += update(state_list, action_list, reward_list)
+        P = P + ((1-lr_rate)*(cumilative_update/batch_size))
+        apply_softmax(P)
+        #p_from_theta(P,theta_list)
         if decay_rate != None:
             epsilon = initial_epsilon + (final_epsilon - initial_epsilon) * np.exp(-decay_rate * episode) 
         epsilon = initial_epsilon + (final_epsilon - initial_epsilon) * (episode+1)/total_episodes
@@ -185,6 +202,6 @@ def Reinforce(env,initial_epsilon = 1, final_epsilon = 0.01,total_episodes = 100
             #time.sleep(0.1)
     #print ("Score over time: ", rewards/total_episodes)
     #print ("Score in last trial: ", erewards)
-    return (theta_list, erewards)
+    return (P, erewards)
     #with open("frozenLake_qTable_sarsa.pkl", 'wb') as f:
         #pickle.dump(Q, f)
