@@ -29,7 +29,7 @@ pi1 = pi1.reshape(5,5)
 plot(rewards1);
 
 Q2, rewards2 = DA.Reinforce(env)
-V2 = np.amax(Q1, axis=1)
+V2 = np.amax(Q2, axis=1)
 V2 = V2.reshape(5,5)
 pi2 = np.argmax(Q2, axis=1)
 pi2 = pi2.reshape(5,5)
