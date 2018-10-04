@@ -112,7 +112,7 @@ def QLearn(env,initial_epsilon = 1, final_epsilon = 0.01,total_episodes = 5000, 
     #with open("frozenLake_qTable_sarsa.pkl", 'wb') as f:
         #pickle.dump(Q, f)
         
-def Reinforce(env,initial_epsilon = 1, final_epsilon = 0.01,total_episodes = 5000, annealing_period = None,max_steps = 25,lr_rate = 0.9, gamma = 1,decay_rate = None):
+def Reinforce(env,initial_epsilon = 1, final_epsilon = 0.01,total_episodes = 5000, annealing_period = None,max_steps = 25,lr_rate = 0.9, gamma = 1,decay_rate = None, batch_size = 10):
     if (annealing_period == None):
         annealing_period = total_episodes;
     if(annealing_period > total_episodes):
@@ -160,14 +160,11 @@ def Reinforce(env,initial_epsilon = 1, final_epsilon = 0.01,total_episodes = 500
             pmf = P[states[i]]
             grad_ln_pi = action - pmf
             update[states[i]] += G[i] * grad_ln_pi
-            update = update /max_steps
-        Q =(update) - lr_rate*((update) - P)
-        
-        return apply_softmax(Q)
+        return update
             #theta_list[states[i]] = theta_list[states[i]]/np.linalg.norm(theta_list[states[i]])
     # Start
     erewards=[]
-    for episode in range(total_episodes):
+    for episode in range(int(total_episodes)):
         action_list = []
         state_list = []
         reward_list = []
@@ -175,21 +172,26 @@ def Reinforce(env,initial_epsilon = 1, final_epsilon = 0.01,total_episodes = 500
         t = 0
         state = env.reset()
         state_list.append(state)
-        while t < max_steps:
-            action = choose_action(state)
-            #env.render('human')
-
-            state2, reward, done, info = env.step(action)
-            state = state2
-            action_list.append(action)
-            state_list.append(state)
-            reward_list.append(reward)
-            t += 1
-            crewards+=reward
-            if done:
-                print(episode)
-                break
-        P = update(state_list, action_list, reward_list)
+        cumilative_update = np.zeros((env.observation_space.n, env.action_space.n))
+        for b in range(batch_size):
+            
+            while t < max_steps:
+                action = choose_action(state)
+                #env.render('human')
+    
+                state2, reward, done, info = env.step(action)
+                state = state2
+                action_list.append(action)
+                state_list.append(state)
+                reward_list.append(reward)
+                t += 1
+                crewards+=reward
+                if done:
+                    print(episode)
+                    break
+            cumilative_update += update(state_list, action_list, reward_list)
+        P = P + ((1-lr_rate)*(cumilative_update/batch_size))
+        apply_softmax(P)
         #p_from_theta(P,theta_list)
         if decay_rate != None:
             epsilon = initial_epsilon + (final_epsilon - initial_epsilon) * np.exp(-decay_rate * episode) 
