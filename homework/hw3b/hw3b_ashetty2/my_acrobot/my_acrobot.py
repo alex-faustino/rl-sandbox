@@ -141,7 +141,7 @@ class MyAcrobot(core.Env):
         h1 = - self.LINK_LENGTH_1 * np.cos(s[0])
         h2 = h1 - self.LINK_LENGTH_2 * np.cos(s[0] + s[1])
 
-        reward = h1 + h2
+        reward = h2
 
         return (self._get_ob(), reward, terminal, {})
 
