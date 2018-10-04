@@ -9,8 +9,7 @@ class Reinforce:
         self.policy = policy
         self.env = env
     
-    def train(self, episode_num=500, traj_length=30, num_traj=10,alpha=0.1, gamma=1):
-        print(episode_num)
+    def train(self, episode_num=1000, traj_length=20, num_traj=5,alpha=0.1, gamma=1):
         ep_rewards = np.zeros(episode_num)
         for ep in tqdm_notebook(range(episode_num)):
             state = self.env.reset()
