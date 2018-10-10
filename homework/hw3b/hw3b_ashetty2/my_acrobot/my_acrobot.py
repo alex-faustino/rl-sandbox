@@ -102,8 +102,8 @@ class MyAcrobot(core.Env):
         #self.state = self.np_random.uniform(low=-0.1, high=0.1, size=(4,))
         self.AVAIL_TORQUE = [-action_m, 0., action_m]
         self.state = np.random.normal(0.0, 1.0, size=(4,))
-        #return self._get_ob()
-        return self.state
+        return self._get_ob()
+        #return self.state
 
     def step(self, a):
         s = self.state
@@ -138,10 +138,13 @@ class MyAcrobot(core.Env):
         #else:
         #    reward = 0.0
 
-        h1 = - self.LINK_LENGTH_1 * np.cos(s[0])
-        h2 = h1 - self.LINK_LENGTH_2 * np.cos(s[0] + s[1])
+        h1 = - self.LINK_LENGTH_1 * np.cos(self.state[0])
+        h2 = h1 - self.LINK_LENGTH_2 * np.cos(self.state[0] + self.state[1])
 
+        #reward = 10*h2 + (self.MAX_VEL_1 - np.abs(self.state[2])) + (self.MAX_VEL_2 - np.abs(self.state[3]))
         reward = h2
+        if reward>0:
+            reward *=5
 
         return (self._get_ob(), reward, terminal, {})
 
