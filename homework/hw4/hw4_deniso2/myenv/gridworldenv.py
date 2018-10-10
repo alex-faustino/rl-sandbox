@@ -14,7 +14,7 @@ class GridWorldEnv(Env):
 
         self.moves = {'north':0,'south':1,'west':2,'east':3}
 
-        self.action_space = spaces.Discrete(4)
+        self.action_space = spaces.Discrete(len(self.moves))
         self.observation_space = spaces.Discrete(self.xdim * self.ydim)
         self.seed()
         self.reset()
@@ -41,15 +41,15 @@ class GridWorldEnv(Env):
         reward = 0
 
         # stochastic transitions
-        if self.np_random.rand() < 0.1:
-            action = self.np_random.randint(5)
+        if self.stochastic_transitions and self.np_random.rand() < 0.1:
+            action = self.np_random.randint(len(self.moves))
 
         # termination steps
-        if self.location == self.pointA:
-            self.location = self.pointAprime[:]
+        if np.array_equal(self.location,self.pointA):
+            self.location = np.copy(self.pointAprime)
             reward = 10
-        elif self.location == self.pointB:
-            self.location = self.pointBprime[:]
+        elif np.array_equal(self.location,self.pointB):
+            self.location = np.copy(self.pointBprime)
             reward = 5
         #all other steps
         elif action == self.moves['north'] and self.location[1] > 0:
@@ -78,4 +78,4 @@ class GridWorldEnv(Env):
         self.location = [self.np_random.randint(self.xdim),
                         self.np_random.randint(self.ydim)]
 
-        return self.location
+        return np.copy(self.location)
