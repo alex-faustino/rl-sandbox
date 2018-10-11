@@ -1,11 +1,14 @@
-# -*- coding: utf-8 -*-
+# General attitude control for satellite
+
 """
+-*- coding: utf-8 -*-
+
 Created on Thu Oct 11 10:41:07 2018
 
 @author: Vedant
 """
 
-General attitude control for satellite
+
 
 - Builiding up on the HW1 enviroment, using the satellite attitude control environment, train RL agents developedin cals t solve a generic rigid body attitude control problem.
 
