@@ -112,9 +112,7 @@ def QLearn(env,initial_epsilon = 1, final_epsilon = 0.01,total_episodes = 5000, 
     #with open("frozenLake_qTable_sarsa.pkl", 'wb') as f:
         #pickle.dump(Q, f)
         
-def Reinforce(env,initial_epsilon = 1, final_epsilon = 0.01,total_episodes = 1000, 
-              annealing_period = None,max_steps = 25,lr_rate = 0.99, gamma = 1, 
-              batch_size = 25,decay_rate = None, Imp_samp = None , Causility = None , Base_shift = None):
+def Reinforce(env,initial_epsilon = 1, final_epsilon = 0.01,total_episodes = 5000, annealing_period = None,max_steps = 25,lr_rate = 0.9, gamma = 1,decay_rate = None, batch_size = 10):
     if (annealing_period == None):
         annealing_period = total_episodes;
     if(annealing_period > total_episodes):
@@ -141,14 +139,10 @@ def Reinforce(env,initial_epsilon = 1, final_epsilon = 0.01,total_episodes = 100
     
     def choose_action(state):
         action=0
-        '''
-        action = np.random.choice(env.action_space.n , 1 , p = softmax(P[state]))
-        action = action[0]
-        '''
         if np.random.uniform(0, 1) < epsilon:
             action = env.action_space.sample()
         else:
-            action = np.random.choice(env.action_space.n , 1 , p = softmax(P[state]))
+            action = np.random.choice(env.action_space.n , 1 , p = P[state])
             action = action[0]
         return action
 
@@ -156,7 +150,7 @@ def Reinforce(env,initial_epsilon = 1, final_epsilon = 0.01,total_episodes = 100
         update = np.zeros((env.observation_space.n, env.action_space.n))
     
         G = np.zeros(len(rewards))
-        G[1] = rewards[1]
+        #G[-1] = rewards[-1]
         for i in range(2, len(G)):
             G[i] =  G[i-1] + rewards[i]
         
@@ -164,9 +158,9 @@ def Reinforce(env,initial_epsilon = 1, final_epsilon = 0.01,total_episodes = 100
             action = np.zeros((env.action_space.n))
             action[actions[i]] = 1.0 
             pmf = P[states[i]]
-            grad_ln_pi = action - softmax(pmf)
-            update[states[i]] += grad_ln_pi
-        return update*G[-1]
+            grad_ln_pi = action - pmf
+            update[states[i]] += G[i] * grad_ln_pi
+        return update
             #theta_list[states[i]] = theta_list[states[i]]/np.linalg.norm(theta_list[states[i]])
     # Start
     erewards=[]
@@ -197,12 +191,12 @@ def Reinforce(env,initial_epsilon = 1, final_epsilon = 0.01,total_episodes = 100
                     break
             cumilative_update += update(state_list, action_list, reward_list)
         P = P + ((1-lr_rate)*(cumilative_update/batch_size))
-        #apply_softmax(P)
+        apply_softmax(P)
         #p_from_theta(P,theta_list)
         if decay_rate != None:
             epsilon = initial_epsilon + (final_epsilon - initial_epsilon) * np.exp(-decay_rate * episode) 
         epsilon = initial_epsilon + (final_epsilon - initial_epsilon) * (episode+1)/total_episodes
-        erewards.append(crewards/max_steps);
+        erewards.append(crewards);
         #print(episode, epsilon)
       # os.system('clear')
             #time.sleep(0.1)

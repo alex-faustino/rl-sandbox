@@ -28,9 +28,7 @@ pi1 = np.argmax(Q1, axis=1)
 pi1 = pi1.reshape(5,5)
 plot(rewards1);
 '''
-Q2, rewards2 = DA.Reinforce(env,initial_epsilon = 1, final_epsilon = 0.01,total_episodes = 2000, 
-              annealing_period = 500,max_steps = 50,lr_rate = 0.99, gamma = 1, 
-              batch_size = 25,decay_rate = None, Imp_samp = None , Causility = None , Base_shift = None)
+Q2, rewards2 = DA.Reinforce(env)
 V2 = np.amax(Q2, axis=1)
 V2 = V2.reshape(5,5)
 pi2 = np.argmax(Q2, axis=1)
