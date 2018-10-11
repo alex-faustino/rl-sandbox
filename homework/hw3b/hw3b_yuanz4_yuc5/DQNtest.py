@@ -116,8 +116,8 @@ class DQNAgent(object):
             if i_episode % self.TARGET_UPDATE == 0:
                 self.target_net.load_state_dict(self.policy_net.state_dict())
         print('Complete')
-        self.env.render()
-        self.env.close()
+        #self.env.render()
+        #self.env.close()
         plt.plot(reward_array)
         plt.xlabel('Number of episodes')
         plt.ylabel('Episode Reward')
