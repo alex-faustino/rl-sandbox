@@ -56,6 +56,7 @@ class AcroBot(core.Env):
     MAX_VEL_2 = 9 * np.pi
 
     def __init__(self, M):
+        self.viewer = None
         high = np.array([1.0, 1.0, 1.0, 1.0, self.MAX_VEL_1, self.MAX_VEL_2])
         low = -high
         self.observation_space = spaces.Box(low = low, high = high)
@@ -87,7 +88,9 @@ class AcroBot(core.Env):
         st[2] = bound(st[2], -self.MAX_VEL_1, self.MAX_VEL_1)
         st[3] = bound(st[3], -self.MAX_VEL_2, self.MAX_VEL_2)
         self.state = st
-        reward = 1. if self._reward else 0.
+        #reward = 1. if self._reward() else 0.
+        reward = -self.LINK_LENGTH_1*np.cos(s[0]) - self.LINK_LENGTH_2*np.cos(s[0]+s[1])
+
         return (self._get(), reward, self._terminal(), {})
 
     def reset(self):
@@ -124,6 +127,8 @@ class AcroBot(core.Env):
             circ.add_attr(jtransform)
 
         return self.viewer.render(return_rgb_array = mode=='rgb_array')
+    def close(self):
+        if self.viewer: self.viewer.close()
 
     def _get(self):
         s = self.state
@@ -132,12 +137,11 @@ class AcroBot(core.Env):
 
     def _terminal(self):
         s = self.state
-        #print('EEEEEEE',bool(-cos(s[0])-cos(s[0]+s[1])>1))
         return bool(-cos(s[0])-cos(s[0]+s[1])>1)
 
     def _reward(self):
         s = self.state
-        return bool((np.pi/2-delta)<s[0]<(np.pi/2-delta) and (0-delta)<s[1]<(0-delta))
+        return bool((np.pi/2-self.delta)<s[0]<(np.pi/2-self.delta) and (0-self.delta)<s[1]<(0-self.delta))
     def _dsdt(self, s_augmented, t):
         m1 = self.LINK_MASS_1
         m2 = self.LINK_MASS_2

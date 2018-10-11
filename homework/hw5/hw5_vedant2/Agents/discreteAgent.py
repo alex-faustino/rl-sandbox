@@ -7,6 +7,7 @@ Created on Wed Sep 12 22:03:38 2018
 
 import time, pickle, os
 import numpy as np
+import random
 
 def SARSA(env,initial_epsilon = 1, final_epsilon = 0.01,total_episodes = 5000, annealing_period = None,max_steps = 25,lr_rate = 0.99,gamma = 0.9, decay_rate = None):
     if (annealing_period == None):
@@ -112,7 +113,10 @@ def QLearn(env,initial_epsilon = 1, final_epsilon = 0.01,total_episodes = 5000, 
     #with open("frozenLake_qTable_sarsa.pkl", 'wb') as f:
         #pickle.dump(Q, f)
         
-def Reinforce(env,initial_epsilon = 1, final_epsilon = 0.01,total_episodes = 5000, annealing_period = None,max_steps = 25,lr_rate = 0.9, gamma = 1,decay_rate = None, batch_size = 25):
+def Reinforce(env,initial_epsilon = 1, final_epsilon = 0.01,total_episodes = 2000, 
+              annealing_period = None,max_steps = 50,lr_rate = 0.999, gamma = 1, 
+              batch_size = 25,decay_rate = None, Imp_samp = False , Causility = False , Base_shift = False):
+    memory = []
     if (annealing_period == None):
         annealing_period = total_episodes;
     if(annealing_period > total_episodes):
@@ -139,7 +143,7 @@ def Reinforce(env,initial_epsilon = 1, final_epsilon = 0.01,total_episodes = 500
     
     def choose_action(state):
         action=0
-        '''
+        
         action = np.random.choice(env.action_space.n , 1 , p = softmax(P[state]))
         action = action[0]
         '''
@@ -148,6 +152,7 @@ def Reinforce(env,initial_epsilon = 1, final_epsilon = 0.01,total_episodes = 500
         else:
             action = np.random.choice(env.action_space.n , 1 , p = softmax(P[state]))
             action = action[0]
+        '''
         return action
 
     def update(states, actions, rewards):
@@ -168,10 +173,11 @@ def Reinforce(env,initial_epsilon = 1, final_epsilon = 0.01,total_episodes = 500
             #theta_list[states[i]] = theta_list[states[i]]/np.linalg.norm(theta_list[states[i]])
     # Start
     erewards=[]
+    action_list = []
+    state_list = []
+    reward_list = []
     for episode in range(int(total_episodes)):
-        action_list = []
-        state_list = []
-        reward_list = []
+        
         crewards=0.0
         t = 0
         state = env.reset()
@@ -193,7 +199,15 @@ def Reinforce(env,initial_epsilon = 1, final_epsilon = 0.01,total_episodes = 500
                 if done:
                     print(episode)
                     break
-            cumilative_update += update(state_list, action_list, reward_list)
+            if(Imp_samp):
+                states = random.sample(state_list, max_steps)
+                actions = random.sample(action_list, max_steps)
+                rewards = random.sample(reward_list, max_steps)
+            else:
+                states = state_list[-max_steps:]
+                actions = action_list[-max_steps:]
+                rewards = reward_list[-max_steps:]   
+            cumilative_update += update(states, actions, rewards)
         P = P + ((1-lr_rate)*(cumilative_update/batch_size))
         #apply_softmax(P)
         #p_from_theta(P,theta_list)
