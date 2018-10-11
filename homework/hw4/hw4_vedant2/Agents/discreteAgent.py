@@ -112,9 +112,7 @@ def QLearn(env,initial_epsilon = 1, final_epsilon = 0.01,total_episodes = 5000, 
     #with open("frozenLake_qTable_sarsa.pkl", 'wb') as f:
         #pickle.dump(Q, f)
         
-def Reinforce(env,initial_epsilon = 1, final_epsilon = 0.01,total_episodes = 1000, 
-              annealing_period = None,max_steps = 25,lr_rate = 0.99, gamma = 1, 
-              batch_size = 25,decay_rate = None, Imp_samp = None , Causility = None , Base_shift = None):
+def Reinforce(env,initial_epsilon = 1, final_epsilon = 0.01,total_episodes = 5000, annealing_period = None,max_steps = 25,lr_rate = 0.9, gamma = 1,decay_rate = None, batch_size = 25):
     if (annealing_period == None):
         annealing_period = total_episodes;
     if(annealing_period > total_episodes):
