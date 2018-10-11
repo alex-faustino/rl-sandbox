@@ -1,7 +1,8 @@
-# Project Title:
+## Project Title:
 ### Using Proximal Policy Optimization methods for training robot-controlling deep neural networks.
 ----------
-Refrences:
+##Refrences:
+
 @article{Schulman2017,
 archivePrefix = {arXiv},
 arxivId = {1707.06347},
