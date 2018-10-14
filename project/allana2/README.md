@@ -1,1 +1,5 @@
-In order to propose a meaningful algorithm, I must first understand deep q learning sufficiently well. I do not yet have a sufficient understanding.
+The project involves modifying the "intrinsic reward" term in VIME: Variational Information Maximizing Exploration, from 2016. In the paper, intrinsic reward is defined as
+$$r'=r+\eta*D_{KL}$$
+
+
+algorithm to remove a hyperparameter. The 
