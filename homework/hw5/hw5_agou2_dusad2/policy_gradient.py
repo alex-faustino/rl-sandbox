@@ -7,10 +7,9 @@ class Policy:
         self.state_space = state_space
     
     def get(self, state):
-        weights = self.theta[state] 
-        probs = np.exp(weights) / np.sum(np.exp(weights), axis=0) #softmax
+        weights = self.theta[state]
+        probs = np.exp(weights-np.max(weights)) / np.sum(np.exp(weights - np.max(weights)), axis=0) #softmax
         action = np.random.choice(np.arange(self.action_space), p=probs) #sample action
-        
         return action, probs
         
     def update(self, update):
