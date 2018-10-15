@@ -16,6 +16,7 @@ class gridworld(gym.Env):
     self.location_x = np.random.randint(int(1),self.gridnum-1)
     self.location_y = np.random.randint(int(1),self.gridnum-1)
     self.action = int(0) # no initial action until computed
+    self.allowed_actions = np.array([1,2,3,4])[np.newaxis]
     self.previous_action = self.action
     self.previous_x = self.location_x
     self.previous_y = self.location_y
@@ -29,6 +30,8 @@ class gridworld(gym.Env):
     self.episode_counter = 0
     self.my_exploit_action_log = np.random.rand(self.gridnum,self.gridnum)
     pass
+  def states_and_actions(self):
+    return self.gridnum, self.allowed_actions
   def render(self,fig,ax,time_index,render_label): #mode='human', close=False <- no idea what this is for
     ax = fig.gca()    
     ax.clear()
