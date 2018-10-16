@@ -55,10 +55,10 @@ class qLearning(object):
         pass
     def update_my_q_function(self):#,action,location_x,location_y):
         if self.update_q_label > 1:# update_q_label ensures that we do not update the q function when location is reset
-            self.my_q_function[self.previous_previous_x+self.gridnum*self.previous_previous_y+(self.previous_action-1)*self.gridnum**2] +=\
-            self.my_alpha*(self.my_reward_model[self.previous_previous_y,self.previous_previous_x]+\
-            self.my_gamma*np.amax(self.my_q_function[self.previous_x+self.previous_y*self.gridnum::self.gridnum**2])-\
-            self.my_q_function[self.previous_previous_x+self.gridnum*self.previous_previous_y+(self.previous_action-1)*self.gridnum**2])
+            self.my_q_function[self.previous_x+self.gridnum*self.previous_y+(self.action-1)*self.gridnum**2] +=\
+            self.my_alpha*(self.my_reward_model[self.previous_y,self.previous_x]+\
+            self.my_gamma*np.amax(self.my_q_function[self.location_x+self.location_y*self.gridnum::self.gridnum**2])-\
+            self.my_q_function[self.previous_x+self.gridnum*self.previous_y+(self.action-1)*self.gridnum**2])
         pass
     def work(self):
         if self.render_label == 'render':

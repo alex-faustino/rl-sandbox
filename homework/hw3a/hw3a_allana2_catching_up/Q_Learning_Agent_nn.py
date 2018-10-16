@@ -54,10 +54,10 @@ class qLearning(object):
         pass
     def update_my_q_function(self):#,action,location_x,location_y):
         if self.update_q_label > 1:# update_q_label ensures that we do not update the q function when location is reset
-            self.my_q_function[self.previous_previous_x+self.gridnum*self.previous_previous_y+(self.previous_action-1)*self.gridnum**2] +=\
-            self.my_alpha*(self.my_reward_model[self.previous_previous_y,self.previous_previous_x]+\
-            self.my_gamma*np.amax(self.my_q_function[self.previous_x+self.previous_y*self.gridnum::self.gridnum**2])-\
-            self.my_q_function[self.previous_previous_x+self.gridnum*self.previous_previous_y+(self.previous_action-1)*self.gridnum**2])
+            self.my_q_function[self.previous_x+self.gridnum*self.previous_y+(self.action-1)*self.gridnum**2] +=\
+            self.my_alpha*(self.my_reward_model[self.previous_y,self.previous_x]+\
+            self.my_gamma*np.amax(self.my_q_function[self.location_x+self.location_y*self.gridnum::self.gridnum**2])-\
+            self.my_q_function[self.previous_x+self.gridnum*self.previous_y+(self.action-1)*self.gridnum**2])
         pass
     def work(self):
         if self.render_label == 'render':
@@ -67,14 +67,16 @@ class qLearning(object):
             self.update_reward_model()
             self.my_reward_log[0,i] = self.my_reward[self.location_y,self.location_x]
             self.my_state_log[:,i] = np.array([self.location_x,self.location_y])[np.newaxis]
-            self.update_my_q_function()#update is for previous state, so put before state reversion
+#            self.update_my_q_function()#update is for previous state, so put before state reversion
+            self.nn.update(self.previous_x+self.gridnum*self.previous_y, self.action, self.my_reward[self.location_y,self.location_x],np.amax(self.my_q_function[self.location_x+self.location_y*self.gridnum::self.gridnum**2]))
             self.update_q_label += 1# default is to update the q function after the first iteration
             if self.my_reward[self.location_y,self.location_x] < 0:
 #              print('need to reset location',self.location_x,self.location_y)
               self.location_y = self.previous_y
               self.location_x = self.previous_x
 #              print('reset location',self.location_x,self.location_y)
-            self.my_policy() # closest to pragmatic results here
+            self.my_q_function[self.location_x+self.gridnum*self.location_y::self.gridnum] = self.nn.predict(self.location-x+self.gridnum*self.location_y)
+#            self.my_policy() # closest to pragmatic results here
             (location_x, location_y, previous_x, previous_y, previous_previous_x, previous_previous_y) = self.env.step(self.my_reward, self.action, self.location_x, self.location_y, self.previous_x, self.previous_y, self.previous_previous_x, self.previous_previous_y)# current state is AFTER action
             (self.location_x, self.location_y, self.previous_x, self.previous_y, self.previous_previous_x, self.previous_previous_y) = (location_x, location_y, previous_x, previous_y, previous_previous_x, previous_previous_y)
             if np.mod(i+1,self.episode_length) == 0:
