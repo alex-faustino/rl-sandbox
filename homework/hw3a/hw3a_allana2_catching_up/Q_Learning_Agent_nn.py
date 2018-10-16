@@ -1,3 +1,6 @@
+## Development left to be done:
+### Need to get rid of grid representation of gridworld for generalization purposes
+
 import numpy as np
 import matplotlib.pyplot as plt
 import pylab
@@ -8,11 +11,12 @@ from gym.utils import seeding
 import matplotlib.ticker as plticker
 
 class qLearning(object):
-    def __init__(self, env, nn, render_input): 
+    def __init__(self, env, my_nn, render_input): 
         self.env = env
-        self.nn = nn
+        self.my_nn = my_nn
         self.render_label = render_input
-        self.gridnum, self.allowed_actions = env.states_and_actions()
+        self.temporary_number, self.allowed_actions = env.states_and_actions()
+        self.gridnum = int(np.sqrt(self.temporary_number))
         self.location_x = np.random.randint(int(1),self.gridnum-1)
         self.location_y = np.random.randint(int(1),self.gridnum-1)
         self.action = int(0) # no initial action until computed
@@ -22,11 +26,11 @@ class qLearning(object):
         self.previous_previous_x = self.previous_x
         self.previous_previous_y = self.previous_y
         self.episode_length = int(100)
-        self.num_episodes = int(10000) # currently only running one episode, 10000
+        self.num_episodes = int(10000) # currently only rumy_nning one episode, 10000
         self.my_alpha = 0.1
         self.my_gamma = 0.9
         self.my_epsilon = 0.1
-        self.my_reward =np.array([ [-1,-1,-1,-1,-1,-1,-1],[-1, 0, 10, 0, 5, 0, -1],[-1, 0, 0, 0, 0, 0, -1],\
+        self.my_reward = np.array([ [-1,-1,-1,-1,-1,-1,-1],[-1, 0, 10, 0, 5, 0, -1],[-1, 0, 0, 0, 0, 0, -1],\
     [-1, 0, 0, 0, 0, 0, -1],[-1, 0, 0, 0, 0, 0, -1],[-1, 0, 0, 0, 0, 0, -1],[-1, -1, -1, -1, -1, -1, -1] ]) 
         self.my_reward = np.flipud(self.my_reward)
         self.my_reward_model = np.zeros([self.gridnum,self.gridnum])#reward model updated based on observations
@@ -39,7 +43,7 @@ class qLearning(object):
         self.color_array = ['blue','orange']
         self.episode_counter = 0
         self.my_exploit_action_log = np.random.rand(self.gridnum,self.gridnum)
-        self.my_state_log = np.random.rand(2, self.episode_length*self.num_episodes)
+        self.my_state_log = np.random.rand(2,self.episode_length*self.num_episodes)
         pass
     def my_policy(self):
         if self.update_q_label > 1:
@@ -68,14 +72,14 @@ class qLearning(object):
             self.my_reward_log[0,i] = self.my_reward[self.location_y,self.location_x]
             self.my_state_log[:,i] = np.array([self.location_x,self.location_y])[np.newaxis]
 #            self.update_my_q_function()#update is for previous state, so put before state reversion
-            self.nn.update(self.previous_x+self.gridnum*self.previous_y, self.action, self.my_reward[self.location_y,self.location_x],np.amax(self.my_q_function[self.location_x+self.location_y*self.gridnum::self.gridnum**2]))
+            self.my_nn.update(self.previous_x+self.gridnum*self.previous_y,self.my_reward[self.location_y,self.location_x],np.amax(self.my_q_function[self.location_x+self.location_y*self.gridnum::self.gridnum**2]))
             self.update_q_label += 1# default is to update the q function after the first iteration
             if self.my_reward[self.location_y,self.location_x] < 0:
 #              print('need to reset location',self.location_x,self.location_y)
               self.location_y = self.previous_y
               self.location_x = self.previous_x
 #              print('reset location',self.location_x,self.location_y)
-            self.my_q_function[self.location_x+self.gridnum*self.location_y::self.gridnum] = self.nn.predict(self.location-x+self.gridnum*self.location_y)
+            self.my_q_function[self.location_x+self.gridnum*self.location_y::self.gridnum] = self.my_nn.predict(self.location_x+self.gridnum*self.location_y)
 #            self.my_policy() # closest to pragmatic results here
             (location_x, location_y, previous_x, previous_y, previous_previous_x, previous_previous_y) = self.env.step(self.my_reward, self.action, self.location_x, self.location_y, self.previous_x, self.previous_y, self.previous_previous_x, self.previous_previous_y)# current state is AFTER action
             (self.location_x, self.location_y, self.previous_x, self.previous_y, self.previous_previous_x, self.previous_previous_y) = (location_x, location_y, previous_x, previous_y, previous_previous_x, previous_previous_y)
