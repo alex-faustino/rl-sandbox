@@ -17,6 +17,7 @@ import matplotlib.pyplot as plt
 from collections import deque
 import pickle
 
+
 easy = False
 
 # Initialize the model and learning Parameters
@@ -54,6 +55,15 @@ def discount_rewards(r):
     for t in reversed(range(0,r.size)):
         running_reward = running_reward*GAMMA + r[t]
         discounted_reward[t] = running_reward
+    return discounted_reward
+
+def nonCasual_discount_rewards(r):
+    discounted_reward = np.zeros_like(r)
+    running_reward = 0
+    for t in reversed(range(0,r.size)):
+        running_reward = running_reward*GAMMA + r[t]
+        #discounted_reward[t] = running_reward
+    discounted_reward = running_reward*np.ones(r.size)
     return discounted_reward
 
 class PolicyGradient():
@@ -117,9 +127,9 @@ with tf.Session() as sess:
 
     if easy:
         # File Name for saving the Results to file
-        file_name = 'hw5_PGgridWorld_easyon'
+        file_name = 'hw5_PGgridWorld_Causal_easyon'
     else:
-        file_name = 'hw5_PGgridWorld_easyoff'
+        file_name = 'hw5_PGgridWorld_Causal_easyoff'
     
     gradBuffer = sess.run(tf.trainable_variables())
     for idx, grad in enumerate(gradBuffer):
@@ -142,7 +152,7 @@ with tf.Session() as sess:
                 a_batch = np.array([_[1] for _ in ep_history])
                 r_batch = np.array([_[2] for _ in ep_history])
                 s1_batch = np.array([_[3] for _ in ep_history])
-                r_batch = discount_rewards(r_batch)
+                r_batch = nonCasual_discount_rewards(r_batch)
                 
                 grads = sess.run(agent.net_gradient,feed_dict={agent.inputs:s_batch,
                                                                 agent.reward_holder:r_batch,
