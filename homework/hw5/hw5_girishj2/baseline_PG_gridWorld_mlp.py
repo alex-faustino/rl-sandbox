@@ -1,6 +1,6 @@
 '''
 # ------------------------------------------
-AE 598RL Homework-4
+AE 598RL Homework-5
 Author: Girish Joshi
 Email: girishj2@illinois.edu
 This Code implements the Policy Gradient Algorithm on the Grid World Problem with reward bias
@@ -165,6 +165,7 @@ with tf.Session() as sess:
                 total_reward.append(running_r)
                 total_length.append(ep_length)
                 break
+        # Calculate the Baseline as Approximate Value
         bias = running_r/LEN_EPISODE
         if epoch % 100 == 0 and epoch > 0:
             AvgReward.append(np.mean(total_reward[-100:]))
