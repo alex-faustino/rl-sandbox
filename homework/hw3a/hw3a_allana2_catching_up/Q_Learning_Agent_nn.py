@@ -9,6 +9,7 @@ import sys
 from gym import error, spaces, utils
 from gym.utils import seeding
 import matplotlib.ticker as plticker
+np.set_printoptions(threshold=np.inf)
 
 class qLearning(object):
     def __init__(self, env, my_nn, render_input): 
@@ -120,4 +121,5 @@ class qLearning(object):
         pylab.legend(loc='upper left')
         print('Exploit policy of agent, where: 1 is up, 2 is down, 3 is left and 4 is right')
         print(np.flipud(self.my_exploit_action_log[1:6,1:6]).astype(int))
+#        print(self.my_nn.printingPred())
         pass 
