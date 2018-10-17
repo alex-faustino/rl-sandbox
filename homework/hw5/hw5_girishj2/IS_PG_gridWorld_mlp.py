@@ -1,6 +1,6 @@
 '''
 # ------------------------------------------
-AE 598RL Homework-4
+AE 598RL Homework-5
 Author: Girish Joshi
 Email: girishj2@illinois.edu
 This Code implements the Policy Gradient Algorithm on the Grid World Problem
