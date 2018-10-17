@@ -1,6 +1,6 @@
 import math
 import gym
-from gym import spaces, logger, utils
+from gym import spaces, logger, utils, error
 from gym.utils import seeding
 import numpy as np
 import sys
@@ -22,11 +22,6 @@ The grid considered is 5x5
 Reward =10 is obtained the pointer lands on [0,1] and reward=5 is obtained when pointer lands on [0,3]
 
 '''
-
-### Related to hard and easy 
-LEVEL = 'hard' 
-LEVEL_EPS = 0.05
-
 class GridWorldEnvNew(gym.Env):
 
     def __init__(self):
@@ -34,23 +29,27 @@ class GridWorldEnvNew(gym.Env):
         self.viewer = None
         
         #### Defining the world and the reward states
-        self.world = 5
-        self.a_init = [0, 1]
+        self.world = 5 
+        ### [x,y]=[row_no, col_no]
+        self.a_init = [0, 1] 
         self.b_init = [0, 3]
         self.desc = np.asarray(GRID,dtype='c') 
         self.a_prime = [4, 1]
         self.b_prime = [2, 3]
-
+        self.hard_prob = 0.1
+        
         ### Initializing the variables
+        self.version = None
         self.state = None
+        self.pos = None
         self.info = {}
         self.x = None
         self.y = None
 
-        # left, up, right, down
+        # left, up, right, down, respectively
         self.agent_act = [np.array([0, -1]), np.array([-1, 0]), np.array([0, 1]), np.array([1, 0])]
-        self.action_space = spaces.Discrete(4)
-        self.observation_space = spaces.Discrete(self.world**2)
+        self.action_space = spaces.Discrete(4) ### 4 actions
+        self.observation_space = spaces.Discrete(self.world**2) ### 25 states
         
         
     def seed(self, seed=None):
@@ -59,19 +58,23 @@ class GridWorldEnvNew(gym.Env):
 
     def reset(self):
         self.state = list(self.np_random.uniform(low=0, high=5, size=(2,)).astype(int) )
-        init_pos = self.state[0]*self.world + self.state[1]
-        #[spaces.Discrete(self.world).sample(), spaces.Discrete(self.world).sample()]
-        return self.state, init_pos
+        self.pos = self.state[0]*self.world + self.state[1]
+        
+        ### Set hard/easy version here! 
+        #self.version = vers
+        
+        return self.state, self.pos
     
     def step(self, act_no):
         
         #### current action and state
-        if LEVEL == 'hard':
-            myprob = random.uniform(0, 1) 
-            if myprob < LEVEL_EPS:
+        if self.version =='hard':
+            hard_val = random.uniform(0, 1)
+            if hard_val <self.hard_prob:
+                #print('Random action is taken by robot')
                 act_no = self.action_space.sample()
         
-        action = self.agent_act[act_no]
+        action = self.agent_act[act_no]       
         cur_state = self.state
         cur_x, cur_y = cur_state         
         
@@ -94,11 +97,17 @@ class GridWorldEnvNew(gym.Env):
 
         ### Updating the variables for the next instant
         done = bool(0)
-        ### next states are stored in these variables and not the current ones.
+        
+        ### states of the system after action is taken are denoted by 
+        ### self.states, self.x, self.y and self.pos
         self.state = next_state
         self.x = x
         self.y = y
-        self.info['pos'] = self.x*self.world + self.y
+        self.pos = self.x*self.world + self.y
+        self.info['pos'] = self.pos
+        self.info['x'] = self.x
+        self.info['y'] = self.y
+        ### In this example measurement from the system is same as state therefore, self.state is obtained as output
         return self.state, reward, done, self.info
 
     def render(self, mode='human'):
@@ -142,13 +151,3 @@ class GridWorldEnvNew(gym.Env):
             return outfile
         else: 
             return self.viewer.render(return_rgb_array = mode=='rgb_array')
-        
-    def random_action(self): 
-        act_x = random.randint(0,2)-1 #gym.spaces.Discrete(2).sample()
-        if act_x ==0:
-            act_y = 2*random.randint(0,1)-1
-        else: 
-            act_y = 0
-        action = [act_x, act_y]
-        return action 
-    
