@@ -3,7 +3,7 @@
 AE 598RL Homework-5
 Author: Girish Joshi
 Email: girishj2@illinois.edu
-This Code implements the Policy Gradient Algorithm on the Grid World Problem
+This Code implements the Importance Sampling Policy Gradient Algorithm on the Grid World Problem
 
 The Grid world Environment is developed as part of Homework-1
 Use the File: myGridworld.py
