@@ -2,89 +2,112 @@
 from tqdm import tqdm_notebook
 import numpy as np 
 
+class Memory:
+    def __init__(self, num_episode, num_traj, num_step, action_space, state_space):
+        self.num_episode = num_episode
+        self.num_traj = num_traj
+        self.num_step = num_step
+        self.action_space = action_space
+        self.state_space = state_space
+
+        self.states = np.zeros((num_episode, num_traj, num_step), dtype=int)
+        self.rewards =  np.zeros((num_episode, num_traj, num_step))
+        self.gradients = np.zeros((num_episode, num_traj, num_step, self.action_space))
+        self.probs = np.zeros((num_episode, num_traj, num_step, self.action_space))
+        self.actions = np.zeros((num_episode, num_traj, num_step), dtype=int)
+
+    def sample(self, number_of_samples, episode_limit):
+        episode_indices = np.random.choice(episode_limit, size=number_of_samples)
+        trajectory_indices = np.random.choice(self.num_traj, size=number_of_samples)
+        return zip(episode_indices, trajectory_indices)
+
+    def add_step(self, ep, traj, step, probs, action, gradient, state, reward):
+        self.probs[ep, traj, step] = probs
+        self.actions[ep, traj, step] = action
+        self.gradients[ep, traj, step] =  gradient
+        self.states[ep, traj, step] = state
+        self.rewards[ep, traj, step] = reward
+
 class Reinforce:
-    def __init__(self, env, state_space, action_space, policy, importance_sampling=False):
+
+    def __init__(self, env, state_space, action_space, policy):
         self.state_space = state_space
         self.action_space = action_space
         self.policy = policy
         self.env = env
-        
     
-    def train(self, episode_num=1000, traj_length=20, num_traj=5,alpha=0.1, gamma=1, 
-              importance_sampling=False, num_samples=None, causality=False
+    def get_update(self, ep, traj, baseline_shift=False, causality=False):
+        baseline = self.get_baseline(ep, causality) if baseline_shift else np.zeros(self.memory.num_step)
+        if causality:
+            causality_update = np.zeros((self.state_space,self.action_space))
+            reward_vec = np.zeros(self.memory.num_step)
+            for step in range(self.memory.num_step):
+                reward_vec[:step+1] += self.memory.rewards[ep,traj,step]
+            for step in range(self.memory.num_step):
+                state = self.memory.states[ep, traj, step]
+                causality_update[state] += self.memory.gradients[ep, traj, step]*(reward_vec[step] - baseline[step])
+            return causality_update
+        else:
+            gradient_estimate = np.zeros((self.state_space,self.action_space))
+            for step in range(self.memory.num_step):
+                state = self.memory.states[ep, traj, step]
+                gradient_estimate[state] += self.memory.gradients[ep, traj, step]
+            return (self.memory.rewards[ep, traj].sum() - baseline[0]) *gradient_estimate
+    def get_baseline(self, ep, causality=False):
+        if ep == 0:
+            baseline_per_step = np.zeros(self.memory.num_step)
+        else:
+            baseline_per_step = self.memory.rewards[ep-1].mean(0)
+
+        if causality:
+            baseline = np.zeros(self.memory.num_step)
+            for step in range(self.memory.num_step):
+                baseline[:step+1] += baseline_per_step[step]
+        else:
+            baseline = np.full(self.memory.num_step, baseline_per_step.sum())
+        return baseline
+    
+    def train(self, num_episode=1000, num_step=20, num_traj=5,alpha=0.1, gamma=1, 
+              importance_sampling=False, num_samples=None, causality=False, baseline_shift=False
              ):
-        self.importance_sampling = importance_sampling
-        self.trajectories = np.zeros((episode_num, num_traj, traj_length), dtype=int)
-        self.rewards =  np.zeros((episode_num, num_traj, traj_length))
-        self.gradients = np.zeros((episode_num, num_traj, traj_length, self.action_space))
-        self.logprobs = np.zeros((episode_num, num_traj, traj_length, self.action_space))
-        self.actions = np.zeros((episode_num, num_traj, traj_length), dtype=int)
-        
-        for ep in tqdm_notebook(range(episode_num)):
+        self.memory = Memory(num_episode, num_traj, num_step, self.action_space, self.state_space)
+        for ep in tqdm_notebook(range(num_episode)):
+            
             state = self.env.reset()
-            updates = np.zeros((self.state_space, self.action_space,num_traj)) if importance_sampling is False else np.zeros((self.state_space, self.action_space,num_samples))
             for traj in range(num_traj):
-                for step in range(traj_length):
+                for step in range(num_step):
                     action, probs = self.policy.get(state)
-                    self.logprobs[ep, traj, step] = np.log(probs) 
-                    self.actions[ep, traj, step] = action
-                    self.gradients[ep, traj, step] =  self.policy.gradient(probs, action)
-                    self.trajectories[ep, traj, step] = state
-                    state, reward, done, _ = self.env.step(action)
-                    self.rewards[ep,traj,step] = reward
-                    if causality:
-                        self.rewards[ep,traj,:step] += reward
-                    
-                if not self.importance_sampling:
-                    # updates[state,:,traj] += self.gradients[ep, traj].sum(axis=0)*self.rewards[ep, traj].sum()
-                    gradient_estimate = np.zeros((self.state_space,self.action_space))
-                    for step in range(traj_length):
-                        state = self.trajectories[ep, traj, step]
-                        if causality:
-                            gradient_estimate[state] += self.gradients[ep, traj, step]*self.rewards[ep,traj, step]
-                        else:
-                            gradient_estimate[state] += self.gradients[ep, traj, step]
-                    if causality:
-                        updates[:,:,traj] = gradient_estimate
-                    else:
-                        updates[:,:,traj] = self.rewards[ep, traj].sum()*gradient_estimate
-#             if self.importance_sampling:
-#                 episode_indices, trajectory_indices = self.sample_trajectories(num_samples, ep+1, num_traj) #2D
-#                 # print(episode_indices)
-#                 # episode_indices = np.full(num_samples, ep)
-#                 sampled_states = self.trajectories[episode_indices, trajectory_indices] # 
-#                 sampled_rewards = self.rewards[episode_indices, trajectory_indices]
-#                 sampled_grads = self.gradients[episode_indices, trajectory_indices]
-#                 for traj in range(num_samples):
-#                     likelihood_ratio = 0
-#                     for step in range(traj_length):
-#                         state = sampled_states[traj, step]
-#                         gradient_estimate = np.zeros((self.state_space,self.action_space))
-#                         gradient_estimate[state] += sampled_grads[traj,step]
-#                         _, probs = self.policy.get(state)
-                        
-#                         likelihood_ratio += self.logprobs[ep, traj, step, self.actions[ep, traj, step]]
-#                         likelihood_ratio -= np.log(probs)[self.actions[ep, traj, step]]
-                        
-#                     updates[:,:,traj] = np.exp(likelihood_ratio)*sampled_rewards[traj].sum()*gradient_estimate
-
+                    gradient = self.policy.gradient(probs, action)
+                    next_state, reward, done, _ = self.env.step(action)
+                    self.memory.add_step(ep, traj, step, probs, action, gradient, state, reward)
+                    state = next_state
+            
+            if importance_sampling:
+                updates = np.zeros((self.state_space, self.action_space,num_samples))
+                for ep, traj in self.memory.sample(num_samples, ep+1):
+                    lp_d , lp_n = 0, 0 
+                    for step in range(num_step):
+                        _, probs = self.policy.get(state)
+                        lp_d += np.log(probs[self.memory.actions[ep, traj, step]])
+                        lp_n += np.log(self.memory.probs[ep,traj, step, self.memory.actions[ep, traj, step]])
+                    if (lp_n - lp_d) > 8:
+                        continue
+                    updates[:,:,traj] = (np.exp(lp_n - lp_d))*self.get_update(ep, traj, baseline_shift, causality)
+            else:
+                updates = np.zeros((self.state_space, self.action_space,num_traj))
+                for traj in range(num_traj):
+                    updates[:,:,traj] = self.get_update(ep, traj, baseline_shift, causality)
             self.policy.theta += alpha*np.mean(updates, -1)
-        return self.rewards.sum(axis=(1, 2)) if not causality else self.rewards[:,:,0].sum(axis=1)
-    
-    def sample_trajectories(self, number_of_samples, episode_limit, num_traj):
-
-        episode_indices = np.random.choice(episode_limit, size=number_of_samples)
-        trajectory_indices = np.random.choice(num_traj, size=number_of_samples)
-        return episode_indices, trajectory_indices
-    
-    def test(self, num_steps, render=True):
+        return self.memory.rewards.sum(axis=(1, 2)), self.memory.rewards
+        
+    def test(self, num_step, render=True):
         state = self.env.reset()
-        trajectory = np.zeros(num_steps)
-        actions = np.zeros(num_steps)
-        rewards = np.zeros(num_steps)
+        trajectory = np.zeros(num_step)
+        actions = np.zeros(num_step)
+        rewards = np.zeros(num_step)
         
         imgs = []
-        for step in range(num_steps):
+        for step in range(num_step):
             action, probs = self.policy.get(state)
             if render:
                 imgs.append(self.env.render(mode='rgb_array'))
