@@ -113,10 +113,11 @@ def QLearn(env,initial_epsilon = 1, final_epsilon = 0.01,total_episodes = 5000, 
     #with open("frozenLake_qTable_sarsa.pkl", 'wb') as f:
         #pickle.dump(Q, f)
         
-def Reinforce(env,initial_epsilon = 1, final_epsilon = 0.01,total_episodes = 2000, 
-              annealing_period = None,max_steps = 50,lr_rate = 0.999, gamma = 1, 
-              batch_size = 25,decay_rate = None, Imp_samp = False , Causility = False , Base_shift = False):
-    memory = []
+def Reinforce(env,initial_epsilon = 1, final_epsilon = 0.01,total_episodes =1000, 
+              annealing_period = None,max_steps = 25,lr_rate = 0.99, gamma = 1,
+              batch_size = 10,decay_rate = None, Imp_samp = False , Causility = False ,
+              Base_shift = False):
+    
     if (annealing_period == None):
         annealing_period = total_episodes;
     if(annealing_period > total_episodes):
@@ -157,26 +158,20 @@ def Reinforce(env,initial_epsilon = 1, final_epsilon = 0.01,total_episodes = 200
 
     def update(states, actions, rewards):
         update = np.zeros((env.observation_space.n, env.action_space.n))
-        G=  rewards.sum();
+        b = np.zeros(len(rewards));
+        G=  sum(rewards);
         for i in range(len(rewards)):
-            
             action = np.zeros((env.action_space.n))
             action[actions[i]] = 1.0 
             pmf = P[states[i]]
             grad_ln_pi = action - softmax(pmf)
             if(Causility):
-                G =  rewards[i:].sum();
-                update[states[i]] += grad_ln_pi *G
-                
-        return update*G
-        else:
-            for i in range(len(rewards)):
-                action = np.zeros((env.action_space.n))
-                action[actions[i]] = 1.0 
-                pmf = P[states[i]]
-                grad_ln_pi = action - softmax(pmf)
-                update[states[i]] += grad_ln_pi*G 
-            return update*G
+                G =  sum(rewards[i:]);
+            if(Base_shift):
+                b[t] = sum(rewards[i:]);
+            update[states[i]] += grad_ln_pi *G
+        return update,b
+
             #theta_list[states[i]] = theta_list[states[i]]/np.linalg.norm(theta_list[states[i]])
     # Start
     erewards=[]
@@ -185,13 +180,13 @@ def Reinforce(env,initial_epsilon = 1, final_epsilon = 0.01,total_episodes = 200
     reward_list = []
     for episode in range(int(total_episodes)):
         
-        crewards=0.0
-        t = 0
+        
         state = env.reset()
         state_list.append(state)
         cumilative_update = np.zeros((env.observation_space.n, env.action_space.n))
         for b in range(batch_size):
-            
+            crewards=0.0
+            t = 0
             while t < max_steps:
                 action = choose_action(state)
                 #env.render('human')
@@ -214,7 +209,8 @@ def Reinforce(env,initial_epsilon = 1, final_epsilon = 0.01,total_episodes = 200
                 states = state_list[-max_steps:]
                 actions = action_list[-max_steps:]
                 rewards = reward_list[-max_steps:]   
-            cumilative_update += update(states, actions, rewards)
+            update_val, baseline_val = update(states, actions, rewards)
+            cumilative_update += update_val
         P = P + ((1-lr_rate)*(cumilative_update/batch_size))
         #apply_softmax(P)
         #p_from_theta(P,theta_list)
