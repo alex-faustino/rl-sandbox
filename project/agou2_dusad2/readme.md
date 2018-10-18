@@ -4,7 +4,11 @@
 
 https://papers.nips.cc/paper/6692-safe-model-based-reinforcement-learning-with-stability-guarantees
 https://worldmodels.github.io/
-
+https://ieeexplore.ieee.org/document/8460851
+https://ieeexplore.ieee.org/document/8461233
+https://ieeexplore.ieee.org/document/8460934
+https://ieeexplore.ieee.org/document/8460482
+https://ieeexplore.ieee.org/document/8460655
 
 ## Requirements:
 
