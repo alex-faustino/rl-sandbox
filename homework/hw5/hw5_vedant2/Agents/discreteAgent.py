@@ -196,6 +196,10 @@ def Reinforce(env,initial_epsilon = 1, final_epsilon = 0.01,total_episodes =1000
                 action_list.append(action)
                 state_list.append(state)
                 reward_list.append(reward)
+                if(len(action_list)>(3*max_steps)):
+                    action_list.pop(0);
+                    state_list.pop(0);
+                    reward_list.pop(0);
                 t += 1
                 crewards+=reward
                 if done:
