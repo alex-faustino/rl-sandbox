@@ -157,19 +157,26 @@ def Reinforce(env,initial_epsilon = 1, final_epsilon = 0.01,total_episodes = 200
 
     def update(states, actions, rewards):
         update = np.zeros((env.observation_space.n, env.action_space.n))
-    
-        G = np.zeros(len(rewards))
-        G[1] = rewards[1]
-        for i in range(2, len(G)):
-            G[i] =  G[i-1] + rewards[i]
-        
-        for i in range(len(G)):
+        G=  rewards.sum();
+        for i in range(len(rewards)):
+            
             action = np.zeros((env.action_space.n))
             action[actions[i]] = 1.0 
             pmf = P[states[i]]
             grad_ln_pi = action - softmax(pmf)
-            update[states[i]] += grad_ln_pi
-        return update*G[-1]
+            if(Causility):
+                G =  rewards[i:].sum();
+                update[states[i]] += grad_ln_pi *G
+                
+        return update*G
+        else:
+            for i in range(len(rewards)):
+                action = np.zeros((env.action_space.n))
+                action[actions[i]] = 1.0 
+                pmf = P[states[i]]
+                grad_ln_pi = action - softmax(pmf)
+                update[states[i]] += grad_ln_pi*G 
+            return update*G
             #theta_list[states[i]] = theta_list[states[i]]/np.linalg.norm(theta_list[states[i]])
     # Start
     erewards=[]
