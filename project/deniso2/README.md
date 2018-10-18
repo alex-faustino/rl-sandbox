@@ -2,7 +2,7 @@
 # Multi-Agent RL (MARL) in Capture the Flag (CtF) environment.
 
 ### Overview
-This project considers the problem of cooperative learners in partially observable, stochastic environment, receiving feedback in the form of joint reward. This work will use a flexible multi-agent competitive environment of my own design for online training and direct policy performance comparison called Capture the Flag (CtF) and available at https://github.com/osipychev/stf-public or at https://denisos.com .
+This project considers the problem of cooperative learners in partially observable, stochastic environment, receiving feedback in the form of joint reward. This work will use a flexible multi-agent competitive environment of my own design for online training and direct policy performance comparison called Capture the Flag (CtF) and available at https://github.com/osipychev/ctf_public or at https://www.denisos.com .
 
 This simulation forms a formal problem of a multi- agent Reinforcement Learning (RL) under partial observability, where the goal is to maximize the score performance measured in a direct confrontation. To address the complexity of the problem I propose a distributed deep stochastic policy gradient with individual observations, experience replay, policy transfer, and self-play.
 
