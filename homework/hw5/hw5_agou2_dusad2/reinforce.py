@@ -30,13 +30,14 @@ class Memory:
 
 class Reinforce:
 
-    def __init__(self, env, state_space, action_space, policy, importance_sampling=False):
+    def __init__(self, env, state_space, action_space, policy):
         self.state_space = state_space
         self.action_space = action_space
         self.policy = policy
         self.env = env
     
-    def get_update(self, ep, traj, causality=False):
+    def get_update(self, ep, traj, baseline_shift=False, causality=False):
+        baseline = self.get_baseline(ep, causality) if baseline_shift else np.zeros(self.memory.num_step)
         if causality:
             causality_update = np.zeros((self.state_space,self.action_space))
             reward_vec = np.zeros(self.memory.num_step)
@@ -44,15 +45,14 @@ class Reinforce:
                 reward_vec[:step+1] += self.memory.rewards[ep,traj,step]
             for step in range(self.memory.num_step):
                 state = self.memory.states[ep, traj, step]
-                causality_update[state] += self.memory.gradients[ep, traj, step]*reward_vec[step]
+                causality_update[state] += self.memory.gradients[ep, traj, step]*(reward_vec[step] - baseline[step])
             return causality_update
         else:
             gradient_estimate = np.zeros((self.state_space,self.action_space))
             for step in range(self.memory.num_step):
                 state = self.memory.states[ep, traj, step]
                 gradient_estimate[state] += self.memory.gradients[ep, traj, step]
-            return self.memory.rewards[ep, traj].sum()*gradient_estimate
-
+            return (self.memory.rewards[ep, traj].sum() - baseline[0]) *gradient_estimate
     def get_baseline(self, ep, causality=False):
         if ep == 0:
             baseline_per_step = np.zeros(self.memory.num_step)
@@ -68,18 +68,18 @@ class Reinforce:
         return baseline
     
     def train(self, num_episode=1000, num_step=20, num_traj=5,alpha=0.1, gamma=1, 
-              importance_sampling=False, num_samples=None, causality=False
+              importance_sampling=False, num_samples=None, causality=False, baseline_shift=False
              ):
         self.memory = Memory(num_episode, num_traj, num_step, self.action_space, self.state_space)
         for ep in tqdm_notebook(range(num_episode)):
-            baseline = self.get_baseline(ep, causality)
+            
             state = self.env.reset()
             for traj in range(num_traj):
                 for step in range(num_step):
                     action, probs = self.policy.get(state)
                     gradient = self.policy.gradient(probs, action)
                     next_state, reward, done, _ = self.env.step(action)
-                    self.memory.add_step(ep, traj, step, probs, action, gradient, state, reward - baseline[step])
+                    self.memory.add_step(ep, traj, step, probs, action, gradient, state, reward)
                     state = next_state
             
             if importance_sampling:
@@ -90,13 +90,13 @@ class Reinforce:
                         _, probs = self.policy.get(state)
                         lp_d += np.log(probs[self.memory.actions[ep, traj, step]])
                         lp_n += np.log(self.memory.probs[ep,traj, step, self.memory.actions[ep, traj, step]])
-                    if (np.exp(lp_n - lp_d)) > 100:
+                    if (lp_n - lp_d) > 8:
                         continue
-                    updates[:,:,traj] = (np.exp(lp_n - lp_d))*self.get_update(ep, traj, causality)
+                    updates[:,:,traj] = (np.exp(lp_n - lp_d))*self.get_update(ep, traj, baseline_shift, causality)
             else:
                 updates = np.zeros((self.state_space, self.action_space,num_traj))
                 for traj in range(num_traj):
-                    updates[:,:,traj] = self.get_update(ep, traj, causality)
+                    updates[:,:,traj] = self.get_update(ep, traj, baseline_shift, causality)
             self.policy.theta += alpha*np.mean(updates, -1)
         return self.memory.rewards.sum(axis=(1, 2)), self.memory.rewards
         

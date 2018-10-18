@@ -9,6 +9,9 @@ class Policy:
     def get(self, state):
         weights = self.theta[state]
         probs = np.exp(weights-np.max(weights)) / np.sum(np.exp(weights - np.max(weights)), axis=0) #softmax
+        if np.isnan(probs).any():
+            print(weights)
+            raise Exception("NAN")
         action = np.random.choice(np.arange(self.action_space), p=probs) #sample action
         return action, probs
         
