@@ -73,9 +73,11 @@ class qLearning(object):
             self.my_reward_log[0,i] = self.my_reward[self.location_y,self.location_x]
             self.my_state_log[:,i] = np.array([self.location_x,self.location_y])[np.newaxis]
 #            self.update_my_q_function()#update is for previous state, so put before state reversion
-            self.my_q_function[self.location_x+self.gridnum*self.location_y::self.gridnum] = self.my_nn.predict(self.location_x+self.gridnum*self.location_y)
+            #print(self.my_q_function[self.location_x+self.gridnum*self.location_y::self.gridnum**2])
+            #print(self.my_nn.predict(self.location_x+self.gridnum*self.location_y))
+            self.my_q_function[self.location_x+self.gridnum*self.location_y::self.gridnum**2] = self.my_nn.predict(self.location_x+self.gridnum*self.location_y)
             self.my_nn.update(self.my_reward[self.previous_y,self.previous_x], self.my_q_function[self.previous_x+self.previous_y*self.gridnum+self.gridnum**2*(self.action-1)], np.amax(self.my_q_function[self.location_x+self.location_y*self.gridnum::self.gridnum**2]),self.my_gamma)
-            self.my_q_function[self.location_x+self.gridnum*self.location_y::self.gridnum] = self.my_nn.predict(self.location_x+self.gridnum*self.location_y)
+            self.my_q_function[self.location_x+self.gridnum*self.location_y::self.gridnum**2] = self.my_nn.predict(self.location_x+self.gridnum*self.location_y)
             self.update_q_label += 1# default is to update the q function after the first iteration
             if self.my_reward[self.location_y,self.location_x] < 0:
               self.location_y = self.previous_y
@@ -120,5 +122,5 @@ class qLearning(object):
         pylab.legend(loc='upper left')
         print('Exploit policy of agent, where: 1 is up, 2 is down, 3 is left and 4 is right')
         print(np.flipud(self.my_exploit_action_log[1:6,1:6]).astype(int))
-#        print(self.my_nn.printingPred())
+        print(self.my_nn.printingPred())
         pass 
