@@ -8,13 +8,13 @@ class GridWorldEnv(gym.Env):
         'render.modes': ['human', 'rgb_array'],
         'video.frames_per_second': 2
     }
-    def __init__(self, mode='Q', level='easy'):
-        self.alpha = 0.7
-        self.gamma = 0.5
-        self.epsilon = 0.8
+    def __init__(self, mode, level, learning_rate, decay, epsilon):
         # mode = 'Q' or 'SARSA', level = 'easy' or 'hard'
         self.mode = mode
         self.level = level
+        self.alpha = learning_rate
+        self.gamma = decay
+        self.epsilon = epsilon
         self.viewer = None
         # left, up, right, down
         self.ACTIONS = [np.array([0, -1]),
