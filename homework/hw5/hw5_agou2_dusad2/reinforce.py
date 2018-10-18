@@ -30,12 +30,18 @@ class Memory:
 
 class Reinforce:
 
+    def __init__(self, env, state_space, action_space, policy, importance_sampling=False):
+        self.state_space = state_space
+        self.action_space = action_space
+        self.policy = policy
+        self.env = env
+    
     def get_update(self, ep, traj, causality=False):
         if causality:
             causality_update = np.zeros((self.state_space,self.action_space))
             reward_vec = np.zeros(self.memory.num_step)
             for step in range(self.memory.num_step):
-                reward_vec[:step+1] += self.memory.rewards[ep,traj,step] 
+                reward_vec[:step+1] += self.memory.rewards[ep,traj,step]
             for step in range(self.memory.num_step):
                 state = self.memory.states[ep, traj, step]
                 causality_update[state] += self.memory.gradients[ep, traj, step]*reward_vec[step]
@@ -47,25 +53,33 @@ class Reinforce:
                 gradient_estimate[state] += self.memory.gradients[ep, traj, step]
             return self.memory.rewards[ep, traj].sum()*gradient_estimate
 
-    def __init__(self, env, state_space, action_space, policy, importance_sampling=False):
-        self.state_space = state_space
-        self.action_space = action_space
-        self.policy = policy
-        self.env = env
-        
+    def get_baseline(self, ep, causality=False):
+        if ep == 0:
+            baseline_per_step = np.zeros(self.memory.num_step)
+        else:
+            baseline_per_step = self.memory.rewards[ep-1].mean(0)
+
+        if causality:
+            baseline = np.zeros(self.memory.num_step)
+            for step in range(self.memory.num_step):
+                baseline[:step+1] += baseline_per_step[step]
+        else:
+            baseline = np.full(self.memory.num_step, baseline_per_step.sum())
+        return baseline
     
     def train(self, num_episode=1000, num_step=20, num_traj=5,alpha=0.1, gamma=1, 
               importance_sampling=False, num_samples=None, causality=False
              ):
         self.memory = Memory(num_episode, num_traj, num_step, self.action_space, self.state_space)
         for ep in tqdm_notebook(range(num_episode)):
+            baseline = self.get_baseline(ep, causality)
             state = self.env.reset()
             for traj in range(num_traj):
                 for step in range(num_step):
                     action, probs = self.policy.get(state)
                     gradient = self.policy.gradient(probs, action)
                     next_state, reward, done, _ = self.env.step(action)
-                    self.memory.add_step(ep, traj, step, probs, action, gradient, state, reward)
+                    self.memory.add_step(ep, traj, step, probs, action, gradient, state, reward - baseline[step])
                     state = next_state
             
             if importance_sampling:
