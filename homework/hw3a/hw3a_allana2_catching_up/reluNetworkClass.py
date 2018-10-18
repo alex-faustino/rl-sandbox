@@ -5,8 +5,8 @@ import numpy as np
 class qLearningNetwork(object):
  def __init__(self,env):
   self.env = env
-  self.states, self.allowed_actions = env.states_and_actions()
-  self.states = np.array(self.states)[np.newaxis]
+  self.normalizing_states, self.allowed_actions = env.states_and_actions()
+  self.states = np.array(self.normalizing_states)[np.newaxis]
   # N is batch size; D_in is input dimension;
   # H is hidden dimension; D_out is output dimension.
 #  if self.states.shape[0] == 1:
@@ -29,10 +29,10 @@ class qLearningNetwork(object):
   self.storage = np.vstack((self.storage,self.y_pred.detach().numpy()))
   pass
  def predict(self,state):
-  temp_state = torch.from_numpy(np.array(state)[np.newaxis]).float()
+  temp_state = torch.from_numpy(np.array(state)[np.newaxis]).float()/self.normalizing_states
   self.x = torch.Tensor(temp_state) #so for some reason the dimension of weight m1
   self.y_pred = self.model(self.x)#prediction step is called forward pass
-  self.storage = np.vstack((self.storage,self.y_pred.detach().numpy()))
+#  self.storage = np.vstack((self.storage,self.y_pred.detach().numpy()))
   return self.y_pred.detach().numpy()   
  def update(self,reward,previous_q_function,next_q_function,discount): 
   self.loss = self.loss_fn(torch.tensor(self.y_pred,requires_grad=True),torch.tensor(reward+discount*previous_q_function,requires_grad=True))#loss calculation for feedback # print(t, loss.item()) # to see training
