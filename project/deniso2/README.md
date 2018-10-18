@@ -9,6 +9,8 @@ This simulation forms a formal problem of a multi- agent Reinforcement Learning 
 ### Motivation
 Many real-life tasks involve partial observability and multi-agent planning. Traditional RL approaches such as Q-Learning and policy-based methods are poorly suited to multi-agent problems. Actions performed by third agents are usually observed as transition noise that makes the learning very unstable (Nowe ́ et al., 2012; Omidshafiei et al., 2017). Policy gradient methods, usually exhibit very high variance when coordination of multiple agents is required (Lowe et al., 2017). The complex interaction between the agents makes learning difficult due to the agent’s perception of the environment as non-stationary and partially observable. Nevertheless, multi-agent systems are finding applications in high demand problems including resource allocation, robotic swarms, dis- tributed control, collaborative decision making, real-time strategy (RTS) and real robots. But they are a substantially more complex task for online learning algorithms and often require multi-layer solutions.
 
+![alt text](CtF.png)
+
 ### Environment Description
 The CtF simulation is a gladiator pit for algorithms. This Python-based environment is designed to throw together various AI algorithms or a human. Two teams confront each other and the goal is to capture the other team’s flag or destroy the enemy units. Two types of units exist in each team and they have different abilities. The observation is limited by the fog of war shown on the left and provides the information available to the team. The true state of the environment shown on the right and reflects all the teams.
 
