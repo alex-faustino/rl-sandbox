@@ -2,7 +2,7 @@
 
 ## Draft
 
-
+https://papers.nips.cc/paper/6692-safe-model-based-reinforcement-learning-with-stability-guarantees
 
 
 
