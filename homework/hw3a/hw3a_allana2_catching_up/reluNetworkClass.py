@@ -9,11 +9,9 @@ class qLearningNetwork(object):
   self.states = np.array(self.normalizing_states)[np.newaxis]
   # N is batch size; D_in is input dimension;
   # H is hidden dimension; D_out is output dimension.
-#  if self.states.shape[0] == 1:
-  self.N, self.D_in, self.H, self.H2, self.D_out = 20, 1, 90, 65, self.allowed_actions.shape[1]
+  self.N, self.D_in, self.H, self.H2, self.D_out = 20, self.states.shape[0], 90, 65, self.allowed_actions.shape[1]
   self.storage = np.array(np.zeros(self.allowed_actions.shape[1]))[np.newaxis]
-#  else:
-#   self.N, self.D_in, self.H, self.H2, self.D_out = 1, self.states.shape[1], 90, 65, self.allowed_actions.shape[1]
+
   self.x = torch.randn(self.N, self.D_in)# randomly initialized input
   self.y = torch.randn(self.N, self.D_out)# randomly initialized output
 

@@ -75,8 +75,11 @@ class qLearning(object):
 #            self.update_my_q_function()#update is for previous state, so put before state reversion
             #print(self.my_q_function[self.location_x+self.gridnum*self.location_y::self.gridnum**2])
             #print(self.my_nn.predict(self.location_x+self.gridnum*self.location_y))
-            self.my_q_function[self.location_x+self.gridnum*self.location_y::self.gridnum**2] = self.my_nn.predict(self.location_x+self.gridnum*self.location_y)
-            self.my_nn.update(self.my_reward[self.previous_y,self.previous_x], self.my_q_function[self.previous_x+self.previous_y*self.gridnum+self.gridnum**2*(self.action-1)], np.amax(self.my_q_function[self.location_x+self.location_y*self.gridnum::self.gridnum**2]),self.my_gamma)
+            if self.update_q_label > 1:
+             self.my_q_function[self.location_x+self.gridnum*self.location_y::self.gridnum**2] = self.my_nn.predict(self.location_x+self.gridnum*self.location_y)
+
+             self.my_nn.update(self.my_reward[self.previous_y,self.previous_x], self.my_q_function[self.previous_x+self.previous_y*self.gridnum+self.gridnum**2*(self.action-1)], np.amax(self.my_q_function[self.location_x+self.location_y*self.gridnum::self.gridnum**2]),self.my_gamma)
+
             self.my_q_function[self.location_x+self.gridnum*self.location_y::self.gridnum**2] = self.my_nn.predict(self.location_x+self.gridnum*self.location_y)
             self.update_q_label += 1# default is to update the q function after the first iteration
             if self.my_reward[self.location_y,self.location_x] < 0:
