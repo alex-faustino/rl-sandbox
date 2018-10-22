@@ -86,7 +86,7 @@ class qLearning(object):
 ## first, draw sample from experience replay ##            
              replay_index = np.random.randint(0,self.replay_length)
 ## train main neural network ## 
-             self.my_nn.update(self.my_reward_log[0,i-replay_index-1], self.my_q_function[int(self.my_state_log[0,i-replay_index-1]+self.my_state_log[1,i-replay_index-1]*self.gridnum+self.gridnum**2*(self.my_action_log[0,i-replay_index]-1))], np.amax(self.my_q_function[self.location_x+self.location_y*self.gridnum::self.gridnum**2]),self.my_gamma,np.mod(i+1,self.episode_length))
+             self.my_nn.update(self.my_reward_log[0,i-replay_index-2], self.my_q_function[int(self.my_state_log[0,i-replay_index-1]+self.my_state_log[1,i-replay_index-1]*self.gridnum+self.gridnum**2*(self.my_action_log[0,i-replay_index]-1))], np.amax(self.my_q_function[self.location_x+self.location_y*self.gridnum::self.gridnum**2]),self.my_gamma,np.mod(i+1,self.episode_length))
 ## train target neural network (logic in class file to only update when appropriate) ##
              self.my_nn2.update(self.my_reward_log[0,i-replay_index-1], self.my_q_function[int(self.my_state_log[0,i-replay_index-1]+self.my_state_log[1,i-replay_index-1]*self.gridnum+self.gridnum**2*(self.my_action_log[0,i-replay_index]-1))], np.amax(self.my_q_function[self.location_x+self.location_y*self.gridnum::self.gridnum**2]),self.my_gamma,np.mod(i+1,self.episode_length))
 #             self.my_nn.update(self.my_reward[self.previous_y,self.previous_x], self.my_q_function[self.previous_x+self.previous_y*self.gridnum+self.gridnum**2*(self.action-1)], np.amax(self.my_q_function[self.location_x+self.location_y*self.gridnum::self.gridnum**2]),self.my_gamma)
