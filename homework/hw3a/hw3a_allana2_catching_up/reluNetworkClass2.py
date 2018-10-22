@@ -3,8 +3,7 @@ import torch
 import numpy as np
 
 class qLearningNetwork(object):
- def __init__(self,env,nn2):
-  self.nn2 = nn2
+ def __init__(self,env):
   self.env = env
   self.normalizing_states, self.allowed_actions = env.states_and_actions()
   self.states = np.array(self.normalizing_states)[np.newaxis]
@@ -35,12 +34,14 @@ class qLearningNetwork(object):
 #  self.storage = np.vstack((self.storage,self.y_pred.detach().numpy()))
   return self.y_pred.detach().numpy()   
  def update(self,reward,previous_q_function,next_q_function,discount,C): 
-  y_pred = self.nn2.predict(self.x)
-  self.loss = self.loss_fn(torch.tensor(self.y_pred,requires_grad=True),torch.tensor(reward+discount*previous_q_function,requires_grad=True))#loss calculation for feedback # print(t, loss.item()) # to see training
+# experience replay from agent to neural network
+  self.y_pred = self.model(self.x)
+  if np.mod(C,self.C) == 0:# update every C samples
+   self.loss = self.loss_fn(torch.tensor(self.y_pred,requires_grad=True),torch.tensor(reward+discount*previous_q_function,requires_grad=True))#loss calculation for feedback # print(t, loss.item()) # to see training
 
-  self.loss.backward()#gradient of loss step is called backward pass
+   self.loss.backward()#gradient of loss step is called backward pass
 
-  with torch.no_grad():# Update the weights using gradient descent.
+   with torch.no_grad():# Update the weights using gradient descent.
         for param in self.model.parameters():
              param -= self.learning_rate * param.grad
   pass

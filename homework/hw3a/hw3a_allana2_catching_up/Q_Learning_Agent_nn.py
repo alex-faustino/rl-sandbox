@@ -1,5 +1,5 @@
 ## Development left to be done:
-### Need to get rid of grid representation of gridworld for generalization purposes
+### Make replay memory and send over random sample to network
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -12,9 +12,10 @@ import matplotlib.ticker as plticker
 np.set_printoptions(threshold=np.inf)
 
 class qLearning(object):
-    def __init__(self, env, my_nn, render_input): 
+    def __init__(self, env, my_nn, my_nn2, render_input): 
         self.env = env
         self.my_nn = my_nn
+        self.my_nn2 = my_nn2
         self.render_label = render_input
         self.temporary_number, self.allowed_actions = env.states_and_actions()
         self.gridnum = int(np.sqrt(self.temporary_number))
@@ -42,9 +43,11 @@ class qLearning(object):
         self.my_episodic_cumulative_reward_log = np.random.rand(1,self.num_episodes)
         self.update_q_label = 0
         self.color_array = ['blue','orange']
-        self.episode_counter = 0
         self.my_exploit_action_log = np.random.rand(self.gridnum,self.gridnum)
         self.my_state_log = np.random.rand(2,self.episode_length*self.num_episodes)
+        self.my_action_log = np.random.rand(1, self.episode_length*self.num_episodes)
+        self.episode_counter = 0
+        self.replay_length = 20
         pass
     def my_policy(self):
         if self.update_q_label > 1:
@@ -52,7 +55,7 @@ class qLearning(object):
         self.action = self.allowed_actions[0,np.argmax(self.my_q_function[self.location_x+self.gridnum*self.location_y+(self.allowed_actions-1)*self.gridnum**2])]
         self.my_exploit_action_log[self.location_y,self.location_x] = int(self.action)
         if np.random.rand() <= self.my_epsilon:
-            self.action = self.allowed_actions[0,np.random.randint(0,self.allowed_actions.shape[1])]
+         self.action = self.allowed_actions[0,np.random.randint(0,self.allowed_actions.shape[1])]
         pass# self.location_y,self.location_x,self.action
     def update_reward_model(self):# reversed y and x for reward (not model) to accommodate human-readable reward
         self.my_reward_model[self.location_y,self.location_x] = self.my_reward[self.location_y,self.location_x]
@@ -69,41 +72,57 @@ class qLearning(object):
             fig, (ax) = self.env.render_init(self.render_label)
         k=0 # counter for episodic cumulative reward
         for i in range(0,self.episode_length * self.num_episodes - 1):
-            self.update_reward_model()
+#            self.update_reward_model()#used in tabular algorithm
             self.my_reward_log[0,i] = self.my_reward[self.location_y,self.location_x]
             self.my_state_log[:,i] = np.array([self.location_x,self.location_y])[np.newaxis]
-#            self.update_my_q_function()#update is for previous state, so put before state reversion
-            #print(self.my_q_function[self.location_x+self.gridnum*self.location_y::self.gridnum**2])
-            #print(self.my_nn.predict(self.location_x+self.gridnum*self.location_y))
-            if self.update_q_label > 1:
+            
+            self.my_action_log[0,i] = self.action#inaccuracy in first time step of each episode is not important because algorithm does not update on first episode
+#            self.update_my_q_function()#used in tabular algorithm
+#            if self.update_q_label > 1:#used in tabular algorithm
+            if self.update_q_label > self.replay_length or (i>1 and self.update_q_label > 1):
+## need to predict before each update to so that target for on-policy implementation is accessible in neural network when update is called ##
              self.my_q_function[self.location_x+self.gridnum*self.location_y::self.gridnum**2] = self.my_nn.predict(self.location_x+self.gridnum*self.location_y)
-
-             self.my_nn.update(self.my_reward[self.previous_y,self.previous_x], self.my_q_function[self.previous_x+self.previous_y*self.gridnum+self.gridnum**2*(self.action-1)], np.amax(self.my_q_function[self.location_x+self.location_y*self.gridnum::self.gridnum**2]),self.my_gamma)
-
+             temporary_output = self.my_nn2.predict(self.location_x+self.gridnum*self.location_y)
+## first, draw sample from experience replay ##            
+             replay_index = np.random.randint(0,self.replay_length)
+## train main neural network ## 
+             self.my_nn.update(self.my_reward_log[0,i-replay_index-1], self.my_q_function[int(self.my_state_log[0,i-replay_index-1]+self.my_state_log[1,i-replay_index-1]*self.gridnum+self.gridnum**2*(self.my_action_log[0,i-replay_index]-1))], np.amax(self.my_q_function[self.location_x+self.location_y*self.gridnum::self.gridnum**2]),self.my_gamma,np.mod(i+1,self.episode_length))
+## train target neural network (logic in class file to only update when appropriate) ##
+             self.my_nn2.update(self.my_reward_log[0,i-replay_index-1], self.my_q_function[int(self.my_state_log[0,i-replay_index-1]+self.my_state_log[1,i-replay_index-1]*self.gridnum+self.gridnum**2*(self.my_action_log[0,i-replay_index]-1))], np.amax(self.my_q_function[self.location_x+self.location_y*self.gridnum::self.gridnum**2]),self.my_gamma,np.mod(i+1,self.episode_length))
+#             self.my_nn.update(self.my_reward[self.previous_y,self.previous_x], self.my_q_function[self.previous_x+self.previous_y*self.gridnum+self.gridnum**2*(self.action-1)], np.amax(self.my_q_function[self.location_x+self.location_y*self.gridnum::self.gridnum**2]),self.my_gamma)
+## output main neural network prediction ##
             self.my_q_function[self.location_x+self.gridnum*self.location_y::self.gridnum**2] = self.my_nn.predict(self.location_x+self.gridnum*self.location_y)
+## allows learning ##
             self.update_q_label += 1# default is to update the q function after the first iteration
+## this reset maybe should be in gridworld ##
             if self.my_reward[self.location_y,self.location_x] < 0:
               self.location_y = self.previous_y
               self.location_x = self.previous_x
+## implement agent policy ##
             self.my_policy() # closest to pragmatic results here
             (location_x, location_y, previous_x, previous_y, previous_previous_x, previous_previous_y) = self.env.step(self.my_reward, self.action, self.location_x, self.location_y, self.previous_x, self.previous_y, self.previous_previous_x, self.previous_previous_y)# current state is AFTER action
             (self.location_x, self.location_y, self.previous_x, self.previous_y, self.previous_previous_x, self.previous_previous_y) = (location_x, location_y, previous_x, previous_y, previous_previous_x, previous_previous_y)
+## for new episode ##
             if np.mod(i+1,self.episode_length) == 0:
                 self.my_episodic_cumulative_reward_log[0,k] = \
                 np.sum(self.my_reward_log[0,(k*self.episode_length):(i+1)])# sums from k*episode_length to i
                 k += 1
                 self.env.reset()
-            progress_checker = np.floor(0.1*self.episode_length*self.num_episodes)
-            if np.mod(i+1,progress_checker) == 0:
-                sys.stdout.write("\r"+"%s" % int(10+np.floor(i/progress_checker)*10) + '%')#updates progress without excessive output
+## for real-time rendering ##
             if self.render_label == 'render':
                 self.env.render(fig,ax,i,self.render_label)
+## progress output ##
+            progress_checker = np.floor(0.1*self.episode_length*self.num_episodes)
+            self.episode_counter = np.floor((i+1)/self.episode_length)
+            if np.mod(i+1,progress_checker) == 0:
+                sys.stdout.write("\r"+"%s" % int(10+np.floor(i/progress_checker)*10) + '%')#updates progress without excessive output
         sys.stdout.write("\r"+'done' + '\n')#displays progress and prints results on new lines
+## results ##
         fig1, (ax1)=plt.subplots()
         ax1.plot(self.my_episodic_cumulative_reward_log[0,0:-1])
         plt.xlabel('episode number')
         plt.ylabel('total episodic reward')
-        print('reward model' + '\n' + str(np.flipud(self.my_reward_model[1:6,1:6])))
+#        print('reward model' + '\n' + str(np.flipud(self.my_reward_model[1:6,1:6])))#only relevant for tabular algorithm
         for a_index in range(0,self.allowed_actions.shape[1]):
          for y_index in range(0,self.gridnum-1):
           for x_index in range(0,self.gridnum-1):
@@ -125,5 +144,5 @@ class qLearning(object):
         pylab.legend(loc='upper left')
         print('Exploit policy of agent, where: 1 is up, 2 is down, 3 is left and 4 is right')
         print(np.flipud(self.my_exploit_action_log[1:6,1:6]).astype(int))
-#        print(self.my_nn.printingPred())
+#        print(self.my_nn.printingPred())# only potentially possible to see on computers with strictly more than 8 GB of memory
         pass 
