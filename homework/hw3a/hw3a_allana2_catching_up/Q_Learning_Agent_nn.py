@@ -28,7 +28,7 @@ class qLearning(object):
         self.previous_previous_x = self.previous_x
         self.previous_previous_y = self.previous_y
         self.episode_length = int(100)
-        self.num_episodes = int(20000) # currently only rumy_nning one episode, 10000
+        self.num_episodes = int(10000) # currently only rumy_nning one episode, 10000
         self.my_alpha = 0.1
         self.my_gamma = 0.9
         self.my_epsilon = 0.1
@@ -47,7 +47,7 @@ class qLearning(object):
         self.my_state_log = np.random.rand(2,self.episode_length*self.num_episodes)
         self.my_action_log = np.random.rand(1, self.episode_length*self.num_episodes)
         self.episode_counter = 0
-        self.replay_length = 20
+        self.replay_length = 25
         pass
     def my_policy(self):
         if self.update_q_label > 1:
@@ -79,12 +79,16 @@ class qLearning(object):
             self.my_action_log[0,i] = self.action#inaccuracy in first time step of each episode is not important because algorithm does not update on first episode
 #            self.update_my_q_function()#used in tabular algorithm
 #            if self.update_q_label > 1:#used in tabular algorithm
-            if self.update_q_label > self.replay_length or (i>1 and self.update_q_label > 1):
+            if self.update_q_label > self.replay_length or (self.episode_counter>1 and self.update_q_label > 1):
 ## need to predict before each update to so that target for on-policy implementation is accessible in neural network when update is called ##
              self.my_q_function[self.location_x+self.gridnum*self.location_y::self.gridnum**2] = self.my_nn.predict(self.location_x+self.gridnum*self.location_y)
              temporary_output = self.my_nn2.predict(self.location_x+self.gridnum*self.location_y)
 ## first, draw sample from experience replay ##            
              replay_index = np.random.randint(0,self.replay_length)
+### ensure that i-replay_index is not the first step of a new episode ###
+             while (np.mod(i-replay_index,self.episode_length) == 0):
+#              print(i-replay_index)# to check that the correct episodes are being excluded
+              replay_index = np.random.randint(0,self.replay_length)
 ## train main neural network ## 
              self.my_nn.update(self.my_reward_log[0,i-replay_index-1], self.my_q_function[int(self.my_state_log[0,i-replay_index-1]+self.my_state_log[1,i-replay_index-1]*self.gridnum+self.gridnum**2*(self.my_action_log[0,i-replay_index]-1))], np.amax(self.my_q_function[self.location_x+self.location_y*self.gridnum::self.gridnum**2]),self.my_gamma,np.mod(i+1,self.episode_length))
 ## train target neural network (logic in class file to only update when appropriate) ##
@@ -112,10 +116,11 @@ class qLearning(object):
             if self.render_label == 'render':
                 self.env.render(fig,ax,i,self.render_label)
 ## progress output ##
-            progress_checker = np.floor(0.1*self.episode_length*self.num_episodes)
+            progress_interval = 0.01# should be a percentage in a decimal form
+            progress_checker = np.floor(progress_interval*self.episode_length*self.num_episodes)
             self.episode_counter = np.floor((i+1)/self.episode_length)
             if np.mod(i+1,progress_checker) == 0:
-                sys.stdout.write("\r"+"%s" % int(10+np.floor(i/progress_checker)*10) + '%')#updates progress without excessive output
+                sys.stdout.write("\r"+"%s" % int(progress_interval*100+np.floor(i/progress_checker)*progress_interval*100) + '%')#updates progress without excessive output
         sys.stdout.write("\r"+'done' + '\n')#displays progress and prints results on new lines
 ## results ##
         fig1, (ax1)=plt.subplots()
