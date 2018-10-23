@@ -24,6 +24,7 @@ class qLearningNetwork(object):
   self.loss_fn = torch.nn.MSELoss()
 
   self.learning_rate = 1e-4
+  self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate)
   self.y_pred = self.model(self.x)#initial prediction step is called forward pass
   self.storage = np.vstack((self.storage,self.y_pred.detach().numpy()))
   pass
@@ -38,12 +39,13 @@ class qLearningNetwork(object):
   self.y_pred = self.model(self.x)
   if np.mod(C,self.C) == 0:# update every C samples
    self.loss = self.loss_fn(torch.tensor(self.y_pred,requires_grad=True),torch.tensor(reward+discount*previous_q_function,requires_grad=True))#loss calculation for feedback # print(t, loss.item()) # to see training
-
+   
+   self.optimizer.zero_grad()
    self.loss.backward()#gradient of loss step is called backward pass
-
-   with torch.no_grad():# Update the weights using gradient descent.
-        for param in self.model.parameters():
-             param -= self.learning_rate * param.grad
+   self.optimizer.step()
+#   with torch.no_grad():# Update the weights using gradient descent.
+#        for param in self.model.parameters():
+#             param -= self.learning_rate * param.grad
   pass
  def printingPred(self):
   return self.storage
