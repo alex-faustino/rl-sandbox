@@ -47,7 +47,7 @@ class qLearning(object):
         self.my_state_log = np.random.rand(2,self.episode_length*self.num_episodes)
         self.my_action_log = np.random.rand(1, self.episode_length*self.num_episodes)
         self.episode_counter = 0
-        self.replay_length = 125
+        self.replay_length = 625
         pass
     def my_policy(self):
         if self.update_q_label > 1:
