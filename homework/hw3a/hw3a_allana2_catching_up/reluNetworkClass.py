@@ -12,7 +12,6 @@ class qLearningNetwork(object):
   # H is hidden dimension; D_out is output dimension.
   self.N, self.D_in, self.H, self.H2, self.D_out = 20, self.states.shape[0], 90, 65, self.allowed_actions.shape[1]
   self.storage = np.array(np.zeros(self.allowed_actions.shape[1]))[np.newaxis]
-  self.C = 15
   self.x = torch.randn(self.N, self.D_in)# randomly initialized input
   self.y = torch.randn(self.N, self.D_out)# randomly initialized output
 
@@ -48,5 +47,7 @@ class qLearningNetwork(object):
 #        for param in self.model.parameters():
 #             param -= self.learning_rate * param.grad
   pass
+ def transmitModel(self):
+  return self.model
  def printingPred(self):
   return self.storage
