@@ -80,22 +80,28 @@ class qLearning(object):
 #            self.update_my_q_function()#used in tabular algorithm
 #            if self.update_q_label > 1:#used in tabular algorithm
             if self.update_q_label > self.replay_length or (self.episode_counter>1 and self.update_q_label > 1):
-## need to predict before each update to so that target for on-policy implementation is accessible in neural network when update is called ##
-             self.my_q_function[self.location_x+self.gridnum*self.location_y::self.gridnum**2] = self.my_nn.predict(self.location_x+self.gridnum*self.location_y)
-             temporary_output = self.my_nn2.predict(self.location_x+self.gridnum*self.location_y)
 ## first, draw sample from experience replay ##            
              replay_index = np.random.randint(0,self.replay_length)
 ### ensure that i-replay_index is not the first step of a new episode ###
-             while (np.mod(i-replay_index,self.episode_length) == 0):
+             while (np.mod(i-replay_index,self.episode_length) == 0 and np.mod(i-replay_index-1,self.episode_length) == 0):
 #              print(i-replay_index)# to check that the correct episodes are being excluded
               replay_index = np.random.randint(0,self.replay_length)
+## need to predict before each update to so that target for on-policy implementation is accessible in neural network when update is called ##
+### this prediction needs to be from the experience replay ###
+#             self.my_q_function[self.location_x+self.gridnum*self.location_y::self.gridnum**2] = self.my_nn.predict(self.location_x+self.gridnum*self.location_y)
+#             temporary_output = self.my_nn2.predict(self.location_x+self.gridnum*self.location_y)
+#             self.my_q_function[int(self.my_state_log[0,i-replay_index-1]+self.gridnum*self.my_state_log[1,i-replay_index-1])::self.gridnum**2] = self.my_nn.predict(int(self.my_state_log[0,i-replay_index-1]+self.gridnum*self.my_state_log[1,i-replay_index-1]))
+             self.my_q_function[int(self.my_state_log[0,i-replay_index]+self.gridnum*self.my_state_log[1,i-replay_index])::self.gridnum**2] = self.my_nn.predict(int(self.my_state_log[0,i-replay_index]+self.gridnum*self.my_state_log[1,i-replay_index]))
+#             temporary_output = self.my_nn2.predict(self.my_state_log[0,i-replay_index-1]+self.gridnum*self.my_state_log[1,i-replay_index-1])
+#### using prediction of next q function for second network ?####
+             temporary_output = self.my_nn2.predict(self.my_state_log[0,i-replay_index]+self.gridnum*self.my_state_log[1,i-replay_index])
 ## train main neural network ## 
-             self.my_nn.update(self.my_reward_log[0,i-replay_index-1], self.my_q_function[int(self.my_state_log[0,i-replay_index-1]+self.my_state_log[1,i-replay_index-1]*self.gridnum+self.gridnum**2*(self.my_action_log[0,i-replay_index]-1))], np.amax(self.my_q_function[self.location_x+self.location_y*self.gridnum::self.gridnum**2]),self.my_gamma,np.mod(i+1,self.episode_length))
+             self.my_nn.update(self.my_reward_log[0,i-replay_index-1], self.my_q_function[int(self.my_state_log[0,i-replay_index-1]+self.my_state_log[1,i-replay_index-1]*self.gridnum+self.gridnum**2*(self.my_action_log[0,i-replay_index]-1))], np.amax(self.my_q_function[int(self.my_state_log[0,i-replay_index]+self.my_state_log[1,i-replay_index]*self.gridnum)::self.gridnum**2]),self.my_gamma,np.mod(i+1,self.episode_length))
 ## train target neural network (logic in class file to only update when appropriate) ##
              self.my_nn2.update2(self.my_nn.transmitModel(),i+1)#np.mod(i+1,self.episode_length)
 #             self.my_nn2.update(self.my_reward_log[0,i-replay_index-1], self.my_q_function[int(self.my_state_log[0,i-replay_index-1]+self.my_state_log[1,i-replay_index-1]*self.gridnum+self.gridnum**2*(self.my_action_log[0,i-replay_index]-1))], np.amax(self.my_q_function[self.location_x+self.location_y*self.gridnum::self.gridnum**2]),self.my_gamma,np.mod(i+1,self.episode_length))
 #             self.my_nn.update(self.my_reward[self.previous_y,self.previous_x], self.my_q_function[self.previous_x+self.previous_y*self.gridnum+self.gridnum**2*(self.action-1)], np.amax(self.my_q_function[self.location_x+self.location_y*self.gridnum::self.gridnum**2]),self.my_gamma)
-## output main neural network prediction ##
+## output main neural network prediction using current location? ##
             self.my_q_function[self.location_x+self.gridnum*self.location_y::self.gridnum**2] = self.my_nn.predict(self.location_x+self.gridnum*self.location_y)
 ## allows learning ##
             self.update_q_label += 1# default is to update the q function after the first iteration

@@ -36,6 +36,7 @@ class qLearningNetwork(object):
   return self.y_pred.detach().numpy()   
  def update2(self,model,C):
   if np.mod(C,self.C) == 0:# update every C samples
+#   print(C)
    self.model = model
   pass
  def update(self,reward,previous_q_function,next_q_function,discount,C): 
