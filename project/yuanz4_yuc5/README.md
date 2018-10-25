@@ -21,3 +21,5 @@ AWS (dynamic simulation)
 create a folder and README about some draft statement: what algorithm, what system
 
 3 weeks later project paper presentation
+
+# PingPong upward srtike
