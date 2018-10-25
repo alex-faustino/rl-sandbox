@@ -77,19 +77,18 @@ class qLearning(object):
             self.my_state_log[:,i] = np.array([self.location_x,self.location_y])[np.newaxis]
             self.my_action_log[0,i] = self.action#inaccuracy in first time step of each episode is not important because algorithm does not update on first episode
 #            if self.update_q_label > self.replay_length or (self.episode_counter>1 and self.update_q_label > 1):
-            if self.update_q_label > 1:
-## first, draw sample from experience replay ##            
+            if self.update_q_label > 1: # I have reverted back to this boolean switch because I added a condition to the while loop. Should check this though
+## first, draw sample from experience replay ##
              replay_index = np.random.randint(0,self.replay_length)
-### ensure that i-replay_index is not the first step of a new episode ###
-             while (np.mod(i-replay_index-1+1,self.episode_length) == 0) or (np.mod(i-replay_index+1,self.episode_length) == 0) or replay_index > i-1:# prevents updating episode start/end
+### ensure that i-replay_index is not the first or last step of an episode ###
+             while (np.mod(i-replay_index-1+1,self.episode_length) == 0) or (np.mod(i-replay_index+1,self.episode_length) == 0) or replay_index > i-1:
               replay_index = np.random.randint(0,self.replay_length)
 
-## need to predict before each update to so that target for on-policy implementation is accessible in neural network when update is called ##
-### the prediction run-through for the main network is used to initialize the state that will be input to the target network from experience replay ###
+## "predicting" to store state in main network (reluNetworkClass.py) for use in target network (reluNetworkClass2.py) ##
              self.my_nn.predict(int(self.my_state_log[0,i-replay_index]+self.gridnum*self.my_state_log[1,i-replay_index]))
 
 ## train main neural network ## 
-             self.my_nn.update(self.my_reward_log[0,i-replay_index-1], self.my_q_function[int(self.my_state_log[0,i-replay_index-1]+self.my_state_log[1,i-replay_index-1]*self.gridnum+self.gridnum**2*(self.my_action_log[0,i-replay_index]-1))], np.amax(self.my_q_function[int(self.my_state_log[0,i-replay_index]+self.my_state_log[1,i-replay_index]*self.gridnum)::self.gridnum**2]),self.my_gamma,np.mod(i+1,self.episode_length))
+             self.my_nn.update(self.my_reward_log[0,i-replay_index-1], self.my_q_function[int(self.my_state_log[0,i-replay_index-1]+self.my_state_log[1,i-replay_index-1]*self.gridnum+self.gridnum**2*(self.my_action_log[0,i-replay_index-1]-1))], np.amax(self.my_q_function[int(self.my_state_log[0,i-replay_index]+self.my_state_log[1,i-replay_index]*self.gridnum)::self.gridnum**2]),self.my_gamma)
 
 ## train target neural network (logic in class file to only update when appropriate) ##
              self.my_nn2.update(self.my_nn.transmitModel(),i+1)#np.mod(i+1,self.episode_length)
@@ -155,5 +154,4 @@ class qLearning(object):
         pylab.legend(loc='upper left')
         print('Exploit policy of agent, where: 1 is up, 2 is down, 3 is left and 4 is right')
         print(np.flipud(self.my_exploit_action_log[1:6,1:6]).astype(int))
-#        print(self.my_nn.printingPred())# only potentially possible to see on computers with strictly more than 8 GB of memory
         pass 
