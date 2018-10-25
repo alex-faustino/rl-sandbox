@@ -75,18 +75,18 @@ class qLearning(object):
 #            self.update_reward_model()#used in tabular algorithm
             self.my_reward_log[0,i] = self.my_reward[self.location_y,self.location_x]
             self.my_state_log[:,i] = np.array([self.location_x,self.location_y])[np.newaxis]
-            
             self.my_action_log[0,i] = self.action#inaccuracy in first time step of each episode is not important because algorithm does not update on first episode
-            if self.update_q_label > self.replay_length or (self.episode_counter>1 and self.update_q_label > 1):
+#            if self.update_q_label > self.replay_length or (self.episode_counter>1 and self.update_q_label > 1):
+            if self.update_q_label > 1:
 ## first, draw sample from experience replay ##            
              replay_index = np.random.randint(0,self.replay_length)
 ### ensure that i-replay_index is not the first step of a new episode ###
-             while (np.mod(i-replay_index-1+1,self.episode_length) == 0) or (np.mod(i-replay_index+1,self.episode_length) == 0):# prevents updating episode start/end
+             while (np.mod(i-replay_index-1+1,self.episode_length) == 0) or (np.mod(i-replay_index+1,self.episode_length) == 0) or replay_index > i-1:# prevents updating episode start/end
               replay_index = np.random.randint(0,self.replay_length)
 
 ## need to predict before each update to so that target for on-policy implementation is accessible in neural network when update is called ##
 ### the prediction run-through for the main network is used to initialize the state that will be input to the target network from experience replay ###
-             self.my_nn.predict(int(self.my_state_log[0,i-replay_index]+self.gridnum*self.my_state_log[1,i-replay_index]))
+             self.my_nn.predict(int(self.my_state_log[0,i-replay_index-1]+self.gridnum*self.my_state_log[1,i-replay_index-1]))
 
 ## train main neural network ## 
              self.my_nn.update(self.my_reward_log[0,i-replay_index-1], self.my_q_function[int(self.my_state_log[0,i-replay_index-1]+self.my_state_log[1,i-replay_index-1]*self.gridnum+self.gridnum**2*(self.my_action_log[0,i-replay_index]-1))], np.amax(self.my_q_function[int(self.my_state_log[0,i-replay_index]+self.my_state_log[1,i-replay_index]*self.gridnum)::self.gridnum**2]),self.my_gamma,np.mod(i+1,self.episode_length))
@@ -96,31 +96,37 @@ class qLearning(object):
 
 ## allows learning (should be called after updates of Q function to ensure updating only under healthy circumstances) ##
             self.update_q_label += 1# default is to update the q function after the first iteration
-## this reset maybe should be in gridworld ##
+
+## set location back "inbounds" before taking predicting Q function and taking next step ##
             if self.my_reward[self.location_y,self.location_x] < 0:
               self.location_y = self.previous_y
               self.location_x = self.previous_x
+
 ## output main neural network prediction of Q function using current location ##
             self.my_q_function[self.location_x+self.gridnum*self.location_y::self.gridnum**2] = self.my_nn.predict(self.location_x+self.gridnum*self.location_y)
+
 ## implement agent policy ##
             self.my_policy() # closest to pragmatic results here
             (location_x, location_y, previous_x, previous_y, previous_previous_x, previous_previous_y) = self.env.step(self.my_reward, self.action, self.location_x, self.location_y, self.previous_x, self.previous_y, self.previous_previous_x, self.previous_previous_y)# current state is AFTER action
             (self.location_x, self.location_y, self.previous_x, self.previous_y, self.previous_previous_x, self.previous_previous_y) = (location_x, location_y, previous_x, previous_y, previous_previous_x, previous_previous_y)
+
 ## for new episode ##
             if np.mod(i+1,self.episode_length) == 0:
                 self.my_episodic_cumulative_reward_log[0,k] = \
                 np.sum(self.my_reward_log[0,(k*self.episode_length):(i+1)])# sums from k*episode_length to i
                 k += 1
                 self.env.reset()
+
 ## for real-time rendering ##
             if self.render_label == 'render':
                 self.env.render(fig,ax,i,self.render_label)
+
 ## progress output ##
             progress_interval = 0.01# should be a percentage in a decimal form
             progress_checker = np.floor(progress_interval*self.episode_length*self.num_episodes)
             self.episode_counter = np.floor((i+1)/self.episode_length)
             if np.mod(i+1,progress_checker) == 0:
-                sys.stdout.write("\r"+"%s" % int(progress_interval*100+np.floor(i/progress_checker)*progress_interval*100) + '%')#updates progress without excessive output
+                sys.stdout.write("\r"+"%s" % int(progress_interval*100+np.floor(i/progress_checker)*progress_interval*100) + '%')#updates progress %
         sys.stdout.write("\r"+'done' + '\n')#displays progress and prints results on new lines
 ## results ##
         fig1, (ax1)=plt.subplots()

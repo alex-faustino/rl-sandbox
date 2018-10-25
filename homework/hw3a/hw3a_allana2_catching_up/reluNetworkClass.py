@@ -14,7 +14,6 @@ class qLearningNetwork(object):
   self.storage = np.array(np.zeros(self.allowed_actions.shape[1]))[np.newaxis]
   self.x = torch.randn(self.N, self.D_in)# randomly initialized input
   self.y = torch.randn(self.N, self.D_out)# randomly initialized output
-#  self.z = torch.randn(self.N, self.D_out)# randomly initialized adjacent input
 
   self.model = torch.nn.Sequential(
     torch.nn.Linear(self.D_in, self.H),
@@ -38,8 +37,10 @@ class qLearningNetwork(object):
   return self.y_pred.detach().numpy()   
  def update(self,reward,previous_q_function,next_q_function,discount,C): 
   y_pred = self.nn2.predict(self.x)
-#  self.loss = self.loss_fn(torch.tensor(self.y_pred,requires_grad=True),torch.tensor(reward+discount*previous_q_function,requires_grad=True))#loss calculation for feedback # print(t, loss.item()) # to see training
-  self.loss = self.loss_fn(torch.tensor(y_pred,requires_grad=True),torch.tensor(reward+discount*previous_q_function,requires_grad=True))#loss calculation for feedback # print(t, loss.item()) # to see training
+#  self.loss = self.loss_fn(torch.tensor(y_pred,requires_grad=True),torch.tensor(reward+discount*previous_q_function,requires_grad=True))#loss calculation for
+
+## Still need to make sure that the 'state' input into the predict is the PREVIOUS state
+  self.loss = self.loss_fn(torch.tensor(y_pred,requires_grad=True),torch.tensor(reward+discount*next_q_function,requires_grad=True))#loss calculation for feedback # print(t, loss.item()) # to see training
 
   self.optimizer.zero_grad()
 
