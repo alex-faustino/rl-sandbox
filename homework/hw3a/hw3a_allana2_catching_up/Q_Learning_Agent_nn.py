@@ -86,7 +86,7 @@ class qLearning(object):
 
 ## need to predict before each update to so that target for on-policy implementation is accessible in neural network when update is called ##
 ### the prediction run-through for the main network is used to initialize the state that will be input to the target network from experience replay ###
-             self.my_nn.predict(int(self.my_state_log[0,i-replay_index-1]+self.gridnum*self.my_state_log[1,i-replay_index-1]))
+             self.my_nn.predict(int(self.my_state_log[0,i-replay_index]+self.gridnum*self.my_state_log[1,i-replay_index]))
 
 ## train main neural network ## 
              self.my_nn.update(self.my_reward_log[0,i-replay_index-1], self.my_q_function[int(self.my_state_log[0,i-replay_index-1]+self.my_state_log[1,i-replay_index-1]*self.gridnum+self.gridnum**2*(self.my_action_log[0,i-replay_index]-1))], np.amax(self.my_q_function[int(self.my_state_log[0,i-replay_index]+self.my_state_log[1,i-replay_index]*self.gridnum)::self.gridnum**2]),self.my_gamma,np.mod(i+1,self.episode_length))
