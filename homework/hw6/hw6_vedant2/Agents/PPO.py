@@ -1,179 +1,183 @@
-import argparse
-import os
-import sys
-import gym
-from gym import wrappers
-import random
-import numpy as np
 
+from collections import namedtuple
+
+import matplotlib.pyplot as plt
+
+import gym
 import torch
-import torch.optim as optim
-import torch.multiprocessing as mp
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.autograd import Variable
+import torch.optim as optim
+from torch.distributions import Normal
+from torch.utils.data.sampler import BatchSampler, SubsetRandomSampler
 
-from model import Model, Shared_obs_stats
-torch.set_default_tensor_type('torch.DoubleTensor')
-class Params():
+gamma=0.9
+seed=0
+render=False
+log_interval=10
+torch.manual_seed(seed)
+
+TrainingRecord = namedtuple('TrainingRecord', ['ep', 'reward'])
+Transition = namedtuple('Transition', ['s', 'a', 'a_log_p', 'r', 's_'])
+
+
+class ActorNet(nn.Module):
+
     def __init__(self):
-        self.batch_size = 20
-        self.lr = 5e-4
-        self.gamma = 0.99
-        self.gae_param = 0.95
-        self.clip = 0.3
-        self.ent_coeff = 0.0001
-        self.num_epoch = 50
-        self.num_steps = 1000
-        self.time_horizon = 50
-        self.max_episode_length = 100
-        self.seed = 1
-        
-        self.env_name = 'Pendulum-v0'
-        
-class ReplayMemory(object):
-    def __init__(self, capacity):
-        self.capacity = capacity
-        self.memory = []
+        super(ActorNet, self).__init__()
+        self.fc = nn.Linear(3, 100)
+        self.mu_head = nn.Linear(100, 1)
+        self.sigma_head = nn.Linear(100, 1)
 
-    def push(self, events):
-        for event in zip(*events):
-            self.memory.append(event)
-            if len(self.memory)>self.capacity:
-                del self.memory[0]
+    def forward(self, x):
+        x = F.relu(self.fc(x))
+        mu = 2.0 * F.tanh(self.mu_head(x))
+        sigma = F.softplus(self.sigma_head(x))
+        return (mu, sigma)
 
-    def clear(self):
-        self.memory = []
 
-    def sample(self, batch_size):
-        samples = zip(*random.sample(self.memory, batch_size))
-        return map(lambda x: torch.cat(x, 0), samples)
+class CriticNet(nn.Module):
 
-def normal(x, mu, sigma_sq):
-    a = (-1*(x-mu).pow(2)/(2*sigma_sq)).exp()
-    b = 1/(2*sigma_sq*np.pi).sqrt()
-    return a*b
+    def __init__(self):
+        super(CriticNet, self).__init__()
+        self.fc = nn.Linear(3, 100)
+        self.v_head = nn.Linear(100, 1)
 
-def train(env, model, optimizer, shared_obs_stats):
-    memory = ReplayMemory(params.num_steps)
-    num_inputs = env.observation_space.shape[0]
-    num_outputs = env.action_space.shape[0]
+    def forward(self, x):
+        x = F.relu(self.fc(x))
+        state_value = self.v_head(x)
+        return state_value
+
+
+class Agent():
+
+    clip_param = 0.2
+    max_grad_norm = 0.5
+    ppo_epoch = 10
+    buffer_capacity, batch_size = 1000, 32
+
+    def __init__(self):
+        self.training_step = 0
+        self.anet = ActorNet().float()
+        self.cnet = CriticNet().float()
+        self.buffer = []
+        self.counter = 0
+
+        self.optimizer_a = optim.Adam(self.anet.parameters(), lr=1e-4)
+        self.optimizer_c = optim.Adam(self.cnet.parameters(), lr=3e-4)
+
+    def select_action(self, state):
+        state = torch.from_numpy(state).float().unsqueeze(0)
+        with torch.no_grad():
+            (mu, sigma) = self.anet(state)
+        dist = Normal(mu, sigma)
+        action = dist.sample()
+        action_log_prob = dist.log_prob(action)
+        action.clamp(-2.0, 2.0)
+        return action.item(), action_log_prob.item()
+
+    def get_value(self, state):
+
+        state = torch.from_numpy(state).float().unsqueeze(0)
+        with torch.no_grad():
+            state_value = self.cnet(state)
+        return state_value.item()
+
+    def save_param(self):
+        torch.save(self.anet.state_dict(), 'param/ppo_anet_params.pkl')
+        torch.save(self.cnet.state_dict(), 'param/ppo_cnet_params.pkl')
+
+    def store(self, transition):
+        self.buffer.append(transition)
+        self.counter += 1
+        return self.counter % self.buffer_capacity == 0
+
+    def update(self):
+        self.training_step += 1
+
+        s = torch.tensor([t.s for t in self.buffer], dtype=torch.float)
+        a = torch.tensor([t.a for t in self.buffer], dtype=torch.float).view(-1, 1)
+        r = torch.tensor([t.r for t in self.buffer], dtype=torch.float).view(-1, 1)
+        s_ = torch.tensor([t.s_ for t in self.buffer], dtype=torch.float)
+
+        old_action_log_probs = torch.tensor(
+            [t.a_log_p for t in self.buffer], dtype=torch.float).view(-1, 1)
+
+        r = (r - r.mean()) / (r.std() + 1e-5)
+        with torch.no_grad():
+            target_v = r + gamma * self.cnet(s_)
+
+        adv = (target_v - self.cnet(s)).detach()
+
+        for _ in range(self.ppo_epoch):
+            for index in BatchSampler(
+                    SubsetRandomSampler(range(self.buffer_capacity)), self.batch_size, False):
+
+                (mu, sigma) = self.anet(s[index])
+                dist = Normal(mu, sigma)
+                action_log_probs = dist.log_prob(a[index])
+                ratio = torch.exp(action_log_probs - old_action_log_probs[index])
+
+                surr1 = ratio * adv[index]
+                surr2 = torch.clamp(ratio, 1.0 - self.clip_param,
+                                    1.0 + self.clip_param) * adv[index]
+                action_loss = -torch.min(surr1, surr2).mean()
+
+                self.optimizer_a.zero_grad()
+                action_loss.backward()
+                nn.utils.clip_grad_norm_(self.anet.parameters(), self.max_grad_norm)
+                self.optimizer_a.step()
+
+                value_loss = F.smooth_l1_loss(self.cnet(s[index]), target_v[index])
+                self.optimizer_c.zero_grad()
+                value_loss.backward()
+                nn.utils.clip_grad_norm_(self.cnet.parameters(), self.max_grad_norm)
+                self.optimizer_c.step()
+
+        del self.buffer[:]
+
+
+def main():
+    env = gym.make('Pendulum-v0')
+    env.seed(seed)
+
+    agent = Agent()
+
+    training_records = []
+    running_reward = -1000
     state = env.reset()
-    state = Variable(torch.Tensor(state).unsqueeze(0))
-    done = True
-    # horizon loop
-    episode = -1
-    E = []
-    avr = []
-    for t in range(params.time_horizon):
-        episode_length = 0
-        while(len(memory.memory)<params.num_steps):
-            states = []
-            actions = []
-            rewards = []
-            values = []
-            returns = []
-            advantages = []
-            av_reward = 0
-            cum_reward = 0
-            cum_done = 0
-            # n steps loops
-            for step in range(params.num_steps):
-                episode_length += 1
-                shared_obs_stats.observes(state)
-                state = shared_obs_stats.normalize(state)
-                states.append(state)
-                mu, sigma_sq, v = model(state)
-                eps = torch.randn(mu.size())
-                action = (mu + sigma_sq.sqrt()*Variable(eps))
-                actions.append(action)
-                values.append(v)
-                env_action = action.data.squeeze().numpy()
-                state, reward, done, _ = env.step(env_action)
-                done = (done or episode_length >= params.max_episode_length)
-                cum_reward += reward
-                reward = max(min(reward, 1), -1)
-                rewards.append(reward)
-                if done:
-                    episode += 1
-                    cum_done += 1
-                    av_reward += cum_reward
-                    cum_reward = 0
-                    episode_length = 0
-                    state = env.reset()
-                state = Variable(torch.Tensor(state).unsqueeze(0))
-                if done:
-                    break
-            # one last step
-            R = torch.zeros(1, 1)
-            if not done:
-                _,_,v = model(state)
-                R = v.data
-            # compute returns and GAE(lambda) advantages:
-            R = Variable(R)
-            values.append(R)
-            A = Variable(torch.zeros(1, 1))
-            for i in reversed(range(len(rewards))):
-                td = rewards[i] + params.gamma*values[i+1].data[0,0] - values[i].data[0,0]
-                A = float(td) + params.gamma*params.gae_param*A
-                advantages.insert(0, A)
-                R = A + values[i]
-                returns.insert(0, R)
-            # store usefull info:
-            memory.push([states, actions, returns, advantages])
-        # epochs
-        model_old = Model(num_inputs, num_outputs)
-        model_old.load_state_dict(model.state_dict())
-        av_loss = 0
-        for k in range(params.num_epoch):
-            # cf https://github.com/openai/baselines/blob/master/baselines/pposgd/pposgd_simple.py
-            batch_states, batch_actions, batch_returns, batch_advantages = memory.sample(params.batch_size)
-            # old probas
-            mu_old, sigma_sq_old, v_pred_old = model_old(batch_states.detach())
-            probs_old = normal(batch_actions, mu_old, sigma_sq_old)
-            # new probas
-            mu, sigma_sq, v_pred = model(batch_states)
-            probs = normal(batch_actions, mu, sigma_sq)
-            # ratio
-            ratio = probs/(1e-15+probs_old)
-            # clip loss
-            surr1 = ratio * torch.cat([batch_advantages]*num_outputs,1) # surrogate from conservative policy iteration
-            surr2 = ratio.clamp(1-params.clip, 1+params.clip) * torch.cat([batch_advantages]*num_outputs,1)
-            loss_clip = -torch.mean(torch.min(surr1, surr2))
-            # value loss
-            vfloss1 = (v_pred - batch_returns)**2
-            v_pred_clipped = v_pred_old + (v_pred - v_pred_old).clamp(-params.clip, params.clip)
-            vfloss2 = (v_pred_clipped - batch_returns)**2
-            loss_value = 0.5*torch.mean(torch.max(vfloss1, vfloss2)) # also clip value loss
-            # entropy
-            loss_ent = -params.ent_coeff*torch.mean(probs*torch.log(probs+1e-5))
-            # total
-            total_loss = (loss_clip + loss_value + loss_ent)
-            av_loss += total_loss.data[0]/float(params.num_epoch)
-            # before Adam step, update old_model:
-            ''' not sure about this '''
-            model_old.load_state_dict(model.state_dict())
-            # step
-            optimizer.zero_grad()
-            #model.zero_grad()
-            total_loss.backward(None,True)
-            optimizer.step()
-        # finish, print:
-        print('episode',episode,'av_reward',av_reward/float(cum_done),'av_loss',av_loss, ' t: ',t)
-        E.append(episode)
-        avr.append(av_reward/float(cum_done))
-        memory.clear()
-    return E, avr 
-params = Params()
-torch.manual_seed(params.seed)
+    for i_ep in range(1000):
+        score = 0
+        state = env.reset()
 
-env = gym.make(params.env_name)
-#env = wrappers.Monitor(env, monitor_dir, force=True)
-num_inputs = env.observation_space.shape[0]
-num_outputs = env.action_space.shape[0]
+        for t in range(200):
+            action, action_log_prob = agent.select_action(state)
+            state_, reward, done, _ = env.step([action])
+            if render:
+                env.render()
+            if agent.store(Transition(state, action, action_log_prob, (reward + 8) / 8, state_)):
+                agent.update()
+            score += reward
+            state = state_
 
-model = Model(num_inputs, num_outputs)
-shared_obs_stats = Shared_obs_stats(num_inputs)
-optimizer = optim.Adam(model.parameters(), lr=params.lr)
+        running_reward = running_reward * 0.9 + score * 0.1
+        training_records.append(TrainingRecord(i_ep, running_reward))
 
-[e,r]=train(env, model, optimizer, shared_obs_stats)
+        if i_ep % log_interval == 0:
+            print('Ep {}\tMoving average score: {:.2f}\t'.format(i_ep, running_reward))
+        if running_reward > -200:
+            print("Solved! Moving average score is now {}!".format(running_reward))
+            env.close()
+            agent.save_param()
+            break
+
+    plt.plot([r.ep for r in training_records], [r.reward for r in training_records])
+    plt.title('PPO')
+    plt.xlabel('Episode')
+    plt.ylabel('Moving averaged episode reward')
+    plt.savefig("img/ppo.png")
+    plt.show()
+
+
+if __name__ == '__main__':
+    main()
