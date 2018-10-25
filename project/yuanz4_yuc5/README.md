@@ -24,7 +24,7 @@ create a folder and README about some draft statement: what algorithm, what syst
 
 # PingPong upward srtike
 
-2-D or 3-D for board or ball?
+2-D or 3-D for board or ball? Or how many degrees of freedom? tilted?
 
 friction needed?
 
