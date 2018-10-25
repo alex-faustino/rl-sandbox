@@ -50,7 +50,7 @@ class qLearningNetwork(object):
 #        for param in self.model.parameters():
 #             param -= self.learning_rate * param.grad
   pass
- def transmitModel(self):
+ def transmitModel(self):# verified this in script below PyTorch test in Jupyter Notebook
   return self.model
  def printingPred(self):
   return self.storage

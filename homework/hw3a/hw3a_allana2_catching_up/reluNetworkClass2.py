@@ -11,7 +11,7 @@ class qLearningNetwork(object):
   # H is hidden dimension; D_out is output dimension.
   self.N, self.D_in, self.H, self.H2, self.D_out = 20, self.states.shape[0], 90, 65, self.allowed_actions.shape[1]
   self.storage = np.array(np.zeros(self.allowed_actions.shape[1]))[np.newaxis]
-  self.C = 55
+  self.C = 625
   self.x = torch.randn(self.N, self.D_in)# randomly initialized input
   self.y = torch.randn(self.N, self.D_out)# randomly initialized output
 
@@ -34,23 +34,10 @@ class qLearningNetwork(object):
   self.y_pred = self.model(self.x)#prediction step is called forward pass
 #  self.storage = np.vstack((self.storage,self.y_pred.detach().numpy()))
   return self.y_pred.detach().numpy()   
- def update2(self,model,C):
+ def update(self,model,C):
   if np.mod(C,self.C) == 0:# update every C samples
 #   print(C)
    self.model = model
-  pass
- def update(self,reward,previous_q_function,next_q_function,discount,C): 
-# experience replay from agent to neural network
-  self.y_pred = self.model(self.x)
-  if np.mod(C,self.C) == 0:# update every C samples
-   self.loss = self.loss_fn(torch.tensor(self.y_pred,requires_grad=True),torch.tensor(reward+discount*previous_q_function,requires_grad=True))#loss calculation for feedback # print(t, loss.item()) # to see training
-   
-   self.optimizer.zero_grad()
-   self.loss.backward()#gradient of loss step is called backward pass
-   self.optimizer.step()
-#   with torch.no_grad():# Update the weights using gradient descent.
-#        for param in self.model.parameters():
-#             param -= self.learning_rate * param.grad
   pass
  def printingPred(self):
   return self.storage
