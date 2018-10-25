@@ -16,6 +16,12 @@ class qLearningNetwork(object):
   self.model = torch.nn.Sequential(
     torch.nn.Linear(self.D_in, self.H),
     torch.nn.ReLU(),
+    torch.nn.ReLU(),
+    torch.nn.ReLU(),
+    torch.nn.ReLU(),
+    torch.nn.ReLU(),
+    torch.nn.ReLU(),
+    torch.nn.ReLU(),
     torch.nn.Linear(self.H, self.D_out),
 )
 
@@ -30,12 +36,10 @@ class qLearningNetwork(object):
   self.x = torch.Tensor(temp_state)
   self.y_pred = self.model(self.x)#prediction step is called forward pass
   return self.y_pred.detach().numpy()   
- def update(self,reward,previous_q_function,next_q_function,discount): 
+ def update(self,reward,previous_q_function,discount): 
   y_pred = self.nn2.predict(self.x)
   y_pred = y_pred[0] # necessary since y_pred is numpy array of size 1 x 1 containing a numpy array of size 1 x 4
   self.loss = self.loss_fn(torch.tensor(previous_q_function,requires_grad=True),torch.tensor(reward+discount*np.amax(y_pred),requires_grad=True))#second term is target and first term is estimate
-
- #self.loss_fn(torch.tensor(reward+discount*np.amax(y_pred),requires_grad=True),torch.tensor(reward+discount*previous_q_function,requires_grad=True))#loss calculation for feedback  
 
 #  print(t, loss.item()) # to see training
 

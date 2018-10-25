@@ -16,6 +16,12 @@ class qLearningNetwork(object):
   self.model = torch.nn.Sequential(
     torch.nn.Linear(self.D_in, self.H),
     torch.nn.ReLU(),
+    torch.nn.ReLU(),
+    torch.nn.ReLU(),
+    torch.nn.ReLU(),
+    torch.nn.ReLU(),
+    torch.nn.ReLU(),
+    torch.nn.ReLU(),
     torch.nn.Linear(self.H, self.D_out),
 )
 
