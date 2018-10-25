@@ -18,14 +18,14 @@ torch.set_default_tensor_type('torch.DoubleTensor')
 class Params():
     def __init__(self):
         self.batch_size = 20
-        self.lr = 5e-2
+        self.lr = 5e-4
         self.gamma = 0.99
         self.gae_param = 0.95
         self.clip = 0.3
-        self.ent_coeff = 0.01
-        self.num_epoch = 10
+        self.ent_coeff = 0.0001
+        self.num_epoch = 50
         self.num_steps = 1000
-        self.time_horizon = 1000
+        self.time_horizon = 50
         self.max_episode_length = 100
         self.seed = 1
         
@@ -63,6 +63,8 @@ def train(env, model, optimizer, shared_obs_stats):
     done = True
     # horizon loop
     episode = -1
+    E = []
+    avr = []
     for t in range(params.time_horizon):
         episode_length = 0
         while(len(memory.memory)<params.num_steps):
@@ -157,9 +159,11 @@ def train(env, model, optimizer, shared_obs_stats):
             total_loss.backward(None,True)
             optimizer.step()
         # finish, print:
-        print('episode',episode,'av_reward',av_reward/float(cum_done),'av_loss',av_loss)
+        print('episode',episode,'av_reward',av_reward/float(cum_done),'av_loss',av_loss, ' t: ',t)
+        E.append(episode)
+        avr.append(av_reward/float(cum_done))
         memory.clear()
-
+    return E, avr 
 params = Params()
 torch.manual_seed(params.seed)
 
@@ -172,4 +176,4 @@ model = Model(num_inputs, num_outputs)
 shared_obs_stats = Shared_obs_stats(num_inputs)
 optimizer = optim.Adam(model.parameters(), lr=params.lr)
 
-train(env, model, optimizer, shared_obs_stats)
+[e,r]=train(env, model, optimizer, shared_obs_stats)
