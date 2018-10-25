@@ -20,6 +20,10 @@ Created on Thu Oct 11 10:41:07 2018
 
 - Once a generic attitude control agent is realized, implement realistic constraints and compare training times, learning rates for different agents (Agents learning from scratch vs agents learning from the agents trained in the generic attitude control problem).
 
+- Reward shaping will be used from my Master's Thesis, which prouced trajectories using Dynamic Programming.
+
+-Since Dynamics are similar for the Pendulum, algorithms deploywd on the simple pendulum will be the first candidates.
+
 References
 
 - M. Andrychowicz, B. Baker, M. Chociej, R. Jozefowicz, B. McGrew, J. Pachocki, A. Petron, M. Plappert, G. Powell, A. Ray, J. Schneider, S. Sidor, J. Tobin, P. Welinder, L. Weng, W. Zaremba (2018) "Learning Dexterous In-Hand Manipulation", arXiv:1808.00177.

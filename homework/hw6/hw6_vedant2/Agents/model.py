@@ -48,7 +48,7 @@ class Model(nn.Module):
         x = F.relu(self.p_fc1(inputs))
         x = F.relu(self.p_fc2(x))
         x = F.relu(self.p_fc3(x))
-        x = F.relu(self.p_fc4(x))
+        x = F.tanh(self.p_fc4(x))
         
         
         mu = self.mu(x)
@@ -57,7 +57,7 @@ class Model(nn.Module):
         x = F.relu(self.v_fc1(inputs))
         x = F.relu(self.v_fc2(x))
         x = F.relu(self.v_fc3(x))
-        x = F.relu(self.v_fc4(x))
+        x = F.tanh(self.v_fc4(x))
         v = self.v(x)
         return mu, log_std, v
 
