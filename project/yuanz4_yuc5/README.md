@@ -21,3 +21,15 @@ AWS (dynamic simulation)
 create a folder and README about some draft statement: what algorithm, what system
 
 3 weeks later project paper presentation
+
+# PingPong upward srtike
+
+2-D or 3-D for board or ball? Or how many degrees of freedom? tilted?
+
+friction needed?
+
+Physical simulation: Mujoco not open-source. Option: c++ bullet, pybullet, roboschool, v-rep
+
+PPO is good for continuous states
+
+need to concern the computation speed, physical engine from outside or inside?
