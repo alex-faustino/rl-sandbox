@@ -1,10 +1,10 @@
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Wed Sep 19 00:34:57 2018
+Created on Tue Oct 23 23:51:21 2018
 
-@author: Vedant
+@author: vedant
 """
-
 import math
 import random
 import numpy as np
@@ -14,44 +14,20 @@ from collections import namedtuple
 from itertools import count
 from PIL import Image
 
-import torch
-import torch.nn as nn
-import torch.optim as optim
-import torch.nn.functional as F
-import torchvision.transforms as T
-from torch.autograd import Variable
 
 torch.set_default_tensor_type('torch.DoubleTensor')
 
-class ReplayMemory(object):
 
-    def __init__(self, capacity):
-        self.capacity = capacity
-        self.memory = []
-        self.position = 0
-
-    def push(self, *args):
-        """Saves a transition."""
-        if len(self.memory) < self.capacity:
-            self.memory.append(None)
-        self.memory[self.position] = Transition(*args)
-        self.position = (self.position + 1) % self.capacity
-
-    def sample(self, batch_size):
-        return random.sample(self.memory, batch_size)
-
-    def __len__(self):
-        return len(self.memory)
     
-class DQN(nn.Module):
+class Neural_net(nn.Module):
 
-    def __init__(self,inp = 7):
+    def __init__(self,in_layer = 3, out_layer = 1):
         super(DQN, self).__init__()
-        self.fc1 = nn.Linear(inp,5)
+        self.fc1 = nn.Linear(in_layer,5)
         self.fc2 = nn.Linear(5,3)
         self.fc3 = nn.Linear(3,3)
         self.fc4 = nn.Linear(3,3)
-        self.head = nn.Linear(3, 1)
+        self.head = nn.Linear(3, out_layer)
 
     def forward(self, x):
         #x = x.view(-1, self.num_flat_features(x))
@@ -74,8 +50,7 @@ class DQN(nn.Module):
     
 Transition = namedtuple('Transition',
                         ('state', 'action', 'next_state', 'reward'))
-
-def DQN_Agent(env,input_layer = 7,BATCH_SIZE = 100,GAMMA = 0.99,TARGET_UPDATE = 20,initial_epsilon = 1, 
+def PPO(env,policy,lr_func=None, clip_func=None, BATCH_SIZE = 100,GAMMA = 0.99,TARGET_UPDATE = 20,initial_epsilon = 1, 
               final_epsilon = 0.01,total_episodes = 100, annealing_period = None,max_steps = 25
               , decay_rate = None,plot = False):
     
@@ -90,10 +65,8 @@ def DQN_Agent(env,input_layer = 7,BATCH_SIZE = 100,GAMMA = 0.99,TARGET_UPDATE = 
     # if gpu is to be used
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
-    Q_net = DQN(input_layer).to(device)
-    Q_target_net = DQN(input_layer).to(device)
-    Q_target_net.load_state_dict(Q_net.state_dict())
-    Q_target_net.eval()
+    policy = policy
+    policy_old = copy.deepcopy(policy)
     
     optimizer = optim.RMSprop(Q_net.parameters())
     memory = ReplayMemory(10000)
@@ -129,23 +102,7 @@ def DQN_Agent(env,input_layer = 7,BATCH_SIZE = 100,GAMMA = 0.99,TARGET_UPDATE = 
     
     
     episode_durations = []
-    
-    
-    def plot_durations():
-        plt.figure(2)
-        plt.clf()
-        durations_t = torch.tensor(episode_durations, dtype=torch.float)
-        plt.title('Training...')
-        plt.xlabel('Episode')
-        plt.ylabel('Duration')
-        plt.plot(durations_t.numpy())
-        # Take 100 episode averages and plot them too
-        if len(durations_t) >= 100:
-            means = durations_t.unfold(0, 100, 1).mean(1).view(-1)
-            means = torch.cat((torch.zeros(99), means))
-            plt.plot(means.numpy())
-    
-        plt.pause(0.001)  # pause a bit so that plots are updated
+
             
     def optimize_model():
         if len(memory) < BATCH_SIZE:
@@ -240,6 +197,3 @@ def DQN_Agent(env,input_layer = 7,BATCH_SIZE = 100,GAMMA = 0.99,TARGET_UPDATE = 
     env.close()
     #plt.ioff()
     #plt.show()
-
-
-        
