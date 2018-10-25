@@ -62,13 +62,14 @@ class PPO:
         losses = torch.zeros((num_episode, num_epochs))
         rewards = torch.zeros(num_episode)
         for episode in tqdm_notebook(range(num_episode)):
-            batch = self.get_batch(num_traj, num_step)
+            with torch.no_grad():
+                batch = self.get_batch(num_traj, num_step)
             rewards[episode] = batch.rewards.sum()
             for epoch in range(num_epochs):
                 for traj in batch:
                     loss = self.loss(traj, gamma, epsilon, c)
                     optimizer.zero_grad()
-                    loss.backward(retain_graph=True)
+                    loss.backward()
                     losses[episode, epoch] = loss.item()
                     optimizer.step()
 
@@ -99,7 +100,7 @@ class PPO:
         for step in range(num_step):
             action, logprob, value = self.policy.sample(state)
             next_state, reward, done, _ = self.env.step((action.item(),))
-            env.render()
+            self.env.render()
             state = torch.from_numpy(next_state).float()
 
 
