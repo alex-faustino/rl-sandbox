@@ -47,6 +47,9 @@ class qLearning(object):
         self.my_action_log = np.random.rand(1, self.episode_length*self.num_episodes)
         self.episode_counter = 0
         self.replay_length = 60
+        self.minibatch_size = my_nn.reportMinibatchSize()#using same minibatch size for my_nn and my_nn2
+        self.minibatch_log = np.random.rand(4,self.minibatch_size)#state,action,reward, next state
+        self.replay_index = np.random.randint(0,1,size=self.minibatch_size)
         pass
     def my_policy(self):
         if self.update_q_label > 1:
@@ -60,23 +63,36 @@ class qLearning(object):
         if self.render_label == 'render':
             fig, (ax) = self.env.render_init(self.render_label)
         k=0 # counter for episodic cumulative reward
-        for i in range(0,self.episode_length * self.num_episodes - 1):
+        for i in range(0,self.episode_length * self.num_episodes):
             self.my_reward_log[0,i] = self.my_reward[self.location_y,self.location_x]
-            self.my_state_log[:,i] = np.array([self.location_x,self.location_y])[np.newaxis]
+            self.my_state_log[:,i] = np.array([int(self.location_x),int(self.location_y)])[np.newaxis]
             self.my_action_log[0,i] = self.action#inaccuracy in first time step of each episode is not important because algorithm does not update on first episode
+## set location back "inbounds" before taking updating Q function ##
+            if self.my_reward[self.location_y,self.location_x] < 0:
+              self.location_y = self.previous_y
+              self.location_x = self.previous_x
+              self.my_state_log[:,i] = np.array([self.location_x,self.location_y])[np.newaxis]# added this to ensure that log does not store out of bounds!
             if self.update_q_label > 1:
-
+             for zz in range(0,self.minibatch_size):
 ## first, draw sample from experience replay ##
-             replay_index = np.random.randint(0,self.replay_length)
-### ensure that i-replay_index is not the first or last step of an episode ###
-             while (np.mod(i-replay_index-1+1,self.episode_length) == 0) or (np.mod(i-replay_index+1,self.episode_length) == 0) or replay_index > i-1:
-              replay_index = np.random.randint(0,self.replay_length)
+              self.replay_index[zz] = np.random.randint(0,self.replay_length)
+### ensure that i-self.replay_index is not the first or last step of an episode ###
+              while (np.mod(i-self.replay_index[zz]-1+1,self.episode_length) == 0) or (np.mod(i-self.replay_index[zz]+1,self.episode_length) == 0) or self.replay_index[zz] > i-1:
+               self.replay_index[zz] = int(np.random.randint(0,self.replay_length))
+
+## update minibatch ##
+              self.minibatch_log[0,zz] = self.my_state_log[0,i-self.replay_index[zz]-1]+self.gridnum*self.my_state_log[1,i-self.replay_index[zz]-1]
+              self.minibatch_log[1,zz] = self.my_action_log[0,i-self.replay_index[zz]]
+              self.minibatch_log[2,zz] = self.my_reward_log[0,i-self.replay_index[zz]]
+              self.minibatch_log[3,zz] = self.my_state_log[0,i-self.replay_index[zz]]+self.gridnum*self.my_state_log[1,i-self.replay_index[zz]]
 
 ## "predicting" to store state in main network (reluNetworkClass.py) for use in target network (reluNetworkClass2.py) ##
-             self.my_nn.predict(int(self.my_state_log[0,i-replay_index]+self.gridnum*self.my_state_log[1,i-replay_index]))
+             temporary_nn_main_input = self.minibatch_log[3,:][np.newaxis]
+             self.my_nn.predict(np.transpose(temporary_nn_main_input))
 
-## train main neural network ## 
-             self.my_nn.update(self.my_reward_log[0,i-replay_index-1], self.my_q_function[int(self.my_state_log[0,i-replay_index-1]+self.my_state_log[1,i-replay_index-1]*self.gridnum+self.gridnum**2*(self.my_action_log[0,i-replay_index-1]-1))],self.my_gamma)
+## train main neural network ##
+#             self.my_nn.update(self.my_reward_log[0,i-self.replay_index], self.my_q_function[int(self.my_state_log[0,i-self.replay_index-1]+self.my_state_log[1,i-self.replay_index-1]*self.gridnum+self.gridnum**2*(self.my_action_log[0,i-self.replay_index]-1))],self.my_gamma)
+             self.my_nn.update(self.minibatch_log[2,:], self.my_q_function[self.minibatch_log[0,:].astype(int)],self.my_gamma)
 
 ## train target neural network (logic in class file to only update when appropriate) ##
              self.my_nn2.update(self.my_nn.transmitModel(),i+1)
@@ -84,14 +100,11 @@ class qLearning(object):
 ## allows learning (should be called after updates of Q function to ensure updating only under healthy circumstances) ##
             self.update_q_label += 1# default is to update the q function after the first iteration
 
-## set location back "inbounds" before taking predicting Q function and taking next step ##
-            if self.my_reward[self.location_y,self.location_x] < 0:
-              self.location_y = self.previous_y
-              self.location_x = self.previous_x
-              self.my_state_log[:,i] = np.array([self.location_x,self.location_y])[np.newaxis]# added this to ensure that log does not store out of bounds!
-
 ## output main neural network prediction of Q function using current location ##
-            self.my_q_function[self.location_x+self.gridnum*self.location_y::self.gridnum**2] = self.my_nn.predict(self.location_x+self.gridnum*self.location_y)
+            temporary_nn_main_output = self.my_nn.predict(np.transpose((self.location_x+self.gridnum*self.location_y)*np.ones((1,self.minibatch_size))))
+            temporary_nn_main_output = temporary_nn_main_output[0]
+            temporary_nn_main_output = temporary_nn_main_output[0]
+            self.my_q_function[self.location_x+self.gridnum*self.location_y::self.gridnum**2] = temporary_nn_main_output# fixes sizing issue
 
 ## implement agent policy (worked for tabular, no code changed) ##
             self.my_policy()

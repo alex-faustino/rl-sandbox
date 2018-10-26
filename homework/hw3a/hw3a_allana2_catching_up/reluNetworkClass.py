@@ -8,19 +8,13 @@ class qLearningNetwork(object):
   self.env = env
   self.normalizing_states, self.allowed_actions = env.states_and_actions()
   self.states = np.array(self.normalizing_states)[np.newaxis]
-  # N is batch size; D_in is input dimension; H is hidden dimension; D_out is output dimension.
-  self.N, self.D_in, self.H, self.H2, self.D_out = 20, self.states.shape[0], 90, 65, self.allowed_actions.shape[1]
+  # N is minibatch size; D_in is input dimension; H is hidden dimension; D_out is output dimension.
+  self.N, self.D_in, self.H, self.D_out = 20, self.states.shape[0], 90, self.allowed_actions.shape[1]
   self.x = torch.randn(self.N, self.D_in)# randomly initialized input
   self.y = torch.randn(self.N, self.D_out)# randomly initialized output
 
   self.model = torch.nn.Sequential(
     torch.nn.Linear(self.D_in, self.H),
-    torch.nn.ReLU(),
-    torch.nn.ReLU(),
-    torch.nn.ReLU(),
-    torch.nn.ReLU(),
-    torch.nn.ReLU(),
-    torch.nn.ReLU(),
     torch.nn.ReLU(),
     torch.nn.Linear(self.H, self.D_out),
 )
@@ -36,6 +30,8 @@ class qLearningNetwork(object):
   self.x = torch.Tensor(temp_state)
   self.y_pred = self.model(self.x)#prediction step is called forward pass
   return self.y_pred.detach().numpy()   
+ def reportMinibatchSize(self):
+  return self.N
  def update(self,reward,previous_q_function,discount): 
   y_pred = self.nn2.predict(self.x)
   y_pred = y_pred[0] # necessary since y_pred is numpy array of size 1 x 1 containing a numpy array of size 1 x 4
