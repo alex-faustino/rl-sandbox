@@ -35,7 +35,6 @@ class PPO:
         
 
     def get_batch(self,  num_traj, num_step):
-        
         batch = Batch(num_traj, num_step)
         state = torch.from_numpy(self.env.reset()).float()
         for traj in range(num_traj):
@@ -49,14 +48,15 @@ class PPO:
     def get_advantages(self, traj, gamma):
         returns = torch.zeros((self.num_step))
         states, actions, rewards, logprobs, values = traj 
-        returns[-1] = values[-1]
+        # rewards = (rewards - rewards.mean())/(rewards.std() + 1e-5)
+        returns[-1] = rewards[-1] + gamma*values[-1]
         for step in range(self.num_step -2, -1, -1):
-            returns[step] = rewards[step] + gamma*values[step + 1]
-        advantages = returns - values
+            returns[step] = rewards[step] + returns[step+1]*gamma
+        advantages = returns - values 
         return advantages, returns
         
     
-    def train(self, num_episode=10, num_step=20, num_traj=5,alpha=0.1, gamma=0.99, num_epochs=5, epsilon=1e-5, c=1):
+    def train(self, num_episode=10, num_step=20, num_traj=5,alpha=0.1, gamma=0.7, num_epochs=5, epsilon=1e-5, c=1):
         self.num_step = num_step
         optimizer = optim.Adam(self.policy.parameters(), lr=alpha)
         losses = torch.zeros((num_episode, num_epochs))
