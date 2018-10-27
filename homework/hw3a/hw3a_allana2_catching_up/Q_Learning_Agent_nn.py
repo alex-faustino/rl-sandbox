@@ -88,11 +88,12 @@ class qLearning(object):
 
 ## "predicting" to store state in main network (reluNetworkClass.py) for use in target network (reluNetworkClass2.py) ##
              temporary_nn_main_input = self.minibatch_log[3,:][np.newaxis]
-             self.my_nn.predict(np.transpose(temporary_nn_main_input))
+#             self.my_nn.predict(np.transpose(temporary_nn_main_input))
 
 ## train main neural network ##
 #             self.my_nn.update(self.my_reward_log[0,i-self.replay_index], self.my_q_function[int(self.my_state_log[0,i-self.replay_index-1]+self.my_state_log[1,i-self.replay_index-1]*self.gridnum+self.gridnum**2*(self.my_action_log[0,i-self.replay_index]-1))],self.my_gamma)
-             self.my_nn.update(self.minibatch_log[2,:], self.my_q_function[self.minibatch_log[0,:].astype(int)],self.my_gamma)
+             temporary_nn_main_input = self.minibatch_log[3,:][np.newaxis]
+             self.my_nn.update(np.transpose(temporary_nn_main_input),self.minibatch_log[2,:], self.my_q_function[self.minibatch_log[0,:].astype(int)],self.my_gamma)
 
 ## train target neural network (logic in class file to only update when appropriate) ##
              self.my_nn2.update(self.my_nn.transmitModel(),i+1)
@@ -101,9 +102,12 @@ class qLearning(object):
             self.update_q_label += 1# default is to update the q function after the first iteration
 
 ## output main neural network prediction of Q function using current location ##
-            temporary_nn_main_output = self.my_nn.predict(np.transpose((self.location_x+self.gridnum*self.location_y)*np.ones((1,self.minibatch_size))))
-            temporary_nn_main_output = temporary_nn_main_output[0]
-            temporary_nn_main_output = temporary_nn_main_output[0]
+            temporary_nn_main_output = self.my_nn.predict(np.transpose(self.location_x+self.gridnum*self.location_y))
+#            print('first')
+#            print(temporary_nn_main_output)
+#            temporary_nn_main_output = self.my_nn.predict(np.transpose((self.location_x+self.gridnum*self.location_y)*np.ones((1,self.minibatch_size))))
+#            temporary_nn_main_output = temporary_nn_main_output[0]
+#            temporary_nn_main_output = temporary_nn_main_output[0]
             self.my_q_function[self.location_x+self.gridnum*self.location_y::self.gridnum**2] = temporary_nn_main_output# fixes sizing issue
 
 ## implement agent policy (worked for tabular, no code changed) ##
