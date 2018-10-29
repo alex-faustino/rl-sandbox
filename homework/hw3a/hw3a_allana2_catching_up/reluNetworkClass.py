@@ -16,12 +16,18 @@ class qLearningNetwork(object):
   self.model = torch.nn.Sequential(
     torch.nn.Linear(self.D_in, self.H),
     torch.nn.ReLU(),
+    torch.nn.Linear(self.H, self.H+100, bias=True),
+    torch.nn.ReLU(),
+    torch.nn.Linear(self.H+100, self.H+50, bias=True),
+    torch.nn.ReLU(),
+    torch.nn.Linear(self.H+50, self.H, bias=True),
+    torch.nn.ReLU(),
     torch.nn.Linear(self.H, self.D_out),
 )
 
   self.loss_fn = torch.nn.MSELoss()
 
-  self.learning_rate = 1e-4
+  self.learning_rate = 1e-3
   self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate)
   self.y_pred = self.model(self.x)#initial prediction step for randomly initialized weights
   pass

@@ -80,19 +80,15 @@ class qLearning(object):
              self.replay_index = np.random.randint(np.amax(i-self.replay_length-1,0),i,size=self.replay_length)
              self.minibatch_index = np.random.randint(0,self.replay_length,size=self.minibatch_size)
 
+### ensure that i-self.replay_index is not the first or last step of an episode ###
              while (np.any(np.mod(self.replay_index-1,self.episode_length) == 0)) + (np.any(np.mod(self.replay_index,self.episode_length) == 0)):
                self.replay_index[( (np.mod(self.replay_index-1,self.episode_length) == 0) + (np.mod(self.replay_index,self.episode_length) == 0) )]= np.random.randint(0,self.replay_length,size=np.sum( ( (np.mod(self.replay_index-1,self.episode_length) == 0) + (np.mod(self.replay_index,self.episode_length) == 0) ) ) )
 
-#             for zz in range(0,self.replay_length):
-#### ensure that i-self.replay_index is not the first or last step of an episode ###
-#              while (np.mod(self.replay_index[zz]-1,self.episode_length) == 0) or (np.mod(self.replay_index[zz],self.episode_length) == 0):
-#               self.replay_index[zz] = int(np.random.randint(0,self.replay_length))
-
 ### update minibatch ###
-             self.minibatch_log[0,:] = self.my_state_log[0,self.replay_index[self.minibatch_index]-1]+self.gridnum*self.my_state_log[1,self.replay_index[self.minibatch_index]-1]
+             self.minibatch_log[0,:] = self.my_state_log[0,self.replay_index[self.minibatch_index]-2]+self.gridnum*self.my_state_log[1,self.replay_index[self.minibatch_index]-2]
              self.minibatch_log[1,:] = self.my_action_log[0,self.replay_index[self.minibatch_index]]
-             self.minibatch_log[2,:] = self.my_reward_log[0,self.replay_index[self.minibatch_index]]
-             self.minibatch_log[3,:] = self.my_state_log[0,self.replay_index[self.minibatch_index]]+self.gridnum*self.my_state_log[1,self.replay_index[self.minibatch_index]]   
+             self.minibatch_log[2,:] = self.my_reward_log[0,self.replay_index[self.minibatch_index]-1]
+             self.minibatch_log[3,:] = self.my_state_log[0,self.replay_index[self.minibatch_index]-1]+self.gridnum*self.my_state_log[1,self.replay_index[self.minibatch_index]-1]   
 
 ## train main neural network ##
              temporary_nn_main_input = self.minibatch_log[3,:][np.newaxis]
