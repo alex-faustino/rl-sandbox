@@ -9,7 +9,7 @@ class qLearningNetwork(object):
   self.normalizing_states, self.allowed_actions = env.states_and_actions()
   self.states = np.array(self.normalizing_states)[np.newaxis]
   # N is minibatch size; D_in is input dimension; H is hidden dimension; D_out is output dimension.
-  self.N, self.D_in, self.H, self.D_out = 20, self.states.shape[0], 90, self.allowed_actions.shape[1]
+  self.N, self.D_in, self.H, self.D_out = self.nn2.transmitMinibatch(), self.states.shape[0], self.nn2.transmitHiddenDimension(), self.allowed_actions.shape[1]
   self.x = torch.randn(self.N, self.D_in)# randomly initialized input
   self.y = torch.randn(self.N, self.D_out)# randomly initialized output
 
@@ -39,7 +39,7 @@ class qLearningNetwork(object):
   y_pred = y_pred[0] # necessary since y_pred is numpy array of size 1 x 1 containing a numpy array of size 1 x 4
   self.loss = self.loss_fn(torch.tensor(previous_q_function,requires_grad=True),torch.tensor(reward+discount*np.amax(y_pred),requires_grad=True))#second term is target and first term is estimate
 
-#  print(t, loss.item()) # to see training
+#  print(self.loss.item()) # to see training
 
   self.optimizer.zero_grad()
 

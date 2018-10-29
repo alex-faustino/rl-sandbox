@@ -9,7 +9,7 @@ class qLearningNetwork(object):
   self.states = np.array(self.normalizing_states)[np.newaxis]
   # N is minibatch size; D_in is input dimension; H is hidden dimension; D_out is output dimension.
   self.N, self.D_in, self.H, self.D_out = 20, self.states.shape[0], 90, self.allowed_actions.shape[1]
-  self.C = 625
+  self.C = 50 # update frequency
   self.x = torch.randn(self.N, self.D_in)# randomly initialized input
   self.y = torch.randn(self.N, self.D_out)# randomly initialized output
 
@@ -21,8 +21,6 @@ class qLearningNetwork(object):
 
   self.loss_fn = torch.nn.MSELoss()
 
-  self.learning_rate = 1e-4
-  self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate)
   self.y_pred = self.model(self.x)#initial prediction step for randomly initialized weights
   pass
  def predict(self,state):
@@ -30,6 +28,10 @@ class qLearningNetwork(object):
   self.x = torch.Tensor(temp_state)
   self.y_pred = self.model(self.x)#prediction step is called forward pass
   return self.y_pred.detach().numpy()   
+ def transmitMinibatch(self):
+  return self.N
+ def transmitHiddenDimension(self):
+  return self.H
  def update(self,model,C):
   if np.mod(C,self.C) == 0:# update every C samples
    self.model = model
