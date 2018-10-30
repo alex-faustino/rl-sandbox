@@ -28,11 +28,11 @@ class qLearning(object):
         self.previous_previous_x = self.previous_x
         self.previous_previous_y = self.previous_y
         self.episode_length = int(100)
-        self.num_episodes = int(10000)
+        self.num_episodes = int(5000)#int(10000) #(using shorter length for faster testing)
         self.my_gamma = 0.9
         self.my_epsilon = 0.1
         self.my_reward = np.array([ [-1,-1,-1,-1,-1,-1,-1],[-1, 0, 10, 0, 5, 0, -1],[-1, 0, 0, 0, 0, 0, -1],\
-    [-1, 0, 0, 0, 0, 0, -1],[-1, 0, 0, 0, 0, 0, -1],[-1, 0, 0, 0, 0, 0, -1],[-1, -1, -1, -1, -1, -1, -1] ]) 
+    [-1, 0, 0, 0, 0, 0, -1],[-1, 0, 0, 0, 0, 0, -1],[-1, 0, 0, 0, 0, 0, -1],[-1, -1, -1, -1, -1, -1, -1] ])
         self.my_reward = np.flipud(self.my_reward)
         self.my_reward_model = np.zeros([self.gridnum,self.gridnum])#reward model updated based on observations
         self.my_q_function = np.random.rand(self.gridnum**2*self.allowed_actions.shape[1])# randomly initialized via reward model
@@ -46,7 +46,7 @@ class qLearning(object):
         self.my_state_log = np.random.randint(0,7+1,size=(2,self.episode_length*self.num_episodes))
         self.my_action_log = np.random.rand(1, self.episode_length*self.num_episodes)
         self.episode_counter = 0
-        self.replay_length = 50#250 is edge of reasonable for run-time, let's see how this affects results
+        self.replay_length = 250#250 is edge of reasonable for run-time, let's see how this affects results
         self.minibatch_size = my_nn.reportMinibatchSize()#using same minibatch size for my_nn and my_nn2
         self.minibatch_log = np.random.rand(4,self.minibatch_size)#state,action,reward, next state
         self.minibatch_index = np.random.randint(0,1,size=self.minibatch_size)
@@ -87,8 +87,8 @@ class qLearning(object):
 ### update minibatch ###
              self.minibatch_log[1,:] = self.my_action_log[0,self.replay_index[self.minibatch_index]]
              self.minibatch_log[0,:] = self.my_state_log[0,self.replay_index[self.minibatch_index]-1]+self.gridnum*self.my_state_log[1,self.replay_index[self.minibatch_index]-1]+self.gridnum**2*(self.minibatch_log[1,:]-1)
-             self.minibatch_log[2,:] = self.my_reward_log[0,self.replay_index[self.minibatch_index]-1]
-             self.minibatch_log[3,:] = self.my_state_log[0,self.replay_index[self.minibatch_index]]+self.gridnum*self.my_state_log[1,self.replay_index[self.minibatch_index]]#action selected in nn via np.amax   
+             self.minibatch_log[2,:] = self.my_reward_log[0,self.replay_index[self.minibatch_index]]
+             self.minibatch_log[3,:] = self.my_state_log[0,self.replay_index[self.minibatch_index]]+self.gridnum*self.my_state_log[1,self.replay_index[self.minibatch_index]]#action selected in nn via np.amax
 
 ## train main neural network ##
              temporary_nn_main_input = self.minibatch_log[3,:][np.newaxis]
