@@ -1,12 +1,3 @@
-'''
-# ------------------------------------------
-AE 598RL Homework-6
-Author: Girish Joshi
-Email: girishj2@illinois.edu
-This Code implements the PPO Algorithm on GYM Pendulum-v0
-#-------------------------------------------
-'''
-
 import tensorflow as tf 
 import numpy as np
 from replay_buffer import ReplayBuffer 
@@ -16,16 +7,16 @@ import pickle
 import gc
 gc.enable()
 
-MAX_EPOCH = 5000
+MAX_EPOCH = 10000
 MAX_EP_LEN = 200
 mini_batch_size = 32
 BUFFER_SIZE = 10000
-TRAIN_STEPS = 10
-GAMMA = 0.95
-actor_Lr = 1e-4
+TRAIN_STEPS = 4
+GAMMA = 0.9
+actor_Lr = 0.5e-4
 critic_Lr = 1e-3
 clip_val = 0.2
-c2 = 0.2
+c2 = 0.01
 kl_target = 0.5
 
 # File Name for saving the Results to file
@@ -39,11 +30,11 @@ class critic(object):
 
         self.inputs = tf.placeholder(dtype=tf.float32, shape=[None, self.s_dim], name='critic_state')
 
-        l1_critic = tf.layers.dense(self.inputs, 100, tf.nn.relu, name='layer1_critic')
+        l1_critic = tf.layers.dense(self.inputs, 128, tf.nn.relu, name='layer1_critic')
 
-        l2_critic = tf.layers.dense(l1_critic, 50, tf.nn.relu, name='layer2_critic')
+        #l2_critic = tf.layers.dense(l1_critic, 50, tf.nn.relu, name='layer2_critic')
 
-        self.value = tf.layers.dense(l2_critic, 1, name='Value_layer')
+        self.value = tf.layers.dense(l1_critic, 1, name='Value_layer')
 
         self.discounted_r = tf.placeholder(dtype=tf.float32, shape=[None,1], name='discounted_r')
 
@@ -74,15 +65,15 @@ class policy(object):
 
         self.sample_action = tf.squeeze(self.actor_prob.sample(1), axis=0)
 
-        self.action_prob_op = self.actor_prob.prob(self.actions)
+        self.action_prob_op = self.actor_prob.log_prob(self.actions)
         
     def policy_net(self, name ,train_status):
 
         with tf.variable_scope(name): 
-            l1 = tf.layers.dense(self.inputs, 100, tf.nn.relu, trainable=train_status)
-            l2 = tf.layers.dense(l1, 64, tf.nn.relu, trainable=train_status)
-            mu = 2.0*tf.layers.dense(l2, self.a_dim, tf.nn.tanh, trainable=train_status, name='mu_'+name)
-            sigma = tf.layers.dense(l2,self.a_dim, tf.nn.softplus, trainable=train_status,name ='sigma_'+name )
+            l1 = tf.layers.dense(self.inputs,300, tf.nn.relu, trainable=train_status)
+            #l2 = tf.layers.dense(l1, 64, tf.nn.relu, trainable=train_status)
+            mu = 2.0*tf.layers.dense(l1, self.a_dim, tf.nn.tanh, trainable=train_status, name='mu_'+name)
+            sigma = tf.layers.dense(l1,self.a_dim, tf.nn.softplus, trainable=train_status,name ='sigma_'+name )
             actor_prob = tf.distributions.Normal(loc=mu, scale=sigma)
 
         network_params = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=name)
@@ -114,7 +105,9 @@ class PPO:
 
         self.old_action_prob = tf.placeholder(dtype=tf.float32, shape=[None,1], name='Old_Action_probs')
 
-        self.prob_ratio = tf.exp(tf.log(tf.clip_by_value(self.new_policy.action_prob_op, 1e-10, 1.)) - tf.log(tf.clip_by_value(self.old_action_prob, 1e-10, 1.)))
+        #self.prob_ratio = tf.exp(tf.log(tf.clip_by_value(self.new_policy.action_prob_op, 1e-10, 1.)) - tf.log(tf.clip_by_value(self.old_action_prob, 1e-10, 1.)))
+
+        self.prob_ratio = tf.exp(self.new_policy.action_prob_op - self.old_action_prob)
 
         self.GAE = tf.placeholder(dtype=tf.float32, shape=[None,], name='GAE')
 
@@ -122,8 +115,13 @@ class PPO:
 
         loss_clip = -tf.reduce_mean(tf.minimum(self.prob_ratio, clipped_prob_ratio)*self.GAE)
         
-        entropy =  tf.reduce_mean(self.new_policy.action_prob_op*tf.log(tf.clip_by_value(self.new_policy.action_prob_op, 1e-10, 1.0)))
+        # Entropy Loss function
+        #entropy =  tf.reduce_mean(self.new_policy.action_prob_op*tf.log(tf.clip_by_value(self.new_policy.action_prob_op, 1e-10, 1.0)))
+        entropy =  tf.reduce_mean(tf.exp(self.new_policy.action_prob_op)*self.new_policy.action_prob_op)
 
+        # KL divergence between new and old policies loss function
+        #loss_kl = tf.reduce_mean(tf.exp(self.new_policy.action_prob_op)*(self.old_action_prob-self.new_policy.action_prob_op))
+        
         loss = loss_clip + c2*entropy
 
         self.optimize = tf.train.AdamOptimizer(actor_Lr).minimize(loss)
@@ -139,7 +137,6 @@ class PPO:
         [self.sess.run(self.optimize, feed_dict={self.new_policy.inputs:state, self.new_policy.actions:action, self.old_action_prob:old_action_prob, self.GAE: GAE}) for _ in range(TRAIN_STEPS)]
 
     def discounted_r(self, reward_batch, s_next):
-        reward_batch = (reward_batch-np.mean(reward_batch))/(np.std(reward_batch) + 1e-5)
         return np.vstack(reward_batch) + GAMMA*np.vstack(self.critic_agent.get_value(s_next))
 
     def get_GAES(self, state, discounted_r):
@@ -148,7 +145,7 @@ class PPO:
         return gaes
 
     def add_to_buffer(self, state, action, reward, next_state):
-        self.replay_buffer.add(np.reshape(state,(self.s_dim,)),np.reshape(action,(self.a_dim,)),(reward+8)/8,np.reshape(next_state,(self.s_dim,)))
+        self.replay_buffer.add(np.reshape(state,(self.s_dim,)),np.reshape(action,(self.a_dim,)),reward,np.reshape(next_state,(self.s_dim,)))
         
 
 def main():
