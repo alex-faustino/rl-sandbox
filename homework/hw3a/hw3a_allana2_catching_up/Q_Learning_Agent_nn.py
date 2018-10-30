@@ -85,10 +85,10 @@ class qLearning(object):
                self.replay_index[( (np.mod(self.replay_index-1,self.episode_length) == 0) + (np.mod(self.replay_index,self.episode_length) == 0) )]= np.random.randint(0,self.replay_length,size=np.sum( ( (np.mod(self.replay_index-1,self.episode_length) == 0) + (np.mod(self.replay_index,self.episode_length) == 0) ) ) )
 
 ### update minibatch ###
-             self.minibatch_log[1,:] = self.my_action_log[0,self.replay_index[self.minibatch_index]]
+             self.minibatch_log[1,:] = self.my_action_log[0,self.replay_index[self.minibatch_index]]#stores action to get to state of same index
              self.minibatch_log[0,:] = self.my_state_log[0,self.replay_index[self.minibatch_index]-1]+self.gridnum*self.my_state_log[1,self.replay_index[self.minibatch_index]-1]+self.gridnum**2*(self.minibatch_log[1,:]-1)
              self.minibatch_log[2,:] = self.my_reward_log[0,self.replay_index[self.minibatch_index]]
-             self.minibatch_log[3,:] = self.my_state_log[0,self.replay_index[self.minibatch_index]]+self.gridnum*self.my_state_log[1,self.replay_index[self.minibatch_index]]#action selected in nn via np.amax
+             self.minibatch_log[3,:] = self.my_state_log[0,self.replay_index[self.minibatch_index]]+self.gridnum*self.my_state_log[1,self.replay_index[self.minibatch_index]]#action selected in nn via np.amax, so not included
 
 ## train main neural network ##
              temporary_nn_main_input = self.minibatch_log[3,:][np.newaxis]

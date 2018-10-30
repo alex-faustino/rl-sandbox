@@ -33,17 +33,25 @@ class qLearningNetwork(object):
   pass
  def predict(self,state):
   temp_state = torch.from_numpy(np.array(state)[np.newaxis]).float()/self.normalizing_states
+  print('predict')
+  print(temp_state)
   self.x = torch.Tensor(temp_state).unsqueeze(0)
+  print(self.x)
   self.y_pred = self.model(self.x)#prediction step is called forward pass
   return self.y_pred.detach().numpy()   
  def reportMinibatchSize(self):
   return self.N
  def update(self,state,reward,previous_q_function,discount): 
   temp_state = torch.from_numpy(np.array(state)[np.newaxis]).float()/self.normalizing_states
+  print('update')
+  temp_state = temp_state[0]
+  print(temp_state)
   self.x = torch.Tensor(temp_state).unsqueeze(0)
   y_pred = self.nn2.predict(self.x)
-  y_pred = y_pred[0] # necessary since y_pred is numpy array of size 1 x 1 containing a numpy array of size 1 x 4
-  self.loss = self.loss_fn(torch.tensor(previous_q_function,requires_grad=True),torch.tensor(reward+discount*np.amax(y_pred),requires_grad=True))#second term is target and first term is estimate
+  y_pred = y_pred[0]
+  y_pred = y_pred[0]
+  y_pred = y_pred[0] # necessary to unpack array
+  self.loss = self.loss_fn(torch.tensor(previous_q_function,requires_grad=True),torch.tensor(reward+discount*np.amax(y_pred,axis=1),requires_grad=True))#second term is target and first term is estimate
 
 #  print(self.loss.item()) # to see training
 
