@@ -32,19 +32,32 @@ class qLearningNetwork(object):
   self.y_pred = self.model(self.x)#initial prediction step for randomly initialized weights
   pass
  def predict(self,state):
-  temp_state = torch.from_numpy(np.array(state)[np.newaxis]).float()/self.normalizing_states
-  self.x = torch.Tensor(temp_state).unsqueeze(0)
+  temp_state = torch.from_numpy(np.transpose(np.array(state)[np.newaxis])).float()/self.normalizing_states
+#  self.x = torch.Tensor(temp_state).unsqueeze(0)
+  self.x = torch.Tensor(temp_state)
   self.y_pred = self.model(self.x)#prediction step is called forward pass
-  return self.y_pred.detach().numpy()   
+  if state[0] == 15:#shows whether NN is learning
+   print('predict')
+   print(self.y_pred[0])
+  return self.y_pred.detach().numpy()
  def reportMinibatchSize(self):
   return self.N
- def update(self,state,reward,previous_q_function,discount): 
+ def update(self,state,reward,previous_q_function,discount,previous_state,action): 
   temp_state = torch.from_numpy(np.array(state)[np.newaxis]).float()/self.normalizing_states
+  temp_previous_state = torch.from_numpy(np.transpose(np.array(previous_state)[np.newaxis])).float()/self.normalizing_states
   temp_state = temp_state[0]
   self.x = torch.Tensor(temp_state)
   y_pred = self.nn2.predict(self.x)
   y_pred = y_pred[0]
-  self.loss = self.loss_fn(torch.tensor(previous_q_function,requires_grad=True),torch.tensor(reward+discount*np.amax(y_pred,axis=1),requires_grad=True))#second term is target and first term is estimate
+  self.y_pred = self.model(temp_previous_state)
+  #self.loss = self.loss_fn(torch.tensor(previous_q_function,requires_grad=True),torch.tensor(reward+discount*np.amax(y_pred,axis=1),requires_grad=True))#second term is target and first term is estimate
+  placeholder_for_predict = np.amax(y_pred,axis=1)*0
+  placeholder_for_predict =   placeholder_for_predict.astype(float)
+  temp_y_pred = self.y_pred.detach().numpy()
+  for z in range(0,self.N):
+   placeholder_for_predict[z] = temp_y_pred[z,action[z]-1]
+  self.y_pred = torch.from_numpy(placeholder_for_predict)
+  self.loss = self.loss_fn(torch.tensor(self.y_pred),torch.tensor(reward+discount*np.amax(y_pred,axis=1),requires_grad=True))#second term
 
 #  print(self.loss.item()) # to see training
 
