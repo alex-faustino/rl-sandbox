@@ -11,7 +11,7 @@ import torch.optim as optim
 from torch.distributions import Normal
 from torch.utils.data.sampler import BatchSampler, SubsetRandomSampler
 
-gamma=0.9
+gamma=0.99
 seed=0
 render=False
 log_interval=10
@@ -20,56 +20,74 @@ torch.manual_seed(seed)
 TrainingRecord = namedtuple('TrainingRecord', ['ep', 'reward'])
 Transition = namedtuple('Transition', ['s', 'a', 'a_log_p', 'r', 's_'])
 
-
-class ActorNet(nn.Module):
+inner_neuron = 50
+class ActorCriticNet(nn.Module):
 
     def __init__(self):
-        super(ActorNet, self).__init__()
-        self.fc = nn.Linear(3, 100)
-        self.mu_head = nn.Linear(100, 1)
-        self.sigma_head = nn.Linear(100, 1)
+        super(ActorCriticNet, self).__init__()
+        self.fc1 = nn.Linear(3, inner_neuron)
+        self.fc2 = nn.Linear(inner_neuron, inner_neuron)
+        self.fc3 = nn.Linear(inner_neuron, inner_neuron)
+        self.mu_head = nn.Linear(inner_neuron, 1)
+        self.sigma_head = nn.Linear(inner_neuron, 1)
+        self.v_head = nn.Linear(inner_neuron, 1)
 
     def forward(self, x):
-        x = F.relu(self.fc(x))
+        x = F.relu(self.fc1(x))
+        #if (inner_neuron>=10):
+        #    x = F.dropout(self.fc1(x),0.2)
+        x = F.relu(self.fc2(x))
+        #if (inner_neuron>=10):
+        #    x = F.dropout(self.fc2(x),0.2)
+        x = F.relu(self.fc3(x))
+        #if (inner_neuron>=10):
+        #    x = F.dropout(self.fc3(x),0.2)
         mu = 2.0 * F.tanh(self.mu_head(x))
         sigma = F.softplus(self.sigma_head(x))
-        return (mu, sigma)
+        state_value = self.v_head(x)
+        return (mu, sigma,state_value)
 
 
 class CriticNet(nn.Module):
 
     def __init__(self):
         super(CriticNet, self).__init__()
-        self.fc = nn.Linear(3, 100)
-        self.v_head = nn.Linear(100, 1)
+        self.fc1 = nn.Linear(3, inner_neuron)
+        self.fc2 = nn.Linear(inner_neuron, inner_neuron)
+        self.fc3 = nn.Linear(inner_neuron, inner_neuron)
+        self.v_head = nn.Linear(inner_neuron, 1)
 
     def forward(self, x):
-        x = F.relu(self.fc(x))
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = F.relu(self.fc3(x))
         state_value = self.v_head(x)
         return state_value
 
 
 class Agent():
 
-    clip_param = 0.2
+    clip_param = 0.3
     max_grad_norm = 0.5
     ppo_epoch = 10
     buffer_capacity, batch_size = 1000, 32
 
     def __init__(self):
         self.training_step = 0
-        self.anet = ActorNet().float()
-        self.cnet = CriticNet().float()
+        #self.anet = ActorNet().float()
+        #self.cnet = CriticNet().float()
+        self.acnet = ActorCriticNet().float()
         self.buffer = []
         self.counter = 0
 
-        self.optimizer_a = optim.Adam(self.anet.parameters(), lr=1e-4)
-        self.optimizer_c = optim.Adam(self.cnet.parameters(), lr=3e-4)
+        #self.optimizer_a = optim.Adam(self.anet.parameters(), lr=1e-4)
+        #self.optimizer_c = optim.Adam(self.cnet.parameters(), lr=3e-4)
+        self.optimizer_ac = optim.Adam(self.acnet.parameters(), lr=1e-4)
 
     def select_action(self, state):
         state = torch.from_numpy(state).float().unsqueeze(0)
         with torch.no_grad():
-            (mu, sigma) = self.anet(state)
+            (mu, sigma,_) = self.acnet(state)
         dist = Normal(mu, sigma)
         action = dist.sample()
         action_log_prob = dist.log_prob(action)
@@ -80,7 +98,7 @@ class Agent():
 
         state = torch.from_numpy(state).float().unsqueeze(0)
         with torch.no_grad():
-            state_value = self.cnet(state)
+            _,_,state_value = self.acnet(state)
         return state_value.item()
 
     def save_param(self):
@@ -105,15 +123,17 @@ class Agent():
 
         r = (r - r.mean()) / (r.std() + 1e-5)
         with torch.no_grad():
-            target_v = r + gamma * self.cnet(s_)
+            _,_,temp3 = self.acnet(s_)
+            target_v = r + gamma * temp3
 
-        adv = (target_v - self.cnet(s)).detach()
+        _,_,temp = self.acnet(s) 
+        adv = (target_v - temp).detach()
 
         for _ in range(self.ppo_epoch):
             for index in BatchSampler(
                     SubsetRandomSampler(range(self.buffer_capacity)), self.batch_size, False):
 
-                (mu, sigma) = self.anet(s[index])
+                (mu, sigma,_) = self.acnet(s[index])
                 dist = Normal(mu, sigma)
                 action_log_probs = dist.log_prob(a[index])
                 ratio = torch.exp(action_log_probs - old_action_log_probs[index])
@@ -122,17 +142,25 @@ class Agent():
                 surr2 = torch.clamp(ratio, 1.0 - self.clip_param,
                                     1.0 + self.clip_param) * adv[index]
                 action_loss = -torch.min(surr1, surr2).mean()
-
+                _,_,temp2 = self.acnet(s[index])
+                value_loss = F.smooth_l1_loss(temp2, target_v[index])
+                ac_loss = action_loss+value_loss
+                
+                self.optimizer_ac.zero_grad()
+                ac_loss.backward()
+                nn.utils.clip_grad_norm_(self.acnet.parameters(), self.max_grad_norm)
+                self.optimizer_ac.step()
+                '''
                 self.optimizer_a.zero_grad()
                 action_loss.backward()
                 nn.utils.clip_grad_norm_(self.anet.parameters(), self.max_grad_norm)
                 self.optimizer_a.step()
 
-                value_loss = F.smooth_l1_loss(self.cnet(s[index]), target_v[index])
                 self.optimizer_c.zero_grad()
                 value_loss.backward()
                 nn.utils.clip_grad_norm_(self.cnet.parameters(), self.max_grad_norm)
                 self.optimizer_c.step()
+                '''
 
         del self.buffer[:]
 
@@ -146,11 +174,11 @@ def main():
     training_records = []
     running_reward = -1000
     state = env.reset()
-    for i_ep in range(1000):
+    for i_ep in range(2000):
         score = 0
         state = env.reset()
 
-        for t in range(200):
+        for t in range(500):
             action, action_log_prob = agent.select_action(state)
             state_, reward, done, _ = env.step([action])
             if render:
@@ -168,14 +196,14 @@ def main():
         if running_reward > -200:
             print("Solved! Moving average score is now {}!".format(running_reward))
             env.close()
-            agent.save_param()
+            #agent.save_param()
             break
 
     plt.plot([r.ep for r in training_records], [r.reward for r in training_records])
     plt.title('PPO')
     plt.xlabel('Episode')
     plt.ylabel('Moving averaged episode reward')
-    plt.savefig("img/ppo.png")
+    #plt.savefig("img/ppo.png")
     plt.show()
 
 
