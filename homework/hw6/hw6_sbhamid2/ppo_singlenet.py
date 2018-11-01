@@ -9,51 +9,49 @@ from collections import namedtuple
 
 torch.manual_seed(0)
 
-class Actor(nn.Module):
+class ActorCritic(nn.Module):
     def __init__(self):
-        super(Actor, self).__init__()
-        self.hidden = nn.Linear(3, 100)
-        self.mu = nn.Linear(100, 1)
-        self.sigma = nn.Linear(100, 1)
+        super(ActorCritic, self).__init__()
+        self.hidden1 = nn.Linear(3, 75)
+        self.hidden2 = nn.Linear(75, 150)
+        
+        self.mu = nn.Linear(150, 1)
+        self.sigma = nn.Linear(150, 1)
+        self.value = nn.Linear(150, 1) 
 
-    def forward(self, x):
-        x = F.relu(self.hidden(x))
+    def forward(self, x, mode=None):
+        x = F.relu(self.hidden1(x))
+        x = F.relu(self.hidden2(x))
+        
         mu = 2.0 * torch.tanh(self.mu(x))
         sigma = F.softplus(self.sigma(x))
+        Vfunc = self.value(x)
         ### Output: mean and variance from which the continuous action is sampled
-        return (mu, sigma)  ## Gaussian policy
-
-
-class Critic(nn.Module):
-    def __init__(self):
-        super(Critic, self).__init__()
-        self.hidden = nn.Linear(3, 100)
-        self.value = nn.Linear(100, 1) 
-
-    def forward(self, x):
-        x = F.relu(self.hidden(x))
-        value_func = self.value(x)
-        return value_func ### Output: value function of the state obtained from critic
+        if (mode == 'actor'): 
+            return (mu, sigma)        
+        ### Output: value function of the state obtained from critic
+        if (mode == 'critic'):
+            return Vfunc
+        if (mode == None): 
+            print("Error in neural network")
+            return None
+        #return (mu, sigma, Vfunc)  ## Gaussian policy
     
 class Agent():
 
     def __init__(self, env):
         self.env = env
         self.training_step = 0
-        self.actorObj = Actor().float()
-        self.criticObj = Critic().float()
+        self.mynnetObj = ActorCritic().float()
         self.buffer = []
         self.counter = 0
-        
-        self.opt_actor = optim.Adam(self.actorObj.parameters(), lr=1e-4)
-        self.opt_critic = optim.Adam(self.criticObj.parameters(), lr=3e-4)
-        
+                
     def select_action(self, state):
         ### Convert the state into a tensor which is later given as input to the "actor deep neural network"
         ### To obtain mu and sigma as output
         state = torch.from_numpy(state).float().unsqueeze(0)
         with torch.no_grad():
-            (mu, sigma) = self.actorObj(state)
+            (mu, sigma) = self.mynnetObj(state, 'actor')
         ### Normal distribution considered based on mu and sigma computed
         Gpdf = Normal(mu, sigma)
         action = Gpdf.sample() ### in tensor form
@@ -77,31 +75,29 @@ class Agent():
 
         rnorm = (store_r - store_r.mean()) / (store_r.std() + 1e-5)
         with torch.no_grad():
-            value_func = rnorm + self.gamma * self.criticObj(store_snew)
+            value_func = rnorm + self.gamma * self.mynnetObj(store_snew, 'critic')
 
-        Ahat = (value_func - self.criticObj(store_s)).detach() ### advantage function
+        Ahat = (value_func - self.mynnetObj(store_s, 'critic') ).detach() ### advantage function
 
         for pp in range(self.ppo_epoch):
             for index in BatchSampler(SubsetRandomSampler(range(self.mem_size)), self.batch_size, False):
-                (mu, sigma) = self.actorObj(store_s[index])
+                (mu, sigma) = self.mynnetObj(store_s[index], 'actor')
                 Gpdf = Normal(mu, sigma)
                 lprob = Gpdf.log_prob(store_a[index])
                 pratio = torch.exp(lprob - store_lprob[index])
 
+                ### Calculating the total loss: clip loss and value function residual
                 Lclip_f = pratio * Ahat[index]
                 Lclip_s = torch.clamp(pratio, 1.0 - self.clip_param, 1.0 + self.clip_param) * Ahat[index]
                 Lclip = -torch.min(Lclip_f, Lclip_s).mean()
-
-                self.opt_actor.zero_grad()
-                Lclip.backward()
-                nn.utils.clip_grad_norm_(self.actorObj.parameters(), self.max_grad)
-                self.opt_actor.step()
-
-                Lvf = F.smooth_l1_loss(self.criticObj(store_s[index]), value_func[index])
-                self.opt_critic.zero_grad()
-                Lvf.backward()
-                nn.utils.clip_grad_norm_(self.criticObj.parameters(), self.max_grad)
-                self.opt_critic.step()
+                
+                Lvf = F.smooth_l1_loss(self.mynnetObj(store_s[index], 'critic'), value_func[index])
+                Ltotal = Lvf + Lclip
+                
+                self.opt_nn.zero_grad()
+                Ltotal.backward()
+                nn.utils.clip_grad_norm_(self.mynnetObj.parameters(), self.max_grad)
+                self.opt_nn.step()
 
         del self.buffer[:]
 
@@ -114,8 +110,10 @@ class Agent():
         self.gamma = param['gamma'] 
         self.no_eps = param['no_eps']
         self.eps_len = param['eps_len']
+        self.lr = param['lr']
 
         MemoryBuffer = namedtuple('MemoryBuffer', ['state', 'action', 'lprob', 'reward', 'next_state'])
+        self.opt_nn = optim.Adam(self.mynnetObj.parameters(), lr=self.lr)
         
         ### Loop over the number of episodes
         store_avg_rewards = []
