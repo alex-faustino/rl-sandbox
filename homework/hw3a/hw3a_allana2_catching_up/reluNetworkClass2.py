@@ -11,7 +11,6 @@ class qLearningNetwork(object):
   self.N, self.D_in, self.H, self.D_out = 21, self.states.shape[0], 900, self.allowed_actions.shape[1]
   self.C = 50 # update frequency
   self.x = torch.randn(self.N, self.D_in)# randomly initialized input
-  self.y = torch.randn(self.N, self.D_out)# randomly initialized output
 
   self.model = torch.nn.Sequential(
     torch.nn.Linear(self.D_in, self.H),
@@ -27,7 +26,9 @@ class qLearningNetwork(object):
 
   self.loss_fn = torch.nn.MSELoss()
 
-  self.y_pred = self.model(self.x)#initial prediction step for randomly initialized weights
+  self.learning_rate = 1e-3
+  self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate)
+  self.y_pred = self.model(self.x)
   pass
  def predict(self,state):
   temp_state = torch.from_numpy(np.array(state)[np.newaxis]).float()/self.normalizing_states

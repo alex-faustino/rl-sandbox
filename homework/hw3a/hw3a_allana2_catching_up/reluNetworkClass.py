@@ -11,15 +11,12 @@ class qLearningNetwork(object):
   # N is minibatch size; D_in is input dimension; H is hidden dimension; D_out is output dimension.
   self.N, self.D_in, self.H, self.D_out = self.nn2.transmitMinibatch(), self.states.shape[0], self.nn2.transmitHiddenDimension(), self.allowed_actions.shape[1]
   self.x = torch.randn(self.N, self.D_in)# randomly initialized input
-  self.y = torch.randn(self.N, self.D_out)# randomly initialized output
 
   self.model = torch.nn.Sequential(
     torch.nn.Linear(self.D_in, self.H),
     torch.nn.ReLU(),
     torch.nn.Linear(self.H, self.H+50, bias=True),
     torch.nn.ReLU(),
-#    torch.nn.Linear(self.H+100, self.H+50, bias=True),
-#    torch.nn.ReLU(),
     torch.nn.Linear(self.H+50, self.H, bias=True),
     torch.nn.ReLU(),
     torch.nn.Linear(self.H, self.D_out),
@@ -29,20 +26,22 @@ class qLearningNetwork(object):
 
   self.learning_rate = 1e-3
   self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate)
-  self.y_pred = self.model(self.x)#initial prediction step for randomly initialized weights
+  self.y_pred = self.model(self.x)#prediction step is called forward pass
+  print(self.y_pred)
+  self.y_pred2 = self.model(self.x.select(0,2))
   pass
  def predict(self,state):
   temp_state = torch.from_numpy(np.transpose(np.array(state)[np.newaxis])).float()/self.normalizing_states
-#  self.x = torch.Tensor(temp_state).unsqueeze(0)
   self.x = torch.Tensor(temp_state)
-  self.y_pred = self.model(self.x)#prediction step is called forward pass
+  self.y_pred = self.model(self.x.select(0,0))#prediction step is called forward pass
   if state[0] == 15:#shows whether NN is learning
    print('predict')
-   print(self.y_pred[0])
+   print(self.y_pred)
+  self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate)
   return self.y_pred.detach().numpy()
  def reportMinibatchSize(self):
   return self.N
- def update(self,state,reward,previous_q_function,discount,previous_state,action): 
+ def update(self,state,reward,discount,previous_state,action): 
   temp_state = torch.from_numpy(np.array(state)[np.newaxis]).float()/self.normalizing_states
   temp_previous_state = torch.from_numpy(np.transpose(np.array(previous_state)[np.newaxis])).float()/self.normalizing_states
   temp_state = temp_state[0]
@@ -50,7 +49,6 @@ class qLearningNetwork(object):
   y_pred = self.nn2.predict(self.x)
   y_pred = y_pred[0]
   self.y_pred = self.model(temp_previous_state)
-  #self.loss = self.loss_fn(torch.tensor(previous_q_function,requires_grad=True),torch.tensor(reward+discount*np.amax(y_pred,axis=1),requires_grad=True))#second term is target and first term is estimate
   placeholder_for_predict = np.amax(y_pred,axis=1)*0
   placeholder_for_predict =   placeholder_for_predict.astype(float)
   temp_y_pred = self.y_pred.detach().numpy()

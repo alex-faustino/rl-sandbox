@@ -58,7 +58,7 @@ class qLearning(object):
         self.action = int(self.allowed_actions[0,np.argmax(self.my_q_function[self.location_x+self.gridnum*self.location_y+(self.allowed_actions-1)*self.gridnum**2])])
         self.my_exploit_action_log[self.location_y,self.location_x] = int(self.action)
         if np.random.rand() <= self.my_epsilon:
-         self.action = self.allowed_actions[0,np.random.randint(0,self.allowed_actions.shape[1])]
+         self.action = self.allowed_actions[0,np.random.randint(1,self.allowed_actions.shape[1])]
         pass# self.location_y,self.location_x,self.action
     def work(self):
         if self.render_label == 'render':
@@ -77,12 +77,12 @@ class qLearning(object):
             if self.update_q_label > 1:
 
 ## set experience replay and minibatch ##
-             self.replay_index = np.random.randint(np.amax(i-self.replay_length,0),i,size=self.replay_length)
+             self.replay_index = np.random.randint(np.maximum(i-self.replay_length,0),i,size=self.replay_length)
              self.minibatch_index = np.random.randint(0,self.replay_length,size=self.minibatch_size)
 
 ### ensure that i-self.replay_index is not the first or last step of an episode ###
              while (np.any(np.mod(self.replay_index-1,self.episode_length) == 0)) + (np.any(np.mod(self.replay_index,self.episode_length) == 0)):
-               self.replay_index[( (np.mod(self.replay_index-1,self.episode_length) == 0) + (np.mod(self.replay_index,self.episode_length) == 0) )]= np.random.randint(0,self.replay_length,size=np.sum( ( (np.mod(self.replay_index-1,self.episode_length) == 0) + (np.mod(self.replay_index,self.episode_length) == 0) ) ) )
+               self.replay_index[( (np.mod(self.replay_index-1,self.episode_length) == 0) + (np.mod(self.replay_index,self.episode_length) == 0) )]= np.random.randint(0,np.minimum(i+1,self.replay_length),size=np.sum( ( (np.mod(self.replay_index-1,self.episode_length) == 0) + (np.mod(self.replay_index,self.episode_length) == 0) ) ) )
 
 ### update minibatch ###
              self.minibatch_log[1,:] = self.my_action_log[0,self.replay_index[self.minibatch_index]]#stores action to get to state of same index
@@ -92,13 +92,13 @@ class qLearning(object):
 
 ## train main neural network ##
              temporary_nn_main_input = self.minibatch_log[3,:][np.newaxis]
-             self.my_nn.update(np.transpose(temporary_nn_main_input),self.minibatch_log[2,:], self.my_q_function[self.minibatch_log[0,:].astype(int)],self.my_gamma,self.minibatch_log[0,:],self.minibatch_log[1,:].astype(int))
+             self.my_nn.update(np.transpose(temporary_nn_main_input),self.minibatch_log[2,:],self.my_gamma,self.minibatch_log[0,:],self.minibatch_log[1,:].astype(int))
 
 ## train target neural network (logic in class file to only update when appropriate) ##
              self.my_nn2.update(self.my_nn.transmitModel(),i+1)
 
 ## allows learning (should be called after updates of Q function to ensure updating only under healthy circumstances) ##
-            self.update_q_label += 1# default is to update the q function after the first iteration
+            self.update_q_label += 1# update q function after first iteration
 
 ## output main neural network prediction of Q function using current location ##
             temporary_nn_main_output = self.my_nn.predict(np.transpose(self.location_x+self.gridnum*self.location_y)*np.ones(21))
