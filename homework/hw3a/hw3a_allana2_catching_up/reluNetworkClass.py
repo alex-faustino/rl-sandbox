@@ -34,9 +34,10 @@ class qLearningNetwork(object):
  def predict(self,state):
   self.x = torch.tensor(np.transpose(state[np.newaxis])/self.normalizing_states,requires_grad=True).float()
   self.y_pred2 = self.model(self.x.select(0,0))#prediction step is called forward pass
-#  if state[0] == 15:#shows whether NN is learning
-#   print('predict')
-#   print(self.y_pred2)
+  if state[0] == 15:#shows whether NN is learning
+   print('predict')
+   print(self.y_pred2)
+   print(self.loss.item()) # to see training
   return self.y_pred2
 
  def reportMinibatchSize(self):
