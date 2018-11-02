@@ -28,7 +28,7 @@ class qLearning(object):
         self.previous_previous_x = self.previous_x
         self.previous_previous_y = self.previous_y
         self.episode_length = int(100)
-        self.num_episodes = int(5000)#int(10000) #(using shorter length for faster testing)
+        self.num_episodes = int(1000)#int(10000) #(using shorter length for faster testing)
         self.my_gamma = 0.9
         self.my_epsilon = 0.1
         self.my_reward = np.array([ [-1,-1,-1,-1,-1,-1,-1],[-1, 0, 10, 0, 5, 0, -1],[-1, 0, 0, 0, 0, 0, -1],\
@@ -102,6 +102,7 @@ class qLearning(object):
 
 ## output main neural network prediction of Q function using current location ##
             temporary_nn_main_output = self.my_nn.predict(np.transpose(self.location_x+self.gridnum*self.location_y)*np.ones(21))
+            temporary_nn_main_output = temporary_nn_main_output.detach().numpy()
 #            self.my_q_function[self.location_x+self.gridnum*self.location_y::self.gridnum**2] = temporary_nn_main_output# fixes sizing issue
             self.my_q_function[self.location_x+self.gridnum*self.location_y::self.gridnum**2] = temporary_nn_main_output[0]# fixes sizing issue
 

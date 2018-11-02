@@ -30,15 +30,18 @@ class qLearningNetwork(object):
   self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate)
   self.y_pred = self.model(self.x)
   pass
+
  def predict(self,state):
-  temp_state = torch.from_numpy(np.array(state)[np.newaxis]).float()/self.normalizing_states
-  self.x = torch.Tensor(temp_state)
+  self.x = state/self.normalizing_states
   self.y_pred = self.model(self.x)#prediction step is called forward pass
-  return self.y_pred.detach().numpy()   
+  return self.y_pred
+
  def transmitMinibatch(self):
   return self.N
+
  def transmitHiddenDimension(self):
   return self.H
+
  def update(self,model,C):
   if np.mod(C,self.C) == 0:# update every C samples
    self.model = model
