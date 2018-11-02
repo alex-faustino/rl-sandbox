@@ -1,4 +1,5 @@
 from collections import namedtuple
+from scipy import signal
 
 import torch
 import torch.nn as nn
@@ -19,11 +20,9 @@ class PPO:
         self.ppo_epoch = ppo_epoch
         self.buffer_size = buffer_size
         self.batch_size = batch_size
-        self.training_step = 0
         self.actor = Actor().float()
         self.critic = Critic().float()
         self.buffer = []
-        self.counter = 0
 
         self.optimizer_a = optim.Adam(self.actor.parameters(), lr=1e-4)
         self.optimizer_c = optim.Adam(self.critic.parameters(), lr=3e-4)
@@ -46,12 +45,9 @@ class PPO:
 
     def store(self, transition):
         self.buffer.append(transition)
-        self.counter += 1
-        return self.counter % self.buffer_size == 0
+        return self.buffer.__len__() == self.buffer_size
 
     def update(self):
-        self.training_step += 1
-
         s = torch.tensor([t.s for t in self.buffer], dtype=torch.float)
         a = torch.tensor([t.a for t in self.buffer], dtype=torch.float).view(-1, 1)
         r = torch.tensor([t.r for t in self.buffer], dtype=torch.float).view(-1, 1)
@@ -73,15 +69,18 @@ class PPO:
                 a_log_p = dist.log_prob(a[index])
                 ratio = torch.exp(a_log_p - last_a_log_p[index])
 
+                # loss surrogate functions
                 surr1 = ratio * adv[index]
                 surr2 = torch.clamp(ratio, 1.0 - self.clip, 1.0 + self.clip) * adv[index]
-                action_loss = -torch.min(surr1, surr2).mean()
 
+                # actor gradient
+                action_loss = -torch.min(surr1, surr2).mean()
                 self.optimizer_a.zero_grad()
                 action_loss.backward()
                 nn.utils.clip_grad_norm_(self.actor.parameters(), self.max_grad_norm)
                 self.optimizer_a.step()
 
+                # critic gradient
                 value_loss = F.smooth_l1_loss(self.critic(s[index]), target_v[index])
                 self.optimizer_c.zero_grad()
                 value_loss.backward()
@@ -129,7 +128,7 @@ class Actor(nn.Module):
 
     def forward(self, x):
         x = F.relu(self.fc(x))
-        mu = 2.0 * F.tanh(self.mu(x))
+        mu = 2.0 * torch.tanh(self.mu(x))
         sigma = F.softplus(self.sigma(x))
 
         return mu, sigma
@@ -147,3 +146,8 @@ class Critic(nn.Module):
         state_value = self.v(x)
 
         return state_value
+
+
+# Discounted return function
+def discount(x, gamma):
+    return scipy.signal.lfilter([1], [1, -gamma], x[::-1], axis=0)[::-1]
