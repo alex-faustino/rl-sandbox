@@ -28,9 +28,9 @@ class qLearning(object):
         self.previous_previous_x = self.previous_x
         self.previous_previous_y = self.previous_y
         self.episode_length = int(100)
-        self.num_episodes = int(1000)#int(10000) #(using shorter length for faster testing)
+        self.num_episodes = int(100)#int(10000) #(using shorter length for faster testing)
         self.my_gamma = 0.9
-        self.my_epsilon = 0.1
+        self.my_epsilon = 1
         self.my_reward = np.array([ [-1,-1,-1,-1,-1,-1,-1],[-1, 0, 10, 0, 5, 0, -1],[-1, 0, 0, 0, 0, 0, -1],\
     [-1, 0, 0, 0, 0, 0, -1],[-1, 0, 0, 0, 0, 0, -1],[-1, 0, 0, 0, 0, 0, -1],[-1, -1, -1, -1, -1, -1, -1] ])
         self.my_reward = np.flipud(self.my_reward)
@@ -58,7 +58,7 @@ class qLearning(object):
         self.action = int(self.allowed_actions[0,np.argmax(self.my_q_function[self.location_x+self.gridnum*self.location_y+(self.allowed_actions-1)*self.gridnum**2])])
         self.my_exploit_action_log[self.location_y,self.location_x] = int(self.action)
         if np.random.rand() <= self.my_epsilon:
-         self.action = self.allowed_actions[0,np.random.randint(1,self.allowed_actions.shape[1])]
+         self.action = self.allowed_actions[0,np.random.randint(0,self.allowed_actions.shape[1])]
         pass# self.location_y,self.location_x,self.action
     def work(self):
         if self.render_label == 'render':
@@ -86,9 +86,9 @@ class qLearning(object):
 
 ### update minibatch ###
              self.minibatch_log[1,:] = self.my_action_log[0,self.replay_index[self.minibatch_index]]#stores action to get to state of same index
-             self.minibatch_log[0,:] = self.my_state_log[0,self.replay_index[self.minibatch_index]-1]+self.gridnum*self.my_state_log[1,self.replay_index[self.minibatch_index]-1] #self.my_state_log[0,self.replay_index[self.minibatch_index]-1]+self.gridnum*self.my_state_log[1,self.replay_index[self.minibatch_index]-1]+self.gridnum**2*(self.minibatch_log[1,:]-1)
-             self.minibatch_log[2,:] = self.my_reward_log[0,self.replay_index[self.minibatch_index]]
-             self.minibatch_log[3,:] = self.my_state_log[0,self.replay_index[self.minibatch_index]]+self.gridnum*self.my_state_log[1,self.replay_index[self.minibatch_index]]#action selected in nn via np.amax, so not included
+             self.minibatch_log[0,:] = self.my_state_log[0,self.replay_index[self.minibatch_index]-1]+self.gridnum*self.my_state_log[1,self.replay_index[self.minibatch_index]-1]#previous state from which action was taken
+             self.minibatch_log[2,:] = self.my_reward_log[0,self.replay_index[self.minibatch_index]-1]#store reward of previous state
+             self.minibatch_log[3,:] = self.my_state_log[0,self.replay_index[self.minibatch_index]]+self.gridnum*self.my_state_log[1,self.replay_index[self.minibatch_index]]#current state arrived at by action of the same index
 
 ## train main neural network ##
              temporary_nn_main_input = self.minibatch_log[3,:][np.newaxis]
@@ -102,9 +102,7 @@ class qLearning(object):
 
 ## output main neural network prediction of Q function using current location ##
             temporary_nn_main_output = self.my_nn.predict(np.transpose(self.location_x+self.gridnum*self.location_y)*np.ones(21))
-            temporary_nn_main_output = temporary_nn_main_output.detach().numpy()
-#            self.my_q_function[self.location_x+self.gridnum*self.location_y::self.gridnum**2] = temporary_nn_main_output# fixes sizing issue
-            self.my_q_function[self.location_x+self.gridnum*self.location_y::self.gridnum**2] = temporary_nn_main_output[0]# fixes sizing issue
+            self.my_q_function[self.location_x+self.gridnum*self.location_y::self.gridnum**2] = temporary_nn_main_output.detach().numpy()
 
 ## implement agent policy (worked for tabular, no code changed) ##
             self.my_policy()
@@ -122,14 +120,17 @@ class qLearning(object):
                 self.env.render(fig,ax,i,self.render_label)
 
 ## progress output ##
-            progress_interval = 0.01# should be a percentage in a decimal form
+            progress_interval = 0.001# should be a percentage in a decimal form
             progress_checker = np.floor(progress_interval*self.episode_length*self.num_episodes)
             self.episode_counter = np.floor((i+1)/self.episode_length)
             if np.mod(i+1,progress_checker) == 0:
-                sys.stdout.write("\r"+"%s" % int(progress_interval*100+np.floor(i/progress_checker)*progress_interval*100) + '%')#updates progress %
-        sys.stdout.write("\r"+'done' + '\n')#displays progress and prints results on new lines
+                sys.stdout.write("\r"+"%s" % (progress_interval*100+np.floor(i/progress_checker)*progress_interval*100) + '%')#updates progress %
+## Anneal epsilon ## 
+            if (progress_interval*100+np.floor(i/progress_checker)*progress_interval*100) > 0:
+             self.epsilon = max(0.1,1/(progress_interval*100+np.floor(i/progress_checker)*progress_interval*100))
 
 ## results ##
+        sys.stdout.write("\r"+'done' + '\n')#displays progress and prints results on new lines
         fig1, (ax1)=plt.subplots()
         ax1.plot(self.my_episodic_cumulative_reward_log[0,0:-1])
         plt.xlabel('episode number')
