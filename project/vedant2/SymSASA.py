@@ -31,16 +31,16 @@ linkCollisionShapeIndices=[Panel_right, Panel_right, Panel_left, Panel_left]
 nlnk=len(link_Masses)
 linkVisualShapeIndices=[-1]*nlnk    #=[-1,-1,-1, ... , -1]
 #link positions wrt the link they are attached to
-BasePositionR_body = [4.2,0,0]
-BasePositionR_panel = [4.2,0,0]
-BasePositionL_body = [-4.2,0,0]
-BasePositionL_panel = [-4.2,0,0]
+BasePositionR_body = np.array([4.2,0,0])
+BasePositionR_panel = np.array([4.2,0,0])
+BasePositionL_body = np.array([-4.2,0,0])
+BasePositionL_panel = np.array([-4.2,0,0])
 
 linkPositions=[BasePositionR_body, BasePositionR_panel, BasePositionL_body, BasePositionL_panel,]
 linkOrientations=[[0,0,0,1]]*nlnk
-linkInertialFramePositions=[[0,0,0]]*nlnk
+#linkInertialFramePositions=[[-2,0,0]]*nlnk
 
-#linkInertialFramePositions = [BasePositionR_body, BasePositionR_body+BasePositionR_panel, BasePositionL_body, BasePositionL_body+BasePositionL_panel,]
+linkInertialFramePositions = [BasePositionR_body, BasePositionR_body+BasePositionR_panel, BasePositionL_body, BasePositionL_body+BasePositionL_panel,]
 
 print(linkInertialFramePositions)
 #Note the orientations are given in quaternions (4 params). There are function to convert of Euler angles and back
@@ -54,7 +54,7 @@ jointTypes=[p.JOINT_REVOLUTE, p.JOINT_REVOLUTE, p.JOINT_REVOLUTE, p.JOINT_REVOLU
 axis=[[0,0,1], [0,0,1], [0,0,1], [0,0,1]]
 
 #Drop the body in the scene at the following body coordinates
-basePosition = [0,0,0]
+basePosition = [0,0,4]
 baseOrientation = [0,0,0,1]
 #Main function that creates the dog
 sat = p.createMultiBody(body_Mass,Sat_body,visualShapeId,basePosition,baseOrientation,
@@ -71,8 +71,26 @@ sat = p.createMultiBody(body_Mass,Sat_body,visualShapeId,basePosition,baseOrient
 
 #Add earth like gravity
 p.setGravity(0,0,0)
+p.resetDebugVisualizerCamera( cameraDistance=20., cameraYaw=15, cameraPitch=-65, cameraTargetPosition=[4., 4., -1.])
+
+joint=1
+p.setJointMotorControl2(sat,joint,p.POSITION_CONTROL,targetPosition=1.1,force=1,maxVelocity=3)
+#Same for the prismatic feet spheres
+joint=1
+p.setJointMotorControl2(sat,joint,p.POSITION_CONTROL,targetPosition=1.1,force=1,maxVelocity=3)
+joint=2
+p.setJointMotorControl2(sat,joint,p.POSITION_CONTROL,targetPosition=1.1,force=1,maxVelocity=3)
+joint=3
+p.setJointMotorControl2(sat,joint,p.POSITION_CONTROL,targetPosition=1.1,force=1,maxVelocity=3)
+#joint=4
+p.setJointMotorControl2(sat,joint,p.POSITION_CONTROL,targetPosition=1.1,force=1,maxVelocity=3)
+
+p.setRealTimeSimulation(1)
 time.sleep(100000)
 '''
+
+
+
 p.setRealTimeSimulation(1)
 #Point the camera at the robot at the desired angle and distance
 p.resetDebugVisualizerCamera( cameraDistance=1.5, cameraYaw=-30, cameraPitch=-30, cameraTargetPosition=[0.0, 0.0, 0.25])
