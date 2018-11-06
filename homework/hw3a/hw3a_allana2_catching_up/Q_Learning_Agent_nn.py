@@ -28,7 +28,7 @@ class qLearning(object):
         self.previous_previous_x = self.previous_x
         self.previous_previous_y = self.previous_y
         self.episode_length = int(100)
-        self.num_episodes = int(300)#int(10000) #(using shorter length for faster testing)
+        self.num_episodes = int(1000)#int(10000) #(using shorter length for faster testing)
         self.my_gamma = 0.9
         self.my_epsilon = 0.1
         self.my_reward = np.array([ [-1,-1,-1,-1,-1,-1,-1],[-1, 0, 10, 0, 5, 0, -1],[-1, 0, 0, 0, 0, 0, -1],\
