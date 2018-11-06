@@ -9,7 +9,7 @@ class qLearningNetwork(object):
   self.states = np.array(self.normalizing_states)[np.newaxis]
   # N is minibatch size; D_in is input dimension; H is hidden dimension; D_out is output dimension.
   self.N, self.D_in, self.H, self.D_out = 21, self.states.shape[0], 900, self.allowed_actions.shape[1]
-  self.C = 100 # update frequency
+  self.C = 10 # update frequency (100 is terrible)
   self.x = torch.randn(self.N, self.D_in)# randomly initialized input
 
   self.model = torch.nn.Sequential(

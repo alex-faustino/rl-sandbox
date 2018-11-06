@@ -30,7 +30,7 @@ class qLearning(object):
         self.episode_length = int(100)
         self.num_episodes = int(100)#int(10000) #(using shorter length for faster testing)
         self.my_gamma = 0.9
-        self.my_epsilon = 1
+        self.my_epsilon = 0.1
         self.my_reward = np.array([ [-1,-1,-1,-1,-1,-1,-1],[-1, 0, 10, 0, 5, 0, -1],[-1, 0, 0, 0, 0, 0, -1],\
     [-1, 0, 0, 0, 0, 0, -1],[-1, 0, 0, 0, 0, 0, -1],[-1, 0, 0, 0, 0, 0, -1],[-1, -1, -1, -1, -1, -1, -1] ])
         self.my_reward = np.flipud(self.my_reward)
@@ -46,7 +46,7 @@ class qLearning(object):
         self.my_state_log = np.random.randint(0,7+1,size=(2,self.episode_length*self.num_episodes))
         self.my_action_log = np.random.randint(0,1, size=(1,self.episode_length*self.num_episodes))
         self.episode_counter = 0
-        self.replay_length = 250#250 is edge of reasonable for run-time, let's see how this affects results
+        self.replay_length = 1000#250 is edge of reasonable for run-time, let's see how this affects results
         self.minibatch_size = my_nn.reportMinibatchSize()#using same minibatch size for my_nn and my_nn2
         self.minibatch_log = np.random.rand(4,self.minibatch_size)#state,action,reward, next state
         self.minibatch_index = np.random.randint(0,1,size=self.minibatch_size)
@@ -126,8 +126,8 @@ class qLearning(object):
             if np.mod(i+1,progress_checker) == 0:
                 sys.stdout.write("\r"+"%s" % (progress_interval*100+np.floor(i/progress_checker)*progress_interval*100) + '%')#updates progress %
 ## Anneal epsilon ## 
-            if (progress_interval*100+np.floor(i/progress_checker)*progress_interval*100) > 0:
-             self.epsilon = max(0.1,1/(progress_interval*100+np.floor(i/progress_checker)*progress_interval*100))
+#            if (progress_interval*100+np.floor(i/progress_checker)*progress_interval*100) > 0:
+#             self.epsilon = max(0.1,1/(progress_interval*100+np.floor(i/progress_checker)*progress_interval*100))
 
 ## results ##
         sys.stdout.write("\r"+'done' + '\n')#displays progress and prints results on new lines
