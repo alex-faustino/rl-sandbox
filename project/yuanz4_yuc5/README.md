@@ -22,7 +22,7 @@ create a folder and README about some draft statement: what algorithm, what syst
 
 3 weeks later project paper presentation
 
-# PingPong upward srtike
+# PingPong upward srtike (table juggling)
 
 2-D or 3-D for board or ball? Or how many degrees of freedom? tilted?
 
@@ -33,3 +33,11 @@ Physical simulation: Mujoco not open-source. Option: c++ bullet, pybullet, robos
 PPO is good for continuous states
 
 need to concern the computation speed, physical engine from outside or inside?
+
+# Project Paper Presentation
+
+10-15 minutes, choose a reference paper
+
+5 minutes on what this paper is about, 5 minutes on what our project is about (implement this algorithm or other)
+
+result presentation: ipynb is preferred (compared with PDF)
