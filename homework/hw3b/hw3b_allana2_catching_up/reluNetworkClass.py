@@ -24,7 +24,7 @@ class qLearningNetwork(object):
 
   self.loss_fn = torch.nn.MSELoss()
 
-  self.learning_rate = 1e-3
+  self.learning_rate = 1e-4
   self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate)
   self.y_pred = self.model(self.x)#prediction step is called forward pass
   self.y_pred2 = self.model(self.x.select(0,0))
@@ -52,6 +52,7 @@ class qLearningNetwork(object):
   self.loss.backward()#gradient of loss step is called backward pass
 
   self.optimizer.step()
+#  print(self.loss.item())
 #  print('model parameters')
 #  print(list(self.model.parameters())[0].grad)
   pass

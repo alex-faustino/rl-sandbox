@@ -8,7 +8,7 @@ class qLearningNetwork(object):
   self.normalizing_states, self.allowed_actions = env.states_and_actions()
   self.states = np.array(self.normalizing_states)[np.newaxis]
   # N is minibatch size; D_in is input dimension; H is hidden dimension; D_out is output dimension.
-  self.N, self.D_in, self.H, self.D_out = 21, self.states.shape[0], 900, self.allowed_actions.shape[1]
+  self.N, self.D_in, self.H, self.D_out = 20, self.states.shape[0], 900, self.allowed_actions.shape[1]
   self.C = 10 # update frequency (100 is terrible)
   self.x = torch.randn(self.N, self.D_in)# randomly initialized input
 
@@ -26,7 +26,7 @@ class qLearningNetwork(object):
 
   self.loss_fn = torch.nn.MSELoss()
 
-  self.learning_rate = 1e-3
+  self.learning_rate = 1e-4
   self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate)#used in case if grad function of tensors is also transmitted
   self.y_pred = self.model(self.x)
   pass
