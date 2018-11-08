@@ -45,6 +45,10 @@ class qLearningNetwork(object):
   [y_pred,argmax_indices] = torch.max(y_pred, 2)
   self.y_pred = self.model(torch.tensor(np.transpose(previous_state[np.newaxis])/self.normalizing_states,requires_grad=True).float())
   for k in range(0,self.N):
+   if reward[k] == 10:
+    reward[k] = 1
+   elif reward[k] == 5:
+    reward[k] = 0.5
    y_pred_selected[k] = self.y_pred[k,action[k]-1]
   self.loss = self.loss_fn(y_pred_selected,torch.tensor(reward,requires_grad=True).float()+discount*y_pred)#second term is target
 
