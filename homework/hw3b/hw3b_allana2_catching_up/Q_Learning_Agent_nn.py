@@ -28,7 +28,7 @@ class qLearning(object):
         self.previous_previous_x = self.previous_x
         self.previous_previous_y = self.previous_y
         self.episode_length = int(100)
-        self.num_episodes = int(1000)#int(10000) #(using shorter length for faster testing)
+        self.num_episodes = int(100)#int(10000) #(using shorter length for faster testing)
         self.my_gamma = 0.9
         self.my_epsilon = 0.1
         self.my_reward = np.array([ [-1,-1,-1,-1,-1,-1,-1],[-1, 0, 10, 0, 5, 0, -1],[-1, 0, 0, 0, 0, 0, -1],\
@@ -65,7 +65,8 @@ class qLearning(object):
             fig, (ax) = self.env.render_init(self.render_label)
         k=0 # counter for episodic cumulative reward
         for i in range(0,self.episode_length * self.num_episodes):
-            self.my_reward_log[0,i] = self.my_reward[self.location_y,self.location_x]
+            self.my_reward_log[0,i] = np.minimum(np.maximum(self.my_reward[self.location_y,self.location_x],1),-1)
+            print(np.minimum(np.maximum(self.my_reward[self.location_y,self.location_x],1),-1))
 
 ## set location back "inbounds" before storing state ##
             if self.my_reward[self.location_y,self.location_x] < 0:
