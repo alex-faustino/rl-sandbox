@@ -9,46 +9,70 @@ from sympy import symbols
 from sympy.physics.mechanics import *
 
 
-
+'''
+World Frame Defination
+'''
 W = ReferenceFrame('W')
 O = Point('O')
 O.set_vel(W,0)
 
+'''
+Main Body Frame Defination
+'''
 Body_quaternion = dynamicsymbols('q:4')
 Body_omega = dynamicsymbols('w:3')
 Body_vel = dynamicsymbols('v:3') 
 Body_position = dynamicsymbols('x:3')
+
 Body_frame = W.orientnew('B', 'Quaternion', Body_quaternion)
-I1, I2, I3, M_base = symbols('I1 I2 I3 M_Base')
-B_Frame_I = (inertia(B, I1, I2, I3, 0, 0,0))
+Body_frame.set_ang_vel(W, Body_omega[0]*W.x+Body_omega[1]*W.y+Body_omega[2]*W.z)
+
 Body_COM = Point('Body_COM')
 Body_COM.set_pos(O,Body_position[0]*W.x+Body_position[1]*W.y+Body_position[2]*W.z)
-Base = RigidBody('Base', Body_COM, W, M_base, (B_Frame_I, Body_COM))
+Body_COM.set_vel(W,Body_vel[0]*W.x+Body_vel[1]*W.y+Body_vel[2]*W.z)
 
-B_connect = Point('B_connect')
-B_connect.set_pos(Body_COM,2*Body_frame.x+3*Body_frame.y+4*Body_frame.z)
+Body_connection = Point('Body_connection')
+Body_connection.set_pos(Body_COM,2*Body_frame.x+3*Body_frame.y+4*Body_frame.z)
+Body_connection.set_vel(Body_frame,0)
+#Body_frame.set_ang_vel(Body_frame, 0*Body_frame.x+0*Body_frame.y+0*Body_frame.z)
 KDE_B = []
-Body_frame.set_ang_vel(W, Body_omega[0]*W.x+Body_omega[1]*W.y+Body_omega[2]*W.z)
+
 Body_frame.ang_vel_in(W)
 #Body_COM.v2pt_theory(O,W,Body_frame)
 # missing linear vel!
-Body_COM.set_vel(W,Body_vel[0]*W.x+Body_vel[1]*W.y+Body_vel[2]*W.z)
 
+Body_connection.v2pt_theory(Body_COM,W,Body_frame)
+
+#I1, I2, I3, M_base = symbols('I1 I2 I3 M_Base')
+#B_Frame_I = (inertia(B, I1, I2, I3, 0, 0,0))
+#Base = RigidBody('Base', Body_COM, W, M_base, (B_Frame_I, Body_COM))
+'''
+First Right Panel Frame
+'''
 PanelR1_theta = dynamicsymbols('PR1_th:3')
 Panel_omega = dynamicsymbols('PR1_om:3')
+
 PanelR1_frame = W.orientnew('PR1', 'Body', PanelR1_theta , '123')
+PanelR1_frame.set_ang_vel(Body_frame, Panel_omega[0]*Body_frame.x+Panel_omega[1]*Body_frame.y+Panel_omega[2]*Body_frame.z)
+#PanelR1_frame.ang_vel_in(W)
+'''
 PanelR1_connection = Point('PR1_O')
-PanelR1_connection.set_pos(B_connect,0*PanelR1_frame.x+0*PanelR1_frame.y+0*PanelR1_frame.z)
+PanelR1_connection.set_pos(Body_connection,0*Body_frame.x+0*Body_frame.y+0*Body_frame.z)# Body_frame or PanelR1_frame?
+PanelR1_connection.set_vel(PanelR1_frame,0*Body_frame.x+0*Body_frame.y+0*Body_frame.z)
+PanelR1_connection.v2pt_theory(Body_connection,Body_frame,PanelR1_frame)
+'''
 PanelR1_COM = Point('PR1_COM')
-PanelR1_COM.set_pos(PanelR1_connection,1*PanelR1_frame.x+2*PanelR1_frame.y+3*PanelR1_frame.z)
+PanelR1_COM.set_pos(Body_connection,1*PanelR1_frame.x+2*PanelR1_frame.y+3*PanelR1_frame.z)
+#PanelR1_COM.set_vel(PanelR1_frame,0)
+PanelR1_COM.v2pt_theory(Body_connection,Body_frame,PanelR1_frame)
 
 KDE_R1 = [PanelR1_theta[0].diff() - Panel_omega[0],
        PanelR1_theta[1].diff() - Panel_omega[1],
        PanelR1_theta[2].diff() - Panel_omega[2]]
 
-PanelR1_frame.set_ang_vel(Body_frame, Panel_omega[0]*Body_frame.x+Panel_omega[1]*Body_frame.y+Panel_omega[2]*Body_frame.z)
-PanelR1_frame.ang_vel_in(Body_frame)
-PanelR1_COM.v2pt_theory(B_connect,Body_frame,PanelR1_frame)
+
+
+
 '''
 from sympy import symbols
 import sympy.physics.mechanics as me
