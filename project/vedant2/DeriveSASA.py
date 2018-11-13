@@ -26,7 +26,7 @@ Body_omega = dynamicsymbols('w:3')
 Body_vel = dynamicsymbols('v:3') 
 Body_position = dynamicsymbols('x:3')
 
-Body_frame = W.orientnew('B', 'Quaternion', Body_quaternion)
+Body_frame = W.orientnew('Body', 'Quaternion', Body_quaternion)
 Body_frame.set_ang_vel(W, Body_omega[0]*W.x+Body_omega[1]*W.y+Body_omega[2]*W.z)
 
 Body_COM = Point('Body_COM')
@@ -35,12 +35,12 @@ Body_COM.set_vel(W,Body_vel[0]*W.x+Body_vel[1]*W.y+Body_vel[2]*W.z)
 
 Body_connectionR = Point('Body_connectionR')
 Body_connectionR.set_pos(Body_COM,2*Body_frame.x+3*Body_frame.y+4*Body_frame.z)
-Body_connectionR.set_vel(Body_frame,0)
+Body_connectionR.set_vel(Body_frame,0*Body_frame.x+0*Body_frame.y+0*Body_frame.z)
 Body_connectionR.v2pt_theory(Body_COM,W,Body_frame)
 
 Body_connectionL = Point('Body_connectionL')
 Body_connectionL.set_pos(Body_COM,-2*Body_frame.x-3*Body_frame.y-4*Body_frame.z)
-Body_connectionL.set_vel(Body_frame,0)
+Body_connectionL.set_vel(Body_frame,0*Body_frame.x+0*Body_frame.y+0*Body_frame.z)
 Body_connectionL.v2pt_theory(Body_COM,W,Body_frame)
 #Body_frame.set_ang_vel(Body_frame, 0*Body_frame.x+0*Body_frame.y+0*Body_frame.z)
 KDE_Body = []
@@ -81,7 +81,7 @@ PanelR1_O.set_vel(PanelR1_frame,0*PanelR1_frame.x+0*PanelR1_frame.y+0*PanelR1_fr
 
 PanelR1_COM = Point('PR1_COM')
 PanelR1_COM.set_pos(PanelR1_O,1*PanelR1_frame.x+2*PanelR1_frame.y+3*PanelR1_frame.z)
-PanelR1_COM.set_vel(PanelR1_frame,0)
+PanelR1_COM.set_vel(PanelR1_frame,0*PanelR1_frame.x+0*PanelR1_frame.y+0*PanelR1_frame.z)
 PanelR1_COM.v2pt_theory(Body_connectionR,Body_frame,PanelR1_frame)
 
 KDE_PanelR1 = [PanelR1_theta[0].diff() - PanelR1_omega[0],
@@ -111,7 +111,7 @@ PanelL1_frame.set_ang_vel(Body_frame, PanelL1_omega[0]*Body_frame.x+PanelL1_omeg
 
 PanelL1_COM = Point('PL1_COM')
 PanelL1_COM.set_pos(Body_connectionL,1*PanelL1_frame.x+2*PanelL1_frame.y+3*PanelL1_frame.z)
-PanelL1_COM.set_vel(PanelL1_frame,0)
+PanelL1_COM.set_vel(PanelL1_frame,0*PanelL1_frame.x+0*PanelL1_frame.y+0*PanelL1_frame.z)
 PanelL1_COM.v2pt_theory(Body_connectionL,Body_frame,PanelL1_frame)
 
 KDE_PanelL1 = [PanelL1_theta[0].diff() - PanelL1_omega[0],
