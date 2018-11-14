@@ -41,3 +41,7 @@ need to concern the computation speed, physical engine from outside or inside?
 5 minutes on what this paper is about, 5 minutes on what our project is about (implement this algorithm or other)
 
 result presentation: ipynb is preferred (compared with PDF)
+
+HER: https://arxiv.org/pdf/1707.01495.pdf
+
+DDPG: https://arxiv.org/pdf/1509.02971.pdf
