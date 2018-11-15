@@ -54,8 +54,8 @@ Others:
 
 3. Explanation video on HER:
 
-3.1. https://spectrum.ieee.org/automaton/robotics/artificial-intelligence/openai-releases-algorithm-that-helps-robots-learn-from-hindsight
++ https://spectrum.ieee.org/automaton/robotics/artificial-intelligence/openai-releases-algorithm-that-helps-robots-learn-from-hindsight
 
-3.2. https://www.youtube.com/watch?v=0Ey02HT_1Ho
++ https://www.youtube.com/watch?v=0Ey02HT_1Ho
 
-3.3. https://www.youtube.com/watch?v=Dvd1jQe3pq0
++ https://www.youtube.com/watch?v=Dvd1jQe3pq0
