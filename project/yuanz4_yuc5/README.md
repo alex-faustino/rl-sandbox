@@ -48,11 +48,11 @@ DDPG: https://arxiv.org/pdf/1509.02971.pdf
 
 Others:
 
-1. Homepage for baselines implementation on OpenAI: https://blog.openai.com/ingredients-for-robotics-research/#requestsforresearchheredition
+- Homepage for baselines implementation on OpenAI: https://blog.openai.com/ingredients-for-robotics-research/#requestsforresearchheredition
 
-2. Explanation video on DDPG: https://www.youtube.com/watch?v=E9vH6WD_eSE
+- Explanation video on DDPG: https://www.youtube.com/watch?v=E9vH6WD_eSE
 
-3. Explanation video on HER:
+- Explanation video on HER:
 
 + https://spectrum.ieee.org/automaton/robotics/artificial-intelligence/openai-releases-algorithm-that-helps-robots-learn-from-hindsight
 
