@@ -14,7 +14,8 @@ World Frame Defination
 '''
 W = ReferenceFrame('W')
 O = Point('O')
-O.set_vel(W,0)
+#O.set_pos(W,0*W.x+0*W.y+0*W.z)
+O.set_vel(W,0*W.x+0*W.y+0*W.z)
 
 '''
 ----------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -32,6 +33,8 @@ Body_frame.set_ang_vel(W, Body_omega[0]*W.x+Body_omega[1]*W.y+Body_omega[2]*W.z)
 Body_COM = Point('Body_COM')
 Body_COM.set_pos(O,Body_position[0]*W.x+Body_position[1]*W.y+Body_position[2]*W.z)
 Body_COM.set_vel(W,Body_vel[0]*W.x+Body_vel[1]*W.y+Body_vel[2]*W.z)
+Body_COM.set_pos(O,0*Body_frame.x+0*Body_frame.y+0*Body_frame.z)
+Body_COM.set_vel(W,0*Body_frame.x+0*Body_frame.y+0*Body_frame.z)
 
 Body_connectionR = Point('Body_connectionR')
 Body_connectionR.set_pos(Body_COM,2*Body_frame.x+3*Body_frame.y+4*Body_frame.z)
@@ -43,7 +46,12 @@ Body_connectionL.set_pos(Body_COM,-2*Body_frame.x-3*Body_frame.y-4*Body_frame.z)
 Body_connectionL.set_vel(Body_frame,0*Body_frame.x+0*Body_frame.y+0*Body_frame.z)
 Body_connectionL.v2pt_theory(Body_COM,W,Body_frame)
 #Body_frame.set_ang_vel(Body_frame, 0*Body_frame.x+0*Body_frame.y+0*Body_frame.z)
-KDE_Body = []
+
+
+KDE_Body = [Body_position[0].diff() - Body_vel[0],
+       Body_position[1].diff() - Body_vel[1],
+       Body_position[2].diff() - Body_vel[2],
+       Body_omega[0]]
 
 #Body_frame.ang_vel_in(W)
 #Body_COM.v2pt_theory(O,W,Body_frame)
@@ -72,15 +80,20 @@ K_PanelR1_x, K_PanelR1_y, K_PanelR1_y = symbols('K_PanelR1_x K_PanelR1_y K_Panel
 PanelR1_theta = dynamicsymbols('PR1_th:3')
 PanelR1_omega = dynamicsymbols('PR1_om:3')
 
-PanelR1_frame = W.orientnew('PR1', 'Body', PanelR1_theta , '123')
+PanelR1_frame = Body_frame.orientnew('PR1', 'Body', PanelR1_theta , '123')
 PanelR1_frame.set_ang_vel(Body_frame, PanelR1_omega[0]*Body_frame.x+PanelR1_omega[1]*Body_frame.y+PanelR1_omega[2]*Body_frame.z)
 
 PanelR1_O = Point('PR1_O')
 PanelR1_O.set_pos(Body_connectionR,0*PanelR1_frame.x+0*PanelR1_frame.y+0*PanelR1_frame.z)# Body_frame or PanelR1_frame?
 PanelR1_O.set_vel(PanelR1_frame,0*PanelR1_frame.x+0*PanelR1_frame.y+0*PanelR1_frame.z)
+PanelR1_O.set_vel(PanelR1_frame,0*Body_frame.x+0*Body_frame.y+0*Body_frame.z)
+
+
+Body_connectionR.set_pos(Body_COM,0*PanelR1_frame.x+0*PanelR1_frame.y+0*PanelR1_frame.z)
+
 
 PanelR1_COM = Point('PR1_COM')
-PanelR1_COM.set_pos(PanelR1_O,1*PanelR1_frame.x+2*PanelR1_frame.y+3*PanelR1_frame.z)
+PanelR1_COM.set_pos(Body_connectionR,1*PanelR1_frame.x+2*PanelR1_frame.y+3*PanelR1_frame.z)
 PanelR1_COM.set_vel(PanelR1_frame,0*PanelR1_frame.x+0*PanelR1_frame.y+0*PanelR1_frame.z)
 PanelR1_COM.v2pt_theory(Body_connectionR,Body_frame,PanelR1_frame)
 
@@ -106,7 +119,7 @@ K_PanelL1_x, K_PanelL1_y, K_PanelL1_y = symbols('K_PanelL1_x K_PanelL1_y K_Panel
 PanelL1_theta = dynamicsymbols('PL1_th:3')
 PanelL1_omega = dynamicsymbols('PL1_om:3')
 
-PanelL1_frame = W.orientnew('PL1', 'Body', PanelL1_theta , '123')
+PanelL1_frame = Body_frame.orientnew('PL1', 'Body', PanelL1_theta , '123')
 PanelL1_frame.set_ang_vel(Body_frame, PanelL1_omega[0]*Body_frame.x+PanelL1_omega[1]*Body_frame.y+PanelL1_omega[2]*Body_frame.z)
 
 PanelL1_COM = Point('PL1_COM')
@@ -125,5 +138,11 @@ PanelL1_torque = (Torque_Base_PL1_x)*PanelL1_frame.x+(Torque_Base_PL1_y)*PanelL1
 
 PanelL1.potential_energy = 0.5*(K_PanelL1_x*PanelL1_theta[0]**2+K_PanelL1_y*PanelL1_theta[1]**2+K_PanelL1_y*PanelL1_theta[2]**2)
 
+kane = KanesMethod(I, q_ind=q, u_ind=u, kd_eqs=kindiffs) # Initialize the object
+fr, frstar = kane.kanes_equations(forces, particles)     # Generate EoM's fr + frstar = 0
+
 
 Lagrangian(W, Body, PanelR1, PanelL1)
+
+#from sympy.parsing.autolev import parse_autolev
+#sympy_code = parse_autolev(open('sat.al'), include_numeric=True)

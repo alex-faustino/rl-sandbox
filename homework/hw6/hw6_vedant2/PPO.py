@@ -48,26 +48,9 @@ class ActorCriticNet(nn.Module):
         return (mu, sigma,state_value)
 
 
-class CriticNet(nn.Module):
-
-    def __init__(self):
-        super(CriticNet, self).__init__()
-        self.fc1 = nn.Linear(3, inner_neuron)
-        self.fc2 = nn.Linear(inner_neuron, inner_neuron)
-        self.fc3 = nn.Linear(inner_neuron, inner_neuron)
-        self.v_head = nn.Linear(inner_neuron, 1)
-
-    def forward(self, x):
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = F.relu(self.fc3(x))
-        state_value = self.v_head(x)
-        return state_value
-
-
 class Agent():
 
-    clip_param = 0.3
+    clip_param = 0.2
     max_grad_norm = 0.5
     ppo_epoch = 10
     buffer_capacity, batch_size = 1000, 32
@@ -102,8 +85,8 @@ class Agent():
         return state_value.item()
 
     def save_param(self):
-        torch.save(self.anet.state_dict(), 'param/ppo_anet_params.pkl')
-        torch.save(self.cnet.state_dict(), 'param/ppo_cnet_params.pkl')
+        torch.save(self.acnet.state_dict(), 'ppo_anet_params.pkl')
+        #torch.save(self.cnet.state_dict(), 'ppo_cnet_params.pkl')
 
     def store(self, transition):
         self.buffer.append(transition)
@@ -167,8 +150,10 @@ class Agent():
 
 def main():
     env = gym.make('Pendulum-v0')
+    env.monitor.start('/tmp/cartpole-experiment-1')
     env.seed(seed)
-
+    end = 0
+    render = 0
     agent = Agent()
 
     training_records = []
@@ -192,13 +177,18 @@ def main():
         training_records.append(TrainingRecord(i_ep, running_reward))
 
         if i_ep % log_interval == 0:
-            print('Ep {}\tMoving average score: {:.2f}\t'.format(i_ep, running_reward))
-        if running_reward > -200:
+            print('Ep {}\tMoving average score: {:.2f}, Current score : {:.2f}\t'.format(i_ep, running_reward,score))
+        if running_reward >-200:
             print("Solved! Moving average score is now {}!".format(running_reward))
+            render = 1
+        if running_reward >-150:
+            end = 1
+            
             env.close()
-            #agent.save_param()
             break
-
+            
+    #save_param()
+    agent.save_param()
     plt.plot([r.ep for r in training_records], [r.reward for r in training_records])
     plt.title('PPO')
     plt.xlabel('Episode')
