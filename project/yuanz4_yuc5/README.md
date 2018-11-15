@@ -45,3 +45,16 @@ result presentation: ipynb is preferred (compared with PDF)
 HER: https://arxiv.org/pdf/1707.01495.pdf
 
 DDPG: https://arxiv.org/pdf/1509.02971.pdf
+
+Others:
+Homepage for baselines implementation on OpenAI: https://blog.openai.com/ingredients-for-robotics-research/#requestsforresearchheredition
+
+Explanation video on DDPG: https://www.youtube.com/watch?v=E9vH6WD_eSE
+
+Explanation video on HER:
+
+1. https://spectrum.ieee.org/automaton/robotics/artificial-intelligence/openai-releases-algorithm-that-helps-robots-learn-from-hindsight
+
+2. https://www.youtube.com/watch?v=0Ey02HT_1Ho
+
+3. https://www.youtube.com/watch?v=Dvd1jQe3pq0
