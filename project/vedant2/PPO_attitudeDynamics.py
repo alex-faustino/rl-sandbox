@@ -31,7 +31,7 @@ torch.manual_seed(seed)
 
 TrainingRecord = namedtuple('TrainingRecord', ['ep', 'reward'])
 Transition = namedtuple('Transition', ['s', 'a', 'a_log_p', 'r', 's_'])
-
+torch.set_default_tensor_type('torch.DoubleTensor')
 inner_neuron = 50
 class ActorCriticNet(nn.Module):
 
@@ -175,15 +175,17 @@ def main():
         score = 0
         
         state = env.reset()
-        
+        nanerror = 1
         STA_q = []
         STA_w = []
         
-        for t in range(2000):
+        for t in range(5000):
             
             action, action_log_prob = agent.select_action(state)
             if np.isnan([action.numpy()[0][0]]):
                 print('NAN!')
+                nanerror = 1
+                agent.save_param()
                 break
             state_, reward, done, _ = env.step([action.numpy()[0][0]])
             if render:
@@ -223,7 +225,8 @@ def main():
             break
             
     #save_param()
-    agent.save_param()
+    if nanerror == 0:
+        agent.save_param()
     plt.plot([r.ep for r in training_records], [r.reward for r in training_records])
     plt.title('PPO')
     plt.xlabel('Episode')
