@@ -62,10 +62,10 @@ class ActorCriticNet(nn.Module):
 
 class Agent():
 
-    clip_param = 0.2
+    clip_param = 0.3
     max_grad_norm = 0.5
     ppo_epoch = 10
-    buffer_capacity, batch_size = 2000, 50
+    buffer_capacity, batch_size = 500, 50
 
     def __init__(self):
         self.training_step = 0
