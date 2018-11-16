@@ -35,6 +35,7 @@ torch.set_default_tensor_type('torch.DoubleTensor')
 inner_neuron = 50
 class ActorCriticNet(nn.Module):
 
+
     def __init__(self):
         super(ActorCriticNet, self).__init__()
         self.fc1 = nn.Linear(7, inner_neuron)
