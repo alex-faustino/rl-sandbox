@@ -22,6 +22,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.distributions import Normal
 from torch.utils.data.sampler import BatchSampler, SubsetRandomSampler
+import sys
 
 gamma=0.99
 seed=0
@@ -118,22 +119,30 @@ class Agent():
             [t.a_log_p for t in self.buffer], dtype=torch.float)
 
         r = (r - r.mean()) / (r.std() + 1e-5)
+        #print('R.std : ',r.std())
         with torch.no_grad():
             _,_,temp3 = self.acnet(s_)
             target_v = r + gamma * temp3
 
         _,_,temp = self.acnet(s) 
         adv = (target_v - temp).detach()
+        #print('Adv : ',adv)
 
         for _ in range(self.ppo_epoch):
             for index in BatchSampler(
                     SubsetRandomSampler(range(self.buffer_capacity)), self.batch_size, False):
 
                 (mu, sigma,_) = self.acnet(s[index])
+                
+                sigma = torch.clamp(sigma, min=1e-5, max=10)
                 dist = Normal(mu, sigma)
+                #print('mu: ',mu, ' sigma: ',sigma)
                 action_log_probs = dist.log_prob(a[index])
+                #print('action_log_probs: ',action_log_probs)
                 ratio = torch.exp(action_log_probs - old_action_log_probs[index])
-
+                #print('Ratio: ', ratio)
+                if np.isnan([action_log_probs.detach().numpy().any()]):
+                    print('mu NAN!')
                 surr1 = ratio * adv[index]
                 surr2 = torch.clamp(ratio, 1.0 - self.clip_param,
                                     1.0 + self.clip_param) * adv[index]
@@ -141,7 +150,7 @@ class Agent():
                 _,_,temp2 = self.acnet(s[index])
                 value_loss = F.smooth_l1_loss(temp2, target_v[index])
                 ac_loss = action_loss+value_loss
-                
+                #print('AC loss : ',ac_loss)
                 self.optimizer_ac.zero_grad()
                 ac_loss.backward()
                 nn.utils.clip_grad_norm_(self.acnet.parameters(), self.max_grad_norm)
@@ -187,6 +196,7 @@ def main():
                 print('NAN!')
                 nanerror = 1
                 agent.save_param()
+                sys.exit()
                 break
             state_, reward, done, _ = env.step([action.numpy()[0][0]])
             if render:
