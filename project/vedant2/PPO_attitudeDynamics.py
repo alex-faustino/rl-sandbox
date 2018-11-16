@@ -26,13 +26,13 @@ from torch.utils.data.sampler import BatchSampler, SubsetRandomSampler
 gamma=0.99
 seed=0
 render=False
-log_interval=10
+log_interval=20
 torch.manual_seed(seed)
 
 TrainingRecord = namedtuple('TrainingRecord', ['ep', 'reward'])
 Transition = namedtuple('Transition', ['s', 'a', 'a_log_p', 'r', 's_'])
 
-inner_neuron = 100
+inner_neuron = 50
 class ActorCriticNet(nn.Module):
 
     def __init__(self):
@@ -65,7 +65,7 @@ class Agent():
     clip_param = 0.2
     max_grad_norm = 0.5
     ppo_epoch = 10
-    buffer_capacity, batch_size = 1000, 32
+    buffer_capacity, batch_size = 2000, 50
 
     def __init__(self):
         self.training_step = 0
@@ -179,11 +179,12 @@ def main():
         STA_q = []
         STA_w = []
         
-        for t in range(1000):
+        for t in range(2000):
             
             action, action_log_prob = agent.select_action(state)
             if np.isnan([action.numpy()[0][0]]):
                 print('NAN!')
+                break
             state_, reward, done, _ = env.step([action.numpy()[0][0]])
             if render:
                 env.render()
@@ -198,9 +199,9 @@ def main():
         running_reward = running_reward * 0.9 + score * 0.1
         training_records.append(TrainingRecord(i_ep, running_reward))
 
-        if i_ep % (log_interval/5) == 0:
+        if i_ep % (log_interval/10) == 0:
             print('Ep {}\tMoving average score: {:.2f}, Current score : {:.2f}\t'.format(i_ep, running_reward,score))
-        if i_ep % (1*log_interval) == 0:
+        if i_ep % (0.1*log_interval) == 0:
             plt.plot(np.array(STA_q))
             plt.title('Quaternion')
             plt.xlabel('time_step')

@@ -134,7 +134,7 @@ class attitudeDynamics(core.Env):
         #ns[6] = bound(ns[6], -self.MAX_VEL, self.MAX_VEL)
         self.state = ns_d
         terminal = self._terminal()
-        reward = (-1*np.linalg.norm(ns_d[4:7]))+1*(q[0]) -np.abs(q[1])-np.abs(q[2])-np.abs(q[3]) -np.linalg.norm(a)#+1000*terminal
+        reward = (-1*np.linalg.norm(ns_d[4:7]))+1*(q[0]) -np.abs(q[1])-np.abs(q[2])-np.abs(q[3]) -5*np.linalg.norm(a)#+1000*terminal
         return (s, reward, False, {})
 
     def _terminal(self):
