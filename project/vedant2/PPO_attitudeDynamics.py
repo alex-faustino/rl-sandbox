@@ -54,7 +54,7 @@ class ActorCriticNet(nn.Module):
         x = F.relu(self.fc3(x))
         #if (inner_neuron>=10):
         #    x = F.dropout(self.fc3(x),0.2)
-        mu = 2.0* ((self.mu_head(x)))
+        mu = 2.0* (torch.tanh(self.mu_head(x)))
         sigma = F.softplus(self.sigma_head(x))
         state_value = self.v_head(x)
         return (mu, sigma,state_value)
