@@ -8,7 +8,7 @@ Created on Thu Sep  6 01:19:20 2018
 from gym import core, spaces
 from gym.utils import seeding
 import numpy as np
-from scipy.integrate import odeint
+from scipy.integrate import ode
 from numpy import sin, cos, pi
 
 import os
@@ -20,6 +20,8 @@ from attitudeDynamics.modules import mod_attitude
 #import pygame
 
 import pdb;
+
+
 
 
 # SOURCE:
@@ -93,31 +95,46 @@ class attitudeDynamics(core.Env):
         high = np.array([self.torque_max, self.torque_max, self.torque_max])
         low = -high
         self.action_space = spaces.Box(low=low, high=high)
-        self.state = self.s_init
+        self.state = np.append(self.q_0,np.random.uniform(low=-self.MAX_VEL, high=self.MAX_VEL, size=(3,)))
+        self.ns = ode(mod_attitude.attitude_dynamics).set_integrator('dop853', nsteps = 1000000)#, method='bdf'
+        self.ns.set_initial_value(self.state,0)
+        #self.reset()
         self.seed()
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
 
     def reset(self):
-        q_init = np.array([1.0,0.0,0.0,0.0])
-        self.state = np.append(q_init, self.np_random.uniform(low=-self.MAX_VEL, high=self.MAX_VEL, size=(3,)))
+        
+        self.I_xx=2.5448+0.5*np.random.rand();
+        self.I_yy=2.4444+0.5*np.random.rand();
+        self.I_zz=2.6052+0.5*np.random.rand();
+        self.state = np.append(self.q_0, np.random.uniform(low=-self.MAX_VEL, high=self.MAX_VEL, size=(3,)))
+        del(self.ns)
+        #print("ns deleted should reset")
+        self.ns = ode(mod_attitude.attitude_dynamics).set_integrator('dop853')
+        self.ns.set_initial_value(self.state,0)
+        #print(self.ns.t)
         return self.state
 
     def step(self, a):
         s = self.state
-        ns = odeint(mod_attitude.attitude_dynamics, s, [0,self.dt], args=(a,self.Inertia))
-        ns =ns[-1]
+        #ns = ode(mod_attitude.attitude_dynamics, s, [0,self.dt], args=(a,self.Inertia))
+        #print(np.clip(a,-1*self.torque_max,self.torque_max))
+        self.ns.set_f_params(np.clip(a,-1*self.torque_max,self.torque_max),self.Inertia)
+        ns_d  = self.ns.integrate(self.ns.t+self.dt)
+        #print(ns_d)
+        #ns_d =ns_d[-1]
         #pdb.set_trace()
         # compute control Torque
         # 
-        q     = ns[0:4];
+        q     = ns_d[0:4];
         #ns[4] = bound(ns[4], -self.MAX_VEL, self.MAX_VEL)
         #ns[5] = bound(ns[5], -self.MAX_VEL, self.MAX_VEL)
         #ns[6] = bound(ns[6], -self.MAX_VEL, self.MAX_VEL)
-        self.state = ns
+        self.state = ns_d
         terminal = self._terminal()
-        reward = (-1*np.linalg.norm(ns[4:7]))-1*(q[0])-np.linalg.norm(a)+1000*terminal
+        reward = (-1*np.linalg.norm(ns_d[4:7]))+1*(q[0]) -np.abs(q[1])-np.abs(q[2])-np.abs(q[3]) -np.linalg.norm(a)+1000*terminal
         return (s, reward, False, {})
 
     def _terminal(self):

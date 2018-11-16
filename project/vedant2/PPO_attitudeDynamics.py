@@ -14,6 +14,8 @@ import multiprocessing
 num_cores = multiprocessing.cpu_count()
 import matplotlib.pyplot as plt
 
+import math
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -52,7 +54,7 @@ class ActorCriticNet(nn.Module):
         x = F.relu(self.fc3(x))
         #if (inner_neuron>=10):
         #    x = F.dropout(self.fc3(x),0.2)
-        mu = 2.0 * F.tanh(self.mu_head(x))
+        mu = 2.0* ((self.mu_head(x)))
         sigma = F.softplus(self.sigma_head(x))
         state_value = self.v_head(x)
         return (mu, sigma,state_value)
@@ -171,14 +173,17 @@ def main():
     state = env.reset()
     for i_ep in range(1000):
         score = 0
+        
         state = env.reset()
         
         STA_q = []
         STA_w = []
         
-        for t in range(2000):
+        for t in range(1000):
             
             action, action_log_prob = agent.select_action(state)
+            if np.isnan([action.numpy()[0][0]]):
+                print('NAN!')
             state_, reward, done, _ = env.step([action.numpy()[0][0]])
             if render:
                 env.render()
@@ -195,7 +200,7 @@ def main():
 
         if i_ep % (log_interval/5) == 0:
             print('Ep {}\tMoving average score: {:.2f}, Current score : {:.2f}\t'.format(i_ep, running_reward,score))
-        if i_ep % (2.5*log_interval) == 0:
+        if i_ep % (1*log_interval) == 0:
             plt.plot(np.array(STA_q))
             plt.title('Quaternion')
             plt.xlabel('time_step')

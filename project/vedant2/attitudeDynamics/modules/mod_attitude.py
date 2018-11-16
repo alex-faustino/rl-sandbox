@@ -291,7 +291,7 @@ def rotZ3d_active(angle):
 #torque = array( [0,0,0] )
 #domega = dot(inv(I), dot( dot(-skew(omega), Inertia), omega) + torque )
 
-def attitude_dynamics(X, t, Torque, Inertia):
+def attitude_dynamics(t,X, Torque, Inertia):
     #global Inertia
     
     #state vector x = (q0,q1,q2,q3, wx,wy,wz)
