@@ -17,7 +17,7 @@ Rsim = np.diag([0.5, np.deg2rad(10.0)])**2
 OFFSET_YAWRATE_NOISE = 0.05*(1 if np.random.random() < 0.5 else -1)
 
 BOX_HALF_SIZE = 20.0
-TRAJ_AMP = 0.0
+TRAJ_AMP = 0.5*0
 TRAJ_FREQ = 2.0
 INIT_YAW = TRAJ_AMP*TRAJ_FREQ
 TRAJ_XLIM = [-1.0, 10.0]
@@ -28,7 +28,6 @@ PLT_YLIM = [TRAJ_YLIM[0]-BOX_HALF_SIZE, TRAJ_YLIM[1]+BOX_HALF_SIZE]
 LM_BOX_SIZE = 8.0
 N_LM = 10
 
-DT = 0.1  # time tick [s]
 SIM_TIME = 10.0  # simulation time [s]
 MAX_RANGE = 40.0  # maximum observation range
 M_DIST_TH = 2.0  # Threshold of Mahalanobis distance for data association.
@@ -58,14 +57,18 @@ class Particle:
 
 class FastSLAM(gym.Env):
 
+
+	DT = 0.1  # time tick [s]
+
 	def __init__(self):
 		self.state = None
+		self.reward_type = 'Error'
 
 	def step(self, action):
 
 		self.theta += action
 
-		self.time += DT
+		self.time += self.DT
 		self.u = self.calc_input(self.time)
 
 		#main particle filter loop
@@ -85,13 +88,7 @@ class FastSLAM(gym.Env):
 		self.hxTrue = np.hstack((self.hxTrue, self.xTrue))
 
 		#calculate reward based on pose error
-		pos_error = np.linalg.norm((self.x_state-self.xTrue)[0:2])
-		yaw_error = np.abs( (self.x_state-self.xTrue)[2] )
-		if yaw_error > np.pi:
-			yaw_error = 2*np.pi - yaw_error
-		yaw_error = np.rad2deg(yaw_error)
-
-		reward = 1 / ( pos_error + ALPHA*yaw_error + 1e-3)
+		reward = self.get_reward()		
 
 		#get state vector
 		self.state = self.get_obs()
@@ -251,6 +248,35 @@ class FastSLAM(gym.Env):
 
 		return state
 		
+
+	def get_reward(self):
+
+		if self.reward_type is 'Error':
+
+			pos_error = np.linalg.norm((self.x_state-self.xTrue)[0:2])
+			yaw_error = np.abs( (self.x_state-self.xTrue)[2] )
+			if yaw_error > np.pi:
+				yaw_error = 2*np.pi - yaw_error
+			yaw_error = np.rad2deg(yaw_error)
+
+			r = 1 / ( pos_error + ALPHA*yaw_error + 1e-3)
+			return r.item(0)
+
+		elif self.reward_type is 'Covariance':
+			
+			x_, y_, yaw_ = [], [], []
+			for p in self.particles:
+				x_.append(p.x)
+				y_.append(p.y)
+				yaw_.append(p.yaw)
+					
+			pos_cov = np.sqrt(np.var(x_)**2 + np.var(y_)**2)
+			yaw_cov = np.var(yaw_)
+
+			r = 1 / ( pos_cov + ALPHA*yaw_cov + 1e-3)
+			return r
+		
+		return
 
 	def fast_slam2(self, particles, u, z):
 	    
@@ -545,9 +571,9 @@ class FastSLAM(gym.Env):
 				[0, 1.0, 0],
 				[0, 0, 1.0]])
 
-		B = np.matrix([[DT * math.cos(x[2, 0]), 0],
-				[DT * math.sin(x[2, 0]), 0],
-				[0.0, DT]])
+		B = np.matrix([[self.DT * math.cos(x[2, 0]), 0],
+				[self.DT * math.sin(x[2, 0]), 0],
+				[0.0, self.DT]])
 
 		x = F * x + B * u
 
