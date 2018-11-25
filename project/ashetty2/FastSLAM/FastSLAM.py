@@ -24,6 +24,7 @@ TRAJ_XLIM = [-1.0, 10.0]
 TRAJ_YLIM = [-TRAJ_AMP-1.0, TRAJ_AMP+1.0]
 PLT_XLIM = [TRAJ_XLIM[0]-BOX_HALF_SIZE, TRAJ_XLIM[1]+BOX_HALF_SIZE]
 PLT_YLIM = [TRAJ_YLIM[0]-BOX_HALF_SIZE, TRAJ_YLIM[1]+BOX_HALF_SIZE]
+TIME_OFFSET = 30.0
 
 LM_BOX_SIZE = 8.0
 N_LM = 10
@@ -244,7 +245,9 @@ class FastSLAM(gym.Env):
 			if d_lm < closest_dists[bin_number]:
 				closest_dists[bin_number] = d_lm
 
-		state = np.hstack(( n_landmarks, closest_dists, self.theta ))[:,None]
+		x_cov, y_cov, yaw_cov = self.get_particle_covariance() 
+
+		state = np.hstack(( n_landmarks, closest_dists, self.theta, x_cov, y_cov, yaw_cov ))[:,None]
 
 		return state
 		
@@ -264,19 +267,25 @@ class FastSLAM(gym.Env):
 
 		elif self.reward_type is 'Covariance':
 			
-			x_, y_, yaw_ = [], [], []
-			for p in self.particles:
-				x_.append(p.x)
-				y_.append(p.y)
-				yaw_.append(p.yaw)
-					
-			pos_cov = np.sqrt(np.var(x_)**2 + np.var(y_)**2)
-			yaw_cov = np.var(yaw_)
+			x_cov, y_cov, yaw_cov = self.get_particle_covariance()					
+
+			pos_cov = np.sqrt(x_cov**2 + y_cov**2)# + np.random.randn()*R[0,0]
+			yaw_cov = np.var(yaw_cov)# + np.random.randn()*R[1,1]
 
 			r = 1 / ( pos_cov + ALPHA*yaw_cov + 1e-3)
 			return r
 		
 		return
+
+	def get_particle_covariance(self):
+		
+		x_, y_, yaw_ = [], [], []
+		for p in self.particles:
+			x_.append(p.x)
+			y_.append(p.y)
+			yaw_.append(p.yaw)
+
+		return np.var(x_), np.var(y_), np.var(yaw_)
 
 	def fast_slam2(self, particles, u, z):
 	    
@@ -323,6 +332,7 @@ class FastSLAM(gym.Env):
 
 	def predict_particles(self, particles, u):
 
+		p_out = particles
 		for i in range(N_PARTICLE):
 			px = np.zeros((STATE_SIZE, 1))
 			px[0, 0] = particles[i].x
@@ -330,11 +340,11 @@ class FastSLAM(gym.Env):
 			px[2, 0] = particles[i].yaw
 			ud = u + (np.matrix(np.random.randn(1, 2)) * R).T  # add noise
 			px = self.motion_model(px, ud)
-			particles[i].x = px[0, 0]
-			particles[i].y = px[1, 0]
-			particles[i].yaw = px[2, 0]
+			p_out[i].x = px[0, 0]
+			p_out[i].y = px[1, 0]
+			p_out[i].yaw = px[2, 0]
 
-		return particles
+		return p_out
 
 
 	def add_new_lm(self, particle, z, Q):
@@ -525,10 +535,16 @@ class FastSLAM(gym.Env):
 
 	def calc_input(self, time):
 
-		v = np.sqrt(1 + (TRAJ_AMP*TRAJ_FREQ*np.cos(TRAJ_FREQ*time))**2)
-		yawrate = -TRAJ_AMP*TRAJ_FREQ*TRAJ_FREQ*np.sin(TRAJ_FREQ*time)
+		dt = time - TIME_OFFSET
+
+		v = np.sqrt(1 + (TRAJ_AMP*TRAJ_FREQ*np.cos(TRAJ_FREQ*dt))**2)
+		yawrate = -TRAJ_AMP*TRAJ_FREQ*TRAJ_FREQ*np.sin(TRAJ_FREQ*dt)
 
 		u = np.matrix([v, yawrate]).T
+
+		#stay at starting point for TIME_OFFSET seconds
+		if dt < 0:
+			u *= 0
 
 		return u
 
