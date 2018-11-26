@@ -17,19 +17,18 @@ Rsim = np.diag([0.5, np.deg2rad(10.0)])**2
 OFFSET_YAWRATE_NOISE = 0.05*(1 if np.random.random() < 0.5 else -1)
 
 BOX_HALF_SIZE = 20.0
-TRAJ_AMP = 0.5*0
+TRAJ_AMP = 0.5
 TRAJ_FREQ = 2.0
 INIT_YAW = TRAJ_AMP*TRAJ_FREQ
 TRAJ_XLIM = [-1.0, 10.0]
 TRAJ_YLIM = [-TRAJ_AMP-1.0, TRAJ_AMP+1.0]
 PLT_XLIM = [TRAJ_XLIM[0]-BOX_HALF_SIZE, TRAJ_XLIM[1]+BOX_HALF_SIZE]
 PLT_YLIM = [TRAJ_YLIM[0]-BOX_HALF_SIZE, TRAJ_YLIM[1]+BOX_HALF_SIZE]
-TIME_OFFSET = 30.0
+TIME_OFFSET = 3.0
 
 LM_BOX_SIZE = 8.0
 N_LM = 10
 
-SIM_TIME = 10.0  # simulation time [s]
 MAX_RANGE = 40.0  # maximum observation range
 M_DIST_TH = 2.0  # Threshold of Mahalanobis distance for data association.
 STATE_SIZE = 3  # State size [x,y,yaw]
@@ -180,6 +179,7 @@ class FastSLAM(gym.Env):
 		plt.plot([x0,x1], [y0,y1], 'g-')
 		plt.plot([x0,x2], [y0,y2], 'g-')
 
+		plt.title('Time: ' + str(round(self.time, 2)))
 		plt.xlim(PLT_XLIM)
 		plt.ylim(PLT_YLIM)
 		plt.gca().set_aspect('equal', adjustable='box')
@@ -247,7 +247,7 @@ class FastSLAM(gym.Env):
 
 		x_cov, y_cov, yaw_cov = self.get_particle_covariance() 
 
-		state = np.hstack(( n_landmarks, closest_dists, self.theta, x_cov, y_cov, yaw_cov ))[:,None]
+		state = np.hstack(( n_landmarks, closest_dists, self.theta, x_cov, y_cov, yaw_cov ))#[:,None]
 
 		return state
 		
@@ -263,7 +263,7 @@ class FastSLAM(gym.Env):
 			yaw_error = np.rad2deg(yaw_error)
 
 			r = 1 / ( pos_error + ALPHA*yaw_error + 1e-3)
-			return r.item(0)
+			return r.item(0)/100.0
 
 		elif self.reward_type is 'Covariance':
 			
@@ -273,7 +273,7 @@ class FastSLAM(gym.Env):
 			yaw_cov = np.var(yaw_cov)# + np.random.randn()*R[1,1]
 
 			r = 1 / ( pos_cov + ALPHA*yaw_cov + 1e-3)
-			return r
+			return r/100.0
 		
 		return
 
