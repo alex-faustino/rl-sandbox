@@ -56,7 +56,7 @@ class PPO:
         return advantages, returns
         
     
-    def train(self, num_episode=10, num_step=20, num_traj=5,alpha=0.1, gamma=0.7, num_epochs=5, epsilon=1e-5, c=1):
+    def train(self, num_episode=10, num_step=100, num_traj=20,alpha=0.1, gamma=0.7, num_epochs=5, epsilon=1e-5, c=1):
         self.num_step = num_step
         optimizer = optim.Adam(self.policy.parameters(), lr=alpha)
         losses = torch.zeros((num_episode, num_epochs))

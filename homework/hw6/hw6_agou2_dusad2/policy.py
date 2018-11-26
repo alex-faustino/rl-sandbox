@@ -25,6 +25,7 @@ class Policy(nn.Module):
     def forward(self, x):
         temp = self.shared_network.forward(x)
         mu, var = self.actor.forward(temp)
+        mu = 2.0*mu
         value = self.critic.forward(temp)
         sigma = torch.abs(var)**0.5
         return mu, sigma, value
