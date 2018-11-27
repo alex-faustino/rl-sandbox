@@ -1,0 +1,21 @@
+MuJoCo Pro Lab license activation key, number 6396, type 6.
+
+Issued to Prof. Girish Chowdhary, UIUC.
+
+Expires September 6, 2019.
+
+Do not share this file with anyone other than the users covered
+by your license agreement with Roboti LLC. This file activates
+MuJoCo Pro on any computer running any supported OS.
+
+Do not modify this file. Its entire content, including the
+plain text section, is used by the activation manager.
+
+d0587616790e996db974610c266dbc70538f4f329ed5b6d7d2c4097cdf5df741
+83640417ce64c5d0623e061b90f2ecd4c84eadb0f7018e0a3b5773cd24d14fd6
+8a4a25740e15864c95d5679d23af2067dc811cb3828e048f20a73819d398eac7
+45ff99f46c8408c46815c21f7eef02c7d28903199347f3b8b7c39aa6db010e83
+27662f80ede3b8d29cf4b57061e041d4c2afcaa6c475be1d5ebf76e081305979
+abe272ea9ca39070b2829cba96b72d8f9789eb5899a9c840a466e451cb1b8468
+41c7abfc50c2ca46d15fb5eac69edf49cff7a2ae89445f6c673de560caab3f2c
+4bd01fdef12915fe05ad20e15d9cde7ef53f9ae22f16253b06ce8aee696a1771
