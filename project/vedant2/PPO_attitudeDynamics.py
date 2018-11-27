@@ -27,7 +27,7 @@ import sys
 gamma=0.99
 seed=0
 render=False
-log_interval=20
+log_interval=5
 torch.manual_seed(seed)
 
 TrainingRecord = namedtuple('TrainingRecord', ['ep', 'reward'])
@@ -59,7 +59,7 @@ class ActorCriticNet(nn.Module):
         mu = 2.0* (torch.tanh(self.mu_head(x)))
         sigma = F.softplus(self.sigma_head(x))
         state_value = self.v_head(x)
-        return (mu, sigma,state_value)
+        return (mu, (sigma+1e-5),state_value)
 
 
 class Agent():
@@ -67,7 +67,7 @@ class Agent():
     clip_param = 0.3
     max_grad_norm = 0.5
     ppo_epoch = 10
-    buffer_capacity, batch_size = 500, 50
+    buffer_capacity, batch_size = 1000, 20
 
     def __init__(self):
         self.training_step = 0
@@ -134,14 +134,14 @@ class Agent():
 
                 (mu, sigma,_) = self.acnet(s[index])
                 
-                sigma = torch.clamp(sigma, min=1e-5, max=10)
+                #sigma = torch.clamp(sigma, min=1e-5, max=10)
                 dist = Normal(mu, sigma)
                 #print('mu: ',mu, ' sigma: ',sigma)
                 action_log_probs = dist.log_prob(a[index])
                 #print('action_log_probs: ',action_log_probs)
                 ratio = torch.exp(action_log_probs - old_action_log_probs[index])
                 #print('Ratio: ', ratio)
-                if np.isnan([action_log_probs.detach().numpy().any()]):
+                if np.isnan(action_log_probs.detach().numpy()).any():
                     print('mu NAN!')
                 surr1 = ratio * adv[index]
                 surr2 = torch.clamp(ratio, 1.0 - self.clip_param,
@@ -189,7 +189,7 @@ def main():
         STA_q = []
         STA_w = []
         
-        for t in range(5000):
+        for t in range(2000):
             
             action, action_log_prob = agent.select_action(state)
             if np.isnan([action.numpy()[0][0]]):
@@ -212,9 +212,9 @@ def main():
         running_reward = running_reward * 0.9 + score * 0.1
         training_records.append(TrainingRecord(i_ep, running_reward))
 
-        if i_ep % (log_interval/10) == 0:
+        if i_ep % (log_interval/(2.5)) == 0:
             print('Ep {}\tMoving average score: {:.2f}, Current score : {:.2f}\t'.format(i_ep, running_reward,score))
-        if i_ep % (0.1*log_interval) == 0:
+        if i_ep % (log_interval) == 0:
             plt.plot(np.array(STA_q))
             plt.title('Quaternion')
             plt.xlabel('time_step')
