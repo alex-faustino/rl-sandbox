@@ -15,11 +15,11 @@ from baselines.ppo2.microbatched_model import MicrobatchedModel
 
 def test_microbatches():
     def env_fn():
-        env = gym.make('attitudeDynamics-v0')
+        env = gym.make('Pendulum-v0')
         env.seed(0)
         return env
 
-    learn_fn = partial(learn, network='mlp', nsteps=20000, total_timesteps=2000, seed=0)
+    learn_fn = partial(learn, network='mlp', nsteps=2000, total_timesteps=2000, seed=0)
 
     env_ref = DummyVecEnv([env_fn])
     sess_ref = make_session(make_default=True, graph=tf.Graph())

@@ -27,7 +27,7 @@ import sys
 gamma=0.99
 seed=0
 render=False
-log_interval=5
+log_interval=4
 torch.manual_seed(seed)
 
 TrainingRecord = namedtuple('TrainingRecord', ['ep', 'reward'])
@@ -42,6 +42,8 @@ class ActorCriticNet(nn.Module):
         self.fc1 = nn.Linear(7, inner_neuron)
         self.fc2 = nn.Linear(inner_neuron, inner_neuron)
         self.fc3 = nn.Linear(inner_neuron, inner_neuron)
+        self.fc4 = nn.Linear(inner_neuron, inner_neuron)
+        self.fc5 = nn.Linear(inner_neuron, inner_neuron)
         self.mu_head = nn.Linear(inner_neuron, 3)
         self.sigma_head = nn.Linear(inner_neuron, 3)
         self.v_head = nn.Linear(inner_neuron, 1)
@@ -56,18 +58,20 @@ class ActorCriticNet(nn.Module):
         x = F.relu(self.fc3(x))
         #if (inner_neuron>=10):
         #    x = F.dropout(self.fc3(x),0.2)
+        x = F.relu(self.fc4(x))
+        x = F.relu(self.fc5(x))
         mu = 2.0* (torch.tanh(self.mu_head(x)))
         sigma = F.softplus(self.sigma_head(x))
         state_value = self.v_head(x)
-        return (mu, (sigma+1e-5),state_value)
+        return (mu, (sigma+1e-10),state_value)
 
 
 class Agent():
 
-    clip_param = 0.3
-    max_grad_norm = 0.5
+    clip_param = 0.2
+    max_grad_norm = 0.3
     ppo_epoch = 10
-    buffer_capacity, batch_size = 1000, 20
+    buffer_capacity, batch_size = 2000, 25
 
     def __init__(self):
         self.training_step = 0
@@ -181,7 +185,7 @@ def main():
     training_records = []
     running_reward = -1000
     state = env.reset()
-    for i_ep in range(1000):
+    for i_ep in range(10000):
         score = 0
         
         state = env.reset()
@@ -189,7 +193,7 @@ def main():
         STA_q = []
         STA_w = []
         
-        for t in range(2000):
+        for t in range(5000):
             
             action, action_log_prob = agent.select_action(state)
             if np.isnan([action.numpy()[0][0]]):
@@ -212,7 +216,7 @@ def main():
         running_reward = running_reward * 0.9 + score * 0.1
         training_records.append(TrainingRecord(i_ep, running_reward))
 
-        if i_ep % (log_interval/(2.5)) == 0:
+        if i_ep % (log_interval/(2)) == 0:
             print('Ep {}\tMoving average score: {:.2f}, Current score : {:.2f}\t'.format(i_ep, running_reward,score))
         if i_ep % (log_interval) == 0:
             plt.plot(np.array(STA_q))
