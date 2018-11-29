@@ -6,54 +6,57 @@ import torch
 import torch.nn as nn
 
 class Reshape(nn.Module):
-    def __init__(self):
+    def __init__(self, shape):
         super(Reshape, self).__init__()
+        self.shape = shape
     def forward(self, x):
-        x = x.view(-1,  4*256, 1, 1)
+        x = x.view(self.shape)
         return x
 
     
 
 class VAE(nn.Module):
-    def __init__(self, z_size=32, batch_size=1, learning_rate=0.0001, kl_tolerance=0.5, gpu=False):
+    def __init__(self, z_size=32, conv_sizes=[4, 8, 16, 32], batch_size=1, learning_rate=0.0001, kl_tolerance=0.5, gpu=False):
         self.z_size=z_size
+        self.conv_sizes = conv_sizes # hardcoding to be 4 deep
         self.batch_size=batch_size
         self.learning_rate=learning_rate
         self.kl_tolerance=kl_tolerance
         self.gpu = gpu
         
         super(VAE, self).__init__()
+        
         self.encoder = nn.Sequential(
-            nn.Conv2d(3, 32, kernel_size=4, stride=2),
+            nn.Conv2d(3, self.conv_sizes[0], kernel_size=4, stride=2),
             nn.ReLU(),
-            nn.Conv2d(32, 64, kernel_size=4, stride=2),
+            nn.Conv2d(self.conv_sizes[0], self.conv_sizes[1], kernel_size=4, stride=2),
             nn.ReLU(),
-            nn.Conv2d(64, 128, kernel_size=4, stride=2),
+            nn.Conv2d(self.conv_sizes[1], self.conv_sizes[2], kernel_size=4, stride=2),
             nn.ReLU(),
-            nn.Conv2d(128, 256, kernel_size=4, stride=2),
+            nn.Conv2d(self.conv_sizes[2], self.conv_sizes[3], kernel_size=4, stride=2),
             nn.ReLU(),
         )
         
-        self.mu = nn.Linear(256*2*2, 32)
-        self.logvar = nn.Linear(256*2*2, 32)
+        self.mu = nn.Linear(self.conv_sizes[3]*2*2, self.z_size)
+        self.logvar = nn.Linear(self.conv_sizes[3]*2*2, self.z_size)
         
         self.decoder = nn.Sequential(
-            nn.Linear(self.z_size,4*256),
-            Reshape(),
-            nn.ConvTranspose2d(4*256, 128, kernel_size=5, stride=2),
+            nn.Linear(self.z_size,4*self.conv_sizes[3]),
+            Reshape((-1,  4*32, 1, 1)),
+            nn.ConvTranspose2d(4*self.conv_sizes[3], self.conv_sizes[2], kernel_size=5, stride=2),
             nn.ReLU(),
-            nn.ConvTranspose2d(128, 64, kernel_size=5, stride=2),
+            nn.ConvTranspose2d(self.conv_sizes[2], self.conv_sizes[1], kernel_size=5, stride=2),
             nn.ReLU(),
-            nn.ConvTranspose2d(64, 32, kernel_size=6, stride=2),
+            nn.ConvTranspose2d(self.conv_sizes[1], self.conv_sizes[0], kernel_size=6, stride=2),
             nn.ReLU(),
-            nn.ConvTranspose2d(32, 3, kernel_size=6, stride=2),
+            nn.ConvTranspose2d(self.conv_sizes[0], 3, kernel_size=6, stride=2),
             nn.Sigmoid()
         )
         
         
     def forward(self, original):
         encoded = self.encoder(original)
-        encoded = encoded.view(-1, 256*2*2)
+        encoded = encoded.view(-1, self.conv_sizes[3]*2*2)
         
         mu = self.mu(encoded)
         logvar = self.logvar(encoded)
