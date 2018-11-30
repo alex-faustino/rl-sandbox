@@ -1,0 +1,8 @@
+Date: Nov 25th 2018
+
+This is the first sucessful example of the one legged hopper robot.
+
+Please run PPO.ipynb, and see the result.
+
+To understand the difficulty, just change the reward shaping to (r+5)/30. It won't learn any more
+
