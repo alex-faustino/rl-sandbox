@@ -21,13 +21,13 @@ BOX_HALF_SIZE = 20.0
 TRAJ_AMP = 0.5*0
 TRAJ_FREQ = 2.0
 INIT_YAW = TRAJ_AMP*TRAJ_FREQ
-TRAJ_XLIM = [-1.0, 10.0]
+TRAJ_XLIM = [-1.0, 1.0]
 TRAJ_YLIM = [-TRAJ_AMP-1.0, TRAJ_AMP+1.0]
 PLT_XLIM = [TRAJ_XLIM[0]-BOX_HALF_SIZE, TRAJ_XLIM[1]+BOX_HALF_SIZE]
 PLT_YLIM = [TRAJ_YLIM[0]-BOX_HALF_SIZE, TRAJ_YLIM[1]+BOX_HALF_SIZE]
 TIME_OFFSET = 50.0
 
-LM_BOX_SIZE = 6.0
+LM_BOX_SIZE = 8.0
 N_LM = 5
 
 MAX_ACTION_DEG = 5.0  #maximum possible action per step
@@ -97,6 +97,7 @@ class FastSLAM(gym.Env):
 
 		#get state vector
 		self.state = self.get_obs_fixedLM()
+		#self.state = self.get_obs()
 
 		return self.state, reward, False, info
 		#return info
@@ -118,48 +119,63 @@ class FastSLAM(gym.Env):
 		self.hxTrue = self.xTrue
 		self.hxDR = self.xTrue
 
-		#arrange RFID
-		find_lmc = True
-		while find_lmc:
-			lmcx = np.random.uniform(PLT_XLIM[0]+LM_BOX_SIZE/2.0, PLT_XLIM[1]-LM_BOX_SIZE/2.0,1)
-			lmcy = np.random.uniform(PLT_YLIM[0]+LM_BOX_SIZE/2.0, PLT_YLIM[1]-LM_BOX_SIZE/2.0,1)
-			if (lmcx>=(TRAJ_XLIM[0]-LM_BOX_SIZE/2.0)) and (lmcx<=(TRAJ_XLIM[1]+LM_BOX_SIZE/2.0)) and (lmcy>=(TRAJ_YLIM[0]-LM_BOX_SIZE/2.0)) and (lmcy<=(TRAJ_YLIM[1]+LM_BOX_SIZE/2.0)):
-				continue
-			else:
-				find_lmc = False
+		count_vis = 0
+		while count_vis==0:
+			#arrange RFID
+			find_lmc = True
+			while find_lmc:
+				lmcx = np.random.uniform(PLT_XLIM[0]+LM_BOX_SIZE/2.0, PLT_XLIM[1]-LM_BOX_SIZE/2.0,1)
+				lmcy = np.random.uniform(PLT_YLIM[0]+LM_BOX_SIZE/2.0, PLT_YLIM[1]-LM_BOX_SIZE/2.0,1)
+				if (lmcx>=(TRAJ_XLIM[0]-LM_BOX_SIZE/2.0)) and (lmcx<=(TRAJ_XLIM[1]+LM_BOX_SIZE/2.0)) and (lmcy>=(TRAJ_YLIM[0]-LM_BOX_SIZE/2.0)) and (lmcy<=(TRAJ_YLIM[1]+LM_BOX_SIZE/2.0)):
+					continue
+				else:
+					find_lmc = False
 
-		lmx = np.random.uniform(lmcx-LM_BOX_SIZE/2.0,lmcx+LM_BOX_SIZE/2.0,N_LM)[:,None]
-		lmy = np.random.uniform(lmcy-LM_BOX_SIZE/2.0,lmcy+LM_BOX_SIZE/2.0,N_LM)[:,None]
-		self.RFID = np.hstack((lmx, lmy))
+			lmx = np.random.uniform(lmcx-LM_BOX_SIZE/2.0,lmcx+LM_BOX_SIZE/2.0,N_LM)[:,None]
+			lmy = np.random.uniform(lmcy-LM_BOX_SIZE/2.0,lmcy+LM_BOX_SIZE/2.0,N_LM)[:,None]
 
-		self.particles = [Particle(N_LM) for i in range(N_PARTICLE)]
+			self.RFID = np.hstack((lmx, lmy))
+			#self.RFID = np.array([[1.86912964, 14.6324081],
+			#		[2.19225334, 14.72220263],
+			#		[-1.17720019,  9.53217515],
+			#		[3.67062618, 10.30577019],
+			#		[0.70654015, 15.56967821],
+			#		])
 
-		#add visible lm to particles
-		for i in range(len(self.RFID[:, 0])):
-			dx = self.RFID[i, 0] - self.xTrue[0, 0]
-			dy = self.RFID[i, 1] - self.xTrue[1, 0]
-			d = math.sqrt(dx**2 + dy**2)
-			angle = math.atan2(dy, dx) - self.xTrue[2, 0]
+			#print(self.RFID)
 
-			delta = np.abs( np.arctan2(dy,dx) - self.pi_2_pi(self.xTrue[2,0] + self.theta) )
-			if delta > np.pi:
-				delta = 2*np.pi - delta
+			self.particles = [Particle(N_LM) for i in range(N_PARTICLE)]
 
-			if d <= MAX_RANGE and np.rad2deg(delta)<=(FOV/2.0):
-				dn = d + np.random.randn() * Qsim[0, 0]  # add noise
-				anglen = angle + np.random.randn() * Qsim[1, 1]  # add noise
-				zi = np.matrix([dn, self.pi_2_pi(anglen), i])
-				for ip in range(N_PARTICLE):
-					self.particles[ip] = self.add_new_lm(self.particles[ip], zi, Q)
+			count_vis = 0
+			#add visible lm to particles
+			for i in range(len(self.RFID[:, 0])):
+				dx = self.RFID[i, 0] - self.xTrue[0, 0]
+				dy = self.RFID[i, 1] - self.xTrue[1, 0]
+				d = math.sqrt(dx**2 + dy**2)
+				angle = math.atan2(dy, dx) - self.xTrue[2, 0]
+
+				delta = np.abs( np.arctan2(dy,dx) - self.pi_2_pi(self.xTrue[2,0] + self.theta) )
+				if delta > np.pi:
+					delta = 2*np.pi - delta
+
+				if d <= MAX_RANGE and np.rad2deg(delta)<=(FOV/2.0):
+					count_vis += 1
+					dn = d + np.random.randn() * Qsim[0, 0]  # add noise
+					anglen = angle + np.random.randn() * Qsim[1, 1]  # add noise
+					zi = np.matrix([dn, self.pi_2_pi(anglen), i])
+					for ip in range(N_PARTICLE):
+						self.particles[ip] = self.add_new_lm(self.particles[ip], zi, Q)
+			count_vis = 1
 
 		#get state vector
 		self.state = self.get_obs_fixedLM()
+		#self.state = self.get_obs()
 
 		return self.state
 
 	def render_world(self):
 
-		plt.figure(figsize=(8,8))
+		plt.figure(figsize=(4,4))
 		plt.plot(self.RFID[:, 0], self.RFID[:, 1], "*k")
 
 		if self.time > 0.0:
@@ -232,7 +248,7 @@ class FastSLAM(gym.Env):
 
 	def render_obs_fixedLM(self):
 
-		plt.figure(figsize=(8,8))
+		plt.figure(figsize=(4,4))
 		
 		for ilm in range(N_LM):
 			plt.plot(self.state[ilm*2], self.state[ilm*2+1], "*b")
@@ -257,7 +273,7 @@ class FastSLAM(gym.Env):
 	def get_obs(self):
 
 		n_bins = int(360/BIN_SIZE)
-		n_landmarks = np.zeros(n_bins)
+		n_landmarks = np.ones(n_bins)*1000
 		closest_dists = np.ones(n_bins)*1000
 	
 		lmSeen = self.particles[0].lmSeen
@@ -291,13 +307,14 @@ class FastSLAM(gym.Env):
 		#state = np.hstack(( n_landmarks, closest_dists, self.theta, x_cov, y_cov, yaw_cov ))
 
 		#state = np.hstack(( n_landmarks, closest_dists, self.theta+np.deg2rad(FOV/2.0), self.theta-np.deg2rad(FOV/2.0) ))
-		state = np.hstack(( n_landmarks, closest_dists, np.cos(self.theta), np.sin(self.theta), FOV ))
+		state = np.hstack(( n_landmarks, closest_dists, np.cos(self.theta), np.sin(self.theta) ))
 
 		return state
 		
 	def get_obs_fixedLM(self):
 
 		lm_pos = np.ones(2*N_LM)*1000
+		#lm_pos = np.ones(2*N_LM)*0
 
 		lmSeen = self.particles[0].lmSeen
 		for ilm in lmSeen:
@@ -311,8 +328,8 @@ class FastSLAM(gym.Env):
 			newx = lmx*np.cos(self.x_state[2]) + lmy*np.sin(self.x_state[2])
 			newy = -lmx*np.sin(self.x_state[2]) + lmy*np.cos(self.x_state[2])
 
-			lm_pos[ilm*2] = newx
-			lm_pos[ilm*2+1] = newy
+			lm_pos[ilm*2] = newx / PLT_XLIM[1]
+			lm_pos[ilm*2+1] = newy / PLT_YLIM[1]
 
 		state = np.hstack(( lm_pos, np.cos(self.theta), np.sin(self.theta) ))
 
