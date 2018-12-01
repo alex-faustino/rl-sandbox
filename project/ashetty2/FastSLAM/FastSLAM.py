@@ -21,11 +21,11 @@ BOX_HALF_SIZE = 20.0
 TRAJ_AMP = 0.5*0
 TRAJ_FREQ = 2.0
 INIT_YAW = TRAJ_AMP*TRAJ_FREQ
-TRAJ_XLIM = [-1.0, 1.0]
+TRAJ_XLIM = [-1.0, 10.0]
 TRAJ_YLIM = [-TRAJ_AMP-1.0, TRAJ_AMP+1.0]
 PLT_XLIM = [TRAJ_XLIM[0]-BOX_HALF_SIZE, TRAJ_XLIM[1]+BOX_HALF_SIZE]
 PLT_YLIM = [TRAJ_YLIM[0]-BOX_HALF_SIZE, TRAJ_YLIM[1]+BOX_HALF_SIZE]
-TIME_OFFSET = 50.0
+TIME_OFFSET = 30.0
 
 LM_BOX_SIZE = 8.0
 N_LM = 5
@@ -35,7 +35,7 @@ MAX_RANGE = 40.0  # maximum observation range
 M_DIST_TH = 2.0  # Threshold of Mahalanobis distance for data association.
 STATE_SIZE = 3  # State size [x,y,yaw]
 LM_SIZE = 2  # LM srate size [x,y]
-N_PARTICLE = 1  # number of particle
+N_PARTICLE = 20  # number of particle
 NTH = N_PARTICLE / 1.0  # Number of particle for re-sampling
 
 BIN_SIZE = 15.0  #degrees
@@ -64,7 +64,7 @@ class FastSLAM(gym.Env):
 
 	def __init__(self):
 		self.state = None
-		self.reward_type = 'Error'
+		self.reward_type = 'Covariance'
 
 	def step(self, action):
 
@@ -79,7 +79,7 @@ class FastSLAM(gym.Env):
 		self.xTrue, self.z, self.xDR, self.ud = self.observation(self.xTrue, self.xDR, self.u, self.RFID)
 		self.particles = self.fast_slam2(self.particles, self.ud, self.z)
 		self.xEst = self.calc_final_state(self.particles)
-		self.xEst = self.xTrue
+		#self.xEst = self.xTrue
 		self.x_state = self.xEst[0: STATE_SIZE]
 		#add state varaibles to info
 		info = {}
@@ -93,7 +93,8 @@ class FastSLAM(gym.Env):
 		self.hxTrue = np.hstack((self.hxTrue, self.xTrue))
 
 		#calculate reward based on pose error
-		reward = self.get_reward_LM()		
+		#reward = self.get_reward_LM()
+		reward = self.get_reward()
 
 		#get state vector
 		self.state = self.get_obs_fixedLM()
@@ -273,11 +274,10 @@ class FastSLAM(gym.Env):
 	def get_obs(self):
 
 		n_bins = int(360/BIN_SIZE)
-		n_landmarks = np.ones(n_bins)*1000
-		closest_dists = np.ones(n_bins)*1000
+		n_landmarks = -1.0*np.ones(n_bins)#*1000
+		closest_dists = -1.0*np.ones(n_bins)#*1000
 	
 		lmSeen = self.particles[0].lmSeen
-
 		for ilm in lmSeen:
 			lmx, lmy = 0.0, 0.0
 			for ip in range(N_PARTICLE):
@@ -457,18 +457,18 @@ class FastSLAM(gym.Env):
 		s = math.sin(self.pi_2_pi(particle.yaw + b))
 		c = math.cos(self.pi_2_pi(particle.yaw + b))
 
-		#particle.lm[lm_id, 0] = particle.x + r * c
-		#particle.lm[lm_id, 1] = particle.y + r * s
+		particle.lm[lm_id, 0] = particle.x + r * c
+		particle.lm[lm_id, 1] = particle.y + r * s
 
 		#remove later
-		particle.lm[lm_id, 0] = self.RFID[lm_id, 0]
-		particle.lm[lm_id, 1] = self.RFID[lm_id, 1]
+		#particle.lm[lm_id, 0] = self.RFID[lm_id, 0]
+		#particle.lm[lm_id, 1] = self.RFID[lm_id, 1]
 
 		# covariance
 		Gz = np.matrix([[c, -r * s],
 				[s, r * c]])
 
-		particle.lmP[2 * lm_id:2 * lm_id + 2] = 0 * Gz * Q * Gz.T
+		particle.lmP[2 * lm_id:2 * lm_id + 2] = Gz * Q * Gz.T
 
 		particle.lmSeen.append(lm_id)
 
@@ -545,7 +545,7 @@ class FastSLAM(gym.Env):
 			invS = np.linalg.inv(S)
 		except np.linalg.linalg.LinAlgError:
 			#add later
-			#print("Singular!")
+			print("Singular!")
 			return 1.0
 
 		num = math.exp(-0.5 * dz.T * invS * dz)
