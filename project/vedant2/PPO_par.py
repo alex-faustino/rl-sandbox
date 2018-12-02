@@ -4,14 +4,18 @@ import numpy as np
 
 from multiprocessing import Pool
 
+inner_neuron = 10
+
 class Net(torch.nn.Module):
     def __init__(self, observation_dim, action_dim):
         super(Net, self).__init__()
-        self.V_fc1 = torch.nn.Linear(observation_dim, 10).double()
-        self.V_fc2 = torch.nn.Linear(10, 10).double()
-        self.V_fc3 = torch.nn.Linear(10, 1).double()
-        self.mu_fc3 = torch.nn.Linear(10, action_dim).double()
-        self.std_fc3 = torch.nn.Linear(10, action_dim).double()
+        self.V_fc1 = torch.nn.Linear(observation_dim, inner_neuron).double()
+        self.V_fc2 = torch.nn.Linear(inner_neuron, inner_neuron).double()
+        self.V_fc3 = torch.nn.Linear(inner_neuron, inner_neuron).double()
+        self.V_fc4 = torch.nn.Linear(inner_neuron, inner_neuron).double()
+        self.V_fc5 = torch.nn.Linear(inner_neuron, inner_neuron).double()
+        self.mu_fc5 = torch.nn.Linear(inner_neuron, action_dim).double()
+        self.std_fc5 = torch.nn.Linear(inner_neuron, action_dim).double()
 
     def forward(self, x):
         """
@@ -22,9 +26,11 @@ class Net(torch.nn.Module):
         """
         x = torch.tanh(self.V_fc1(x))
         x = torch.tanh(self.V_fc2(x))
-        V = self.V_fc3(x)
-        mu = self.mu_fc3(x)
-        std = self.std_fc3(x)
+        x = torch.tanh(self.V_fc3(x))
+        x = torch.tanh(self.V_fc4(x))
+        V = self.V_fc5(x)
+        mu = self.mu_fc5(x)
+        std = self.std_fc5(x)
         std = torch.sigmoid(std) # adding a small number to std may improve robustness
         return (V, mu, std)
 
