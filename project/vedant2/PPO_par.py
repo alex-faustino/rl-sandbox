@@ -13,7 +13,7 @@ class Net(torch.nn.Module):
         self.V_fc2 = torch.nn.Linear(inner_neuron, inner_neuron).double()
         self.V_fc3 = torch.nn.Linear(inner_neuron, inner_neuron).double()
         self.V_fc4 = torch.nn.Linear(inner_neuron, inner_neuron).double()
-        self.V_fc5 = torch.nn.Linear(inner_neuron, inner_neuron).double()
+        self.V_fc5 = torch.nn.Linear(inner_neuron, 1).double()
         self.mu_fc5 = torch.nn.Linear(inner_neuron, action_dim).double()
         self.std_fc5 = torch.nn.Linear(inner_neuron, action_dim).double()
 

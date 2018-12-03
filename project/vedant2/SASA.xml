@@ -1,20 +1,10 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Tue Nov 27 20:40:09 2018
-
-@author: vedant2
-"""
-
 <mujoco model="SASA">
     <compiler angle="degree" coordinate="local" inertiafromgeom="true"/>
-    <custom>
-    <numeric data="0.0 0.0 0.55 1.0 0.0 0.0 0.0 0.0 1.0 0.0 -1.0 0.0 -1.0 0.0 1.0" name="init_qpos"/>
-    </custom>
     <option gravity="0 0 0" integrator="RK4" timestep="1e-4" />
     <worldbody>
         <body name="satellite" pos="0 0 0.0">
             <joint axis="1 0 0" damping="0.0" name="BASE_DOF" pos="0 0 0" type="free"/>
-            <geom mass="500.0" pos="0 0 0" rgba="0 0 1 1" size="2 2.3 3" quat="0.707 0 0.707 0" type="box"/>
+            <geom mass="500.0" pos="0 0 0" rgba="0 0 1 1" size="2 2.3 3" type="box"/>
 			<camera euler="0 0 0" fovy="60" name="rgb" pos="0 0 5.5"></camera>
 		
         
@@ -50,9 +40,9 @@ Created on Tue Nov 27 20:40:09 2018
     </worldbody>
     <actuator>
     
-        <motor gear="1 0 0 0 0 0 " joint="BASE_DOF"/>
-        <motor gear="0 1 0 0 0 0 " joint="BASE_DOF"/>
-        <motor gear="0 0 1 0 0 0 " joint="BASE_DOF"/>
+        <motor gear="1 0 0 0 0 0  " joint="BASE_DOF"/>
+        <motor gear="0 1 0 0 0 0  " joint="BASE_DOF"/>
+        <motor gear="0 0 1 0 0 0  " joint="BASE_DOF"/>
         
         <motor gear="0 0 0 1 0 0 " joint="BASE_DOF"/>
         <motor gear="0 0 0 0 1 0 " joint="BASE_DOF"/>
