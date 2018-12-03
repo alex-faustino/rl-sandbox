@@ -80,15 +80,31 @@ class SASAmujocoEnv:
         if(render):
             viewer.render()
         
-    def reset(self,sym_params):
-        et = xml.etree.ElementTree.parse('SASA.xml')
-        tree = et
-        root = tree.getroot()
-        root[2][0].attrib
-        a = root[2][0].attrib
-        a['pos']
-        
-        tree.write('SASA.xml')
+    def reset(self,full_reset = False, sym_params):
+        if full_reset:
+            env_discp = xml.etree.ElementTree.parse('SASA.xml')
+            root = env_discp.getroot()
+            
+            #main body
+            a = root[2][0].attrib
+            a['pos']
+            
+            #Panel_L0
+            a = root[2][0][3].attrib
+            a['pos']
+            
+            #Panel_L1
+            a = root[2][0][3][4].attrib
+            a['pos']
+            
+            #Panel_R0
+            a = root[2][0][3].attrib
+            a['pos']
+            
+            tree.write('SASA.xml')
+            model = load_model_from_path(os.path.join(os.getcwd(),'SASA.xml'))
+            sim = MjSim(model)
+            viewer = MjViewer(sim)
         
         sim.model.bodymass = sym_params*sim.model.bodymass;
         sim.model.jnt_stiffness = sym_params*sim.model.jnt_stiffness;
