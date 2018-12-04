@@ -4,11 +4,10 @@ import gym
 import random
 from cv2 import resize
 import os
-from constants import ROLLOUT_DIR, NUM_EPISODES, NUM_STEPS
+from constants import ROLLOUT_DIR, NUM_EPISODES, NUM_STEPS, HEIGHT, WIDTH
 
 if not os.path.exists(ROLLOUT_DIR):
     os.makedirs(ROLLOUT_DIR)
-
 
 env = gym.make('MountainCar-v0')
 
@@ -26,11 +25,10 @@ for ep in range(NUM_EPISODES):
         actions.append(action)
 
         env.step(action)
-    frames = np.array(frames, dtype=int)
+    frames = np.array(frames, dtype=np.uint8)
     actions = np.array(actions, dtype=float)
     filename = os.path.join(ROLLOUT_DIR, str(random_int)+".npz")
     np.savez_compressed(filename, frames=frames, actions=actions)
 
 env.close()
-
 

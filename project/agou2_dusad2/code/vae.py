@@ -4,6 +4,7 @@
 
 import torch
 import torch.nn as nn
+from constants import LATENT_SIZE
 
 class Reshape(nn.Module):
     def __init__(self, shape):
@@ -13,10 +14,10 @@ class Reshape(nn.Module):
         x = x.view(self.shape)
         return x
 
-    
+
 
 class VAE(nn.Module):
-    def __init__(self, z_size=32, conv_sizes=[4, 8, 16, 32], batch_size=1, learning_rate=0.0001, kl_tolerance=0.5, gpu=False):
+    def __init__(self, z_size=LATENT_SIZE, conv_sizes=[4, 8, 16, 32], batch_size=1, learning_rate=0.0001, kl_tolerance=0.5, gpu=False):
         self.z_size=z_size
         self.conv_sizes = conv_sizes # hardcoding to be 4 deep
         self.batch_size=batch_size
@@ -42,7 +43,7 @@ class VAE(nn.Module):
         
         self.decoder = nn.Sequential(
             nn.Linear(self.z_size,4*self.conv_sizes[3]),
-            Reshape((-1,  4*32, 1, 1)),
+            Reshape((-1,  4*LATENT_SIZE, 1, 1)),
             nn.ConvTranspose2d(4*self.conv_sizes[3], self.conv_sizes[2], kernel_size=5, stride=2),
             nn.ReLU(),
             nn.ConvTranspose2d(self.conv_sizes[2], self.conv_sizes[1], kernel_size=5, stride=2),
