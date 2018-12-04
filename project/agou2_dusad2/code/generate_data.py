@@ -19,7 +19,7 @@ for ep in range(NUM_EPISODES):
     state = env.reset()
     for step in range(NUM_STEPS):
         im = env.render(mode='rgb_array')
-        im = resize(im, (64,64))
+        im = resize(im, (HEIGHT, WIDTH))
         frames.append(im)
 
         action = env.action_space.sample()
