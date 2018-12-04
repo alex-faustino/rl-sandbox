@@ -7,7 +7,7 @@ On the floor, there's a cylinder with X and Y slide joints, so it can
 be pushed around with the robot. There's also a box without joints. Since
 the box doesn't have joints, it's fixed and can't be pushed around.
 """
-from mujoco_py import load_model_from_xml, MjSim, MjViewer
+from mujoco_py import load_model_from_xml, MjSim, MjViewer, load_model_from_path
 import math
 import os
 
@@ -77,28 +77,30 @@ MODEL_XML = """
 </mujoco>
 """
 
-model = load_model_from_xml(MODEL_XML)
+#model = load_model_from_xml(MODEL_XML)
+model = load_model_from_path(os.path.join(os.getcwd(),'SASA.xml'))
 sim = MjSim(model)
 viewer = MjViewer(sim)
 t = 0
+print(sim.model.body_inertia)
 #while True:
-while t<10:
+while (True):
     
-    sim.data.ctrl[0] = 5000#math.cos(t / 10.) * 
+    sim.data.ctrl[0] = 0#math.cos(t / 10.) * 
     sim.data.ctrl[1] = 0
     sim.data.ctrl[2] = 0
     
-    sim.data.ctrl[3] = math.cos(t / 10.) * 0 #math.cos(t / 10.) * 
-    sim.data.ctrl[4] = math.cos(t / 10.) * 0
-    sim.data.ctrl[5] = math.cos(t / 1.) * 0
+    sim.data.ctrl[3] = math.cos(t / 10.) * 10 #math.cos(t / 10.) * 
+    sim.data.ctrl[4] = math.cos(t / 10.) * 10
+    sim.data.ctrl[5] = math.cos(t / 1.) * 10
     
     sim.data.ctrl[6] = 0#math.cos(t / 10.) * 
     sim.data.ctrl[7] = 0
     sim.data.ctrl[8] = 0
     
-    sim.data.ctrl[9] = math.cos(t / 10.) * 0#math.cos(t / 10.) * 
-    sim.data.ctrl[10] = math.cos(t / 10.) * 0
-    sim.data.ctrl[11] = math.cos(t / 1.) * 0
+    sim.data.ctrl[9] = math.cos(t / 10.) * 10#math.cos(t / 10.) * 
+    sim.data.ctrl[10] = math.cos(t / 10.) * 10
+    sim.data.ctrl[11] = math.cos(t / 1.) * 10
     
     sim.data.ctrl[12] = 0#math.cos(t / 10.) * 
     sim.data.ctrl[13] = 0
@@ -111,7 +113,13 @@ while t<10:
     print(sim.data.qpos)
     '''
     t += 1
-    sim.step(t*500)
+    if(t==10000):
+        sim.model.geom_size[0][0] = 5
+        sim.model.geom_size[0][2] = 5
+        print(sim.model.body_inertia)
+        #sim.model.get_xml() = '<mujoco model="MuJoCo Model">\n    <compiler angle="radian" />\n    <option timestep="0.0001" gravity="0 0 0" integrator="RK4" />\n    <size njmax="500" nconmax="100" />\n    <worldbody>\n        <body name="satellite" pos="0 0 0">\n            <inertial pos="0 0 0" mass="500" diaginertia="2381.67 2166.67 1548.33" />\n            <joint name="BASE_DOF" type="free" />\n            <geom size="2 5 3" type="box" rgba="0 0 1 1" />\n            <camera name="rgb" pos="0 0 5.5" fovy="60" />\n            <body name="panelL0" pos="-5 0 0">\n                <inertial pos="0 0 0" mass="20" diaginertia="60.15 86.6667 26.8167" />\n                <joint name="panelL0_rotate_x" pos="1.5 0 0" axis="1 0 0" stiffness="100" />\n                <joint name="panelL0_rotate_y" pos="1.5 0 0" axis="0 1 0" stiffness="100" />\n                <joint name="panelL0_rotate_z" pos="1.5 0 0" axis="0 0 1" stiffness="100" />\n                <geom size="2 0.15 3" type="box" rgba="0 1 0 1" />\n                <body name="panelL1" pos="-5 0 0">\n                    <inertial pos="0 0 0" mass="20" diaginertia="60.15 86.6667 26.8167" />\n                    <joint name="panelL1_rotate_x" pos="1.5 0 0" axis="1 0 0" stiffness="100" />\n                    <joint name="panelL1_rotate_y" pos="1.5 0 0" axis="0 1 0" stiffness="100" />\n                    <joint name="panelL1_rotate_z" pos="1.5 0 0" axis="0 0 1" stiffness="100" />\n                    <geom size="2 0.15 3" type="box" rgba="0 1 0 1" />\n                </body>\n            </body>\n            <body name="panelR0" pos="5 0 0">\n                <inertial pos="0 0 0" mass="20" diaginertia="60.15 86.6667 26.8167" />\n                <joint name="panelR0_rotate_x" pos="-1.5 0 0" axis="1 0 0" stiffness="100" />\n                <joint name="panelR0_rotate_y" pos="-1.5 0 0" axis="0 1 0" stiffness="100" />\n                <joint name="panelR0_rotate_z" pos="-1.5 0 0" axis="0 0 1" stiffness="100" />\n                <geom size="2 0.15 3" type="box" rgba="1 0 0 1" />\n                <body name="panelR1" pos="5 0 0">\n                    <inertial pos="0 0 0" mass="20" diaginertia="60.15 86.6667 26.8167" />\n                    <joint name="panelR1_rotate_x" pos="-1.5 0 0" axis="1 0 0" stiffness="100" />\n                    <joint name="panelR1_rotate_y" pos="-1.5 0 0" axis="0 1 0" stiffness="100" />\n                    <joint name="panelR1_rotate_z" pos="-1.5 0 0" axis="0 0 1" stiffness="100" />\n                    <geom size="2 0.15 3" type="box" rgba="1 0 0 1" />\n                </body>\n            </body>\n        </body>\n    </worldbody>\n    <actuator>\n        <general joint="BASE_DOF" gear="0 0 0 1 0 0" />\n        <general joint="BASE_DOF" gear="0 0 0 0 1 0" />\n        <general joint="BASE_DOF" gear="0 0 0 0 0 1" />\n        <general joint="panelL0_rotate_x" gear="10000 0 0 0 0 0" />\n        <general joint="panelL0_rotate_y" gear="10000 0 0 0 0 0" />\n        <general joint="panelL0_rotate_z" gear="10000 0 0 0 0 0" />\n        <general joint="panelL1_rotate_x" gear="10000 0 0 0 0 0" />\n        <general joint="panelL1_rotate_y" gear="10000 0 0 0 0 0" />\n        <general joint="panelL1_rotate_z" gear="10000 0 0 0 0 0" />\n        <general joint="panelR0_rotate_x" gear="10000 0 0 0 0 0" />\n        <general joint="panelR0_rotate_y" gear="10000 0 0 0 0 0" />\n        <general joint="panelR0_rotate_z" gear="10000 0 0 0 0 0" />\n        <general joint="panelR1_rotate_x" gear="10000 0 0 0 0 0" />\n        <general joint="panelR1_rotate_y" gear="10000 0 0 0 0 0" />\n        <general joint="panelR1_rotate_z" gear="10000 0 0 0 0 0" />\n    </actuator>\n</mujoco>\n'
+        
+    sim.step(t*5000)
     viewer.render()
     if t > 100 and os.getenv('TESTING') is not None:
         break
