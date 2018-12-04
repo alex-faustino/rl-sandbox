@@ -11,7 +11,7 @@ Q = np.diag([0.1, np.deg2rad(1.0)])**2
 R = np.diag([1.0, np.deg2rad(20.0)])**2
 
 #  Simulation parameter
-Qsim = 0*np.diag([0.3, np.deg2rad(2.0)])**2
+Qsim = np.diag([0.3, np.deg2rad(2.0)])**2
 Rsim = np.diag([0.5, np.deg2rad(10.0)])**2
 #OFFSET_YAWRATE_NOISE = 0.05*np.random.uniform(-1,1,1)[0]
 #OFFSET_YAWRATE_NOISE = 0.05*(1 if np.random.random() < 0.5 else -1)
@@ -61,6 +61,8 @@ class FastSLAM(gym.Env):
 
 
 	DT = 0.1  # time tick [s]
+	observation_dim = 2*N_LM + 2
+	action_dim = 1
 
 	def __init__(self):
 		self.state = None
@@ -93,8 +95,8 @@ class FastSLAM(gym.Env):
 		self.hxTrue = np.hstack((self.hxTrue, self.xTrue))
 
 		#calculate reward based on pose error
-		#reward = self.get_reward_LM()
-		reward = self.get_reward()
+		reward = self.get_reward_LM()
+		#reward = self.get_reward()
 
 		#get state vector
 		self.state = self.get_obs_fixedLM()
@@ -103,6 +105,12 @@ class FastSLAM(gym.Env):
 		return self.state, reward, False, info
 		#return info
 
+
+	def copy(self):
+		c = gym.make('FastSLAM-v0')
+		c.state = None
+		c.reward_type = 'Covariance'
+		return c
 
 	def reset(self):
 
