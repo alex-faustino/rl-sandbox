@@ -1,21 +1,17 @@
 import torch, torch.utils.data
 import random, collections, math, time, datetime, os
 import numpy as np
-
+from tensorboardX import SummaryWriter
 from multiprocessing import Pool
-
-inner_neuron = 10
 
 class Net(torch.nn.Module):
     def __init__(self, observation_dim, action_dim):
         super(Net, self).__init__()
-        self.V_fc1 = torch.nn.Linear(observation_dim, inner_neuron).double()
-        self.V_fc2 = torch.nn.Linear(inner_neuron, inner_neuron).double()
-        self.V_fc3 = torch.nn.Linear(inner_neuron, inner_neuron).double()
-        self.V_fc4 = torch.nn.Linear(inner_neuron, inner_neuron).double()
-        self.V_fc5 = torch.nn.Linear(inner_neuron, 1).double()
-        self.mu_fc5 = torch.nn.Linear(inner_neuron, action_dim).double()
-        self.std_fc5 = torch.nn.Linear(inner_neuron, action_dim).double()
+        self.V_fc1 = torch.nn.Linear(observation_dim, 10).double()
+        self.V_fc2 = torch.nn.Linear(10, 10).double()
+        self.V_fc3 = torch.nn.Linear(10, 1).double()
+        self.mu_fc3 = torch.nn.Linear(10, action_dim).double()
+        self.std_fc3 = torch.nn.Linear(10, action_dim).double()
 
     def forward(self, x):
         """
@@ -26,11 +22,9 @@ class Net(torch.nn.Module):
         """
         x = torch.tanh(self.V_fc1(x))
         x = torch.tanh(self.V_fc2(x))
-        x = torch.tanh(self.V_fc3(x))
-        x = torch.tanh(self.V_fc4(x))
-        V = self.V_fc5(x)
-        mu = self.mu_fc5(x)
-        std = self.std_fc5(x)
+        V = self.V_fc3(x)
+        mu = self.mu_fc3(x)
+        std = self.std_fc3(x)
         std = torch.sigmoid(std) # adding a small number to std may improve robustness
         return (V, mu, std)
 
@@ -118,8 +112,8 @@ class PPOAgent(object):
         times_sample = []
         times_opt = []
 
-        
-
+        #writer = SummaryWriter('logdir' + log_prefix + '-' + datetime.datetime.now().isoformat())
+        writer = SummaryWriter();
         for iter in range(number_of_iterations):
             # Standard deviation annealing ##################################
 
@@ -201,6 +195,14 @@ class PPOAgent(object):
             end_time = time.time()
             times_opt.append(end_time - start_time)
 
+            writer.add_scalar('reward', rewards[-1], iter);
+            writer.add_scalar('loss', losses[-1], iter);
+            writer.add_scalar('loss_clip', losses_clip[-1], iter);
+            writer.add_scalar('loss_V', losses_V[-1], iter);
+            writer.add_scalar('loss_entropy', losses_entropy[-1], iter);
+            writer.add_scalar('std', stds[-1], iter);
+            writer.add_scalar('time_sample', times_sample[-1], iter);
+            writer.add_scalar('time_opt', times_opt[-1], iter);
 
         if use_multiprocess:
             pool_of_workers.close()
