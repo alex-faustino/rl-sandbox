@@ -95,8 +95,8 @@ class FastSLAM(gym.Env):
 		self.hxTrue = np.hstack((self.hxTrue, self.xTrue))
 
 		#calculate reward based on pose error
-		reward = self.get_reward_LM()
-		#reward = self.get_reward()
+		#reward = self.get_reward_LM()
+		reward = self.get_reward()
 
 		#get state vector
 		self.state = self.get_obs_fixedLM()
@@ -329,7 +329,7 @@ class FastSLAM(gym.Env):
 			lmx, lmy = 0.0, 0.0
 			for ip in range(N_PARTICLE):
 				lmx += self.particles[ip].w * self.particles[ip].lm[ilm,0]
-				lmy += self.particles[ip].w * self.particles[ip].lm[ilm,1]			
+				lmy += self.particles[ip].w * self.particles[ip].lm[ilm,1]
 			lmx -= self.x_state[0]
 			lmy -= self.x_state[1]
 
@@ -359,7 +359,7 @@ class FastSLAM(gym.Env):
 
 		elif self.reward_type is 'Covariance':
 			
-			x_cov, y_cov, yaw_cov = self.get_particle_covariance()					
+			x_cov, y_cov, yaw_cov = self.get_particle_covariance()
 
 			pos_cov = np.sqrt(x_cov**2 + y_cov**2)# + np.random.randn()*R[0,0]
 			yaw_cov = np.var(yaw_cov)# + np.random.randn()*R[1,1]

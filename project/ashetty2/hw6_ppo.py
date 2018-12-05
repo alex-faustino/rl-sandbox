@@ -167,7 +167,7 @@ class PPOAgent(object):
                 # Sample a subset of the data (minibatch)
                 sampled_indexes = random.sample(range(len(dataset)), minibatch_size)
                 (s, a, old_log_pi, V_targ, A) = dataset[sampled_indexes]
-                
+                print(dataset[sampled_indexes])
                 (V, mu, std) = self.net(s)
                 dist = torch.distributions.normal.Normal(mu, std)
                 log_pi = dist.log_prob(a).sum(dim=1)
