@@ -2,9 +2,9 @@
 import numpy as np
 import gym
 import random
-from cv2 import resize
 import os
 from constants import ROLLOUT_DIR, NUM_EPISODES, NUM_STEPS, HEIGHT, WIDTH
+from PIL import Image
 
 if not os.path.exists(ROLLOUT_DIR):
     os.makedirs(ROLLOUT_DIR)
@@ -18,7 +18,7 @@ for ep in range(NUM_EPISODES):
     state = env.reset()
     for step in range(NUM_STEPS):
         im = env.render(mode='rgb_array')
-        im = resize(im, (HEIGHT, WIDTH))
+        im = Image.fromarray(im).resize((HEIGHT, WIDTH), Image.BILINEAR)
         frames.append(im)
 
         action = env.action_space.sample()
