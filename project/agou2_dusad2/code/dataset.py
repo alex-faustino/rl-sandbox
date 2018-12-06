@@ -14,7 +14,8 @@ class VAEDataset(Dataset):
         num_frames = 0
         for episode in episodes:
             ep_frames = np.load(os.path.join(ROLLOUT_DIR, episode))['frames']
-            self.frames[num_frames:num_frames + len(ep_frames)] = ep_frames
+            start, end = num_frames, min(num_frames + len(ep_frames), len(self.frames))
+            self.frames[num_frames:num_frames + len(ep_frames)] = ep_frames[:end-start]
             num_frames = min(num_frames + len(ep_frames), size)
             if num_frames == size:
                 break

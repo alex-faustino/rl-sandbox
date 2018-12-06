@@ -43,7 +43,7 @@ class VAE(nn.Module):
         
         self.decoder = nn.Sequential(
             nn.Linear(self.z_size,4*self.conv_sizes[3]),
-            Reshape((-1,  4*LATENT_SIZE, 1, 1)),
+            Reshape((-1,  4*self.conv_sizes[3], 1, 1)),
             nn.ConvTranspose2d(4*self.conv_sizes[3], self.conv_sizes[2], kernel_size=5, stride=2),
             nn.ReLU(),
             nn.ConvTranspose2d(self.conv_sizes[2], self.conv_sizes[1], kernel_size=5, stride=2),
@@ -69,7 +69,7 @@ class VAE(nn.Module):
         
         return original, decoded, encoded, z, mu, logvar
     
-    def reconstuction_loss(self, input_imgs, output_imgs):
+    def reconstruction_loss(self, input_imgs, output_imgs):
         return torch.mean(torch.sum((output_imgs - input_imgs)**2, (1, 2, 3)))
 
     def kl_loss(self, logvar, mu):
@@ -79,5 +79,5 @@ class VAE(nn.Module):
         return kl_loss  
     
     def loss(self, original, decoded, mu, logvar):
-        return self.kl_loss(logvar, mu) + self.reconstuction_loss(original, decoded)
+        return self.kl_loss(logvar, mu) + self.reconstruction_loss(original, decoded)
     
