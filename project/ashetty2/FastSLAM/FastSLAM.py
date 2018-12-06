@@ -1,4 +1,3 @@
-from IPython import display
 import gym
 from gym import error, spaces, utils
 from gym.utils import seeding
@@ -18,20 +17,20 @@ Rsim = np.diag([0.5, np.deg2rad(10.0)])**2
 OFFSET_YAWRATE_NOISE = 0.001
 
 BOX_HALF_SIZE = 20.0
-TRAJ_AMP = 0.5*0
+TRAJ_AMP = 0.2*0
 TRAJ_FREQ = 2.0
 INIT_YAW = TRAJ_AMP*TRAJ_FREQ
 TRAJ_XLIM = [-1.0, 10.0]
-TRAJ_YLIM = [-TRAJ_AMP-1.0, TRAJ_AMP+1.0]
+TRAJ_YLIM = [-TRAJ_AMP-2.0, TRAJ_AMP+2.0]
 PLT_XLIM = [TRAJ_XLIM[0]-BOX_HALF_SIZE, TRAJ_XLIM[1]+BOX_HALF_SIZE]
 PLT_YLIM = [TRAJ_YLIM[0]-BOX_HALF_SIZE, TRAJ_YLIM[1]+BOX_HALF_SIZE]
-TIME_OFFSET = 50.0
+TIME_OFFSET = 3.0
 
 LM_BOX_SIZE = 8.0
-N_LM = 5
+N_LM = 3
 
 MAX_ACTION_DEG = 10.0  #maximum possible action per step
-MAX_RANGE = 40.0  # maximum observation range
+MAX_RANGE = 30.0  # maximum observation range
 M_DIST_TH = 2.0  # Threshold of Mahalanobis distance for data association.
 STATE_SIZE = 3  # State size [x,y,yaw]
 LM_SIZE = 2  # LM srate size [x,y]
@@ -117,8 +116,6 @@ class FastSLAM(gym.Env):
 		self.time = 0.0
 
 		self.theta = 0.0
-
-		self.amp_scale = np.random.uniform(-1.0,1.0,1)[0]
         
 		self.xEst = np.matrix(np.zeros((STATE_SIZE, 1)))		
 		self.xTrue = np.matrix(np.zeros((STATE_SIZE, 1)))
@@ -146,14 +143,6 @@ class FastSLAM(gym.Env):
 			lmy = np.random.uniform(lmcy-LM_BOX_SIZE/2.0,lmcy+LM_BOX_SIZE/2.0,N_LM)[:,None]
 
 			self.RFID = np.hstack((lmx, lmy))
-			#self.RFID = np.array([[1.86912964, 14.6324081],
-			#		[2.19225334, 14.72220263],
-			#		[-1.17720019,  9.53217515],
-			#		[3.67062618, 10.30577019],
-			#		[0.70654015, 15.56967821],
-			#		])
-
-			#print(self.RFID)
 
 			self.particles = [Particle(N_LM) for i in range(N_PARTICLE)]
 
@@ -186,7 +175,9 @@ class FastSLAM(gym.Env):
 
 	def render_world(self):
 
-		plt.figure(figsize=(4,4))
+		fig = plt.figure(figsize=(4,4))
+		ax = fig.add_subplot(111)
+        
 		plt.plot(self.RFID[:, 0], self.RFID[:, 1], "*k")
 
 		if self.time > 0.0:
@@ -213,8 +204,13 @@ class FastSLAM(gym.Env):
 		x2 = x0 + MAX_RANGE*np.cos(theta2)
 		y2 = y0 + MAX_RANGE*np.sin(theta2)
 
+		thetas = np.arange(theta2, theta1, np.deg2rad(1.0))
+		xs = x0 + MAX_RANGE*np.cos(thetas)
+		ys = y0 + MAX_RANGE*np.sin(thetas)
+        
 		plt.plot([x0,x1], [y0,y1], 'g-')
 		plt.plot([x0,x2], [y0,y2], 'g-')
+		plt.scatter(xs, ys, s=1.0, c='g')
 
 		plt.title('Time: ' + str(round(self.time, 2)))
 		plt.xlim(PLT_XLIM)
@@ -272,9 +268,14 @@ class FastSLAM(gym.Env):
 		x2 = x0 + MAX_RANGE*np.cos(theta2)
 		y2 = y0 + MAX_RANGE*np.sin(theta2)
 
+		thetas = np.arange(theta2, theta1, np.deg2rad(1.0))
+		xs = x0 + MAX_RANGE*np.cos(thetas)
+		ys = y0 + MAX_RANGE*np.sin(thetas)
+        
 		plt.plot([x0,x1], [y0,y1], 'g-')
 		plt.plot([x0,x2], [y0,y2], 'g-')
-
+		plt.scatter(xs, ys, s=1.0, c='g')
+        
 		plt.xlim(PLT_XLIM)
 		plt.ylim(PLT_YLIM)
 		plt.grid(True)
@@ -292,7 +293,7 @@ class FastSLAM(gym.Env):
 			lmx, lmy = 0.0, 0.0
 			for ip in range(N_PARTICLE):
 				lmx += self.particles[ip].w * self.particles[ip].lm[ilm,0]
-				lmy += self.particles[ip].w * self.particles[ip].lm[ilm,1]			
+				lmy += self.particles[ip].w * self.particles[ip].lm[ilm,1]
 			lmx -= self.x_state[0]
 			lmy -= self.x_state[1]
 
@@ -338,8 +339,8 @@ class FastSLAM(gym.Env):
 			newx = lmx*np.cos(self.x_state[2]) + lmy*np.sin(self.x_state[2])
 			newy = -lmx*np.sin(self.x_state[2]) + lmy*np.cos(self.x_state[2])
 
-			lm_pos[ilm*2] = newx / PLT_XLIM[1]
-			lm_pos[ilm*2+1] = newy / PLT_YLIM[1]
+			lm_pos[ilm*2] = newx# / PLT_XLIM[1]
+			lm_pos[ilm*2+1] = newy# / PLT_YLIM[1]
 
 		state = np.hstack(( lm_pos, np.cos(self.theta), np.sin(self.theta) ))
 

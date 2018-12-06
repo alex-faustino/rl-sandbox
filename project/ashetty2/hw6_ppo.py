@@ -1,7 +1,6 @@
 import torch, torch.utils.data
 import random, collections, math, time, datetime, os
 import numpy as np
-# from tensorboardX import SummaryWriter
 from multiprocessing import Pool
 
 class Net(torch.nn.Module):
@@ -37,9 +36,24 @@ class PPOAgent(object):
         self.net = Net(self.env.observation_dim, self.env.action_dim)
         self.optimizer = torch.optim.Adam(self.net.parameters())
 
-    def save_model(self, desc):
-        torch.save(self.net.state_dict(), 'saved_models/' + desc + '.pth')
-        print('==== model saved ====')
+    def save_checkpoint(self, sm, br, r, l, lc, lv, le, s, ts, to):
+        
+        PATH = 'saved_models/' + sm + '.pth'
+        
+        torch.save({
+            'model_state_dict': self.net.state_dict(),
+            'best_reward': br,
+            'rewards': r,
+            'losses': l,
+            'losses_clip': lc,
+            'losses_V': lv,
+            'losses_entropy': le,
+            'stds': s,
+            'times_sample': ts,
+            'times_opt': to
+            }, PATH)
+
+        print('==== model ' + sm + ' saved ====')
         
     def action_greedy(self, s):
         with torch.no_grad():
@@ -94,7 +108,7 @@ class PPOAgent(object):
         np.random.seed(pid + t)
         torch.manual_seed(pid + t)
 
-    def train(self, description, load_model, gamma, lamb, number_of_actors, number_of_iterations, horizon, number_of_epochs, minibatch_size, logstd_initial, logstd_final, epsilon, use_multiprocess=True):
+    def train(self, save_model, load_model, gamma, lamb, number_of_actors, number_of_iterations, horizon, number_of_epochs, minibatch_size, logstd_initial, logstd_final, epsilon, use_multiprocess=True):
         if use_multiprocess:
             number_of_workers = os.cpu_count()
             pool_of_workers = Pool(number_of_workers, self._seed_worker, (int(time.time()),))
@@ -107,7 +121,6 @@ class PPOAgent(object):
             envs.append(env)
 
         best_reward = 0.0
-            
         rewards = []
         losses = []
         losses_clip = []
@@ -118,29 +131,31 @@ class PPOAgent(object):
         times_opt = []
 
         if load_model is not '':
-            self.net.load_state_dict(torch.load('saved_models/' + load_model + '.pth'))
-        
-#         writer = SummaryWriter('logdir/' + log_prefix + '-' + datetime.datetime.now().isoformat())
-
+            PATH = 'saved_models/' + load_model + '.pth'
+            checkpoint = torch.load(PATH)
+            self.net.load_state_dict(checkpoint['model_state_dict'])
+            self.net.train()
+            
+            best_reward = checkpoint['best_reward']
+            rewards = checkpoint['rewards']
+            losses = checkpoint['losses']
+            losses_clip = checkpoint['losses_clip']
+            losses_V = checkpoint['losses_V']
+            losses_entropy = checkpoint['losses_entropy']
+            stds = checkpoint['stds']
+            times_sample = checkpoint['times_sample']
+            times_opt = checkpoint['times_opt']
+            print('==== model ' + load_model + ' loaded ====')
+                
+        if save_model is '':
+            model_logname = 'temp'
+        else:
+            model_logname = save_model + '_latest'
+                
         for iter in range(number_of_iterations):
-            # Standard deviation annealing ##################################
 
-            #w_std = (iter / number_of_iterations)
-            #std = math.exp((1 - w_std) * logstd_initial + w_std * logstd_final) * torch.ones(self.env.action_dim).double()
-            #stds.append(std.item())
-
-            # Sampling ######################################################
-
-            # It's important to measure real-time (time.time()) and not cpu time
-            # (time.clock()) if we want to use multiprocessing, because otherwise
-            # the timer won't count what's done on the other CPUs.
             start_time = time.time()
             if use_multiprocess:
-                # If you create the pool outside torch.no_grad(), you'll get
-                # an error, because no_grad() isn't preserved for workers that
-                # have already been created.
-                #
-                # The torch.multiprocessing may handle these sorts of issues.
                 datasets = pool_of_workers.starmap(
                     self._run_actor_for_training,
                     [(self.net, envs[actor], horizon, gamma, lamb) for actor in range(number_of_actors)]
@@ -151,16 +166,14 @@ class PPOAgent(object):
                     datasets.append(self._run_actor_for_training(self.net, envs[actor], horizon, gamma, lamb))
                     
             with torch.no_grad():
-                # datasets looks like [{'s': s0, 'a': a0, ...}, {'s': s1, 'a': a1, ...}, ...]
-                # we want {'s': cat(s0, s1, ...), 'a': cat(a0, a1, ...), ...}
                 data = {k: torch.cat([d[k] for d in datasets]) for k in datasets[0].keys()}
 
                 tmp_r = torch.mean(data['r']).item()
                 print(iter, tmp_r)
                 rewards.append(tmp_r)
 
-                if tmp_r > best_reward:
-                    self.save_model(description)
+                if (save_model is not '') and (tmp_r>best_reward):
+                    self.save_checkpoint(save_model + '_best', tmp_r, rewards, losses, losses_clip, losses_V, losses_entropy, stds, times_sample, times_opt)
                     best_reward = tmp_r
                 
             end_time = time.time()
@@ -207,16 +220,10 @@ class PPOAgent(object):
 
             end_time = time.time()
             times_opt.append(end_time - start_time)
-
-#             writer.add_scalar('reward', rewards[-1], iter);
-#             writer.add_scalar('loss', losses[-1], iter);
-#             writer.add_scalar('loss_clip', losses_clip[-1], iter);
-#             writer.add_scalar('loss_V', losses_V[-1], iter);
-#             writer.add_scalar('loss_entropy', losses_entropy[-1], iter);
-#             writer.add_scalar('std', stds[-1], iter);
-#             writer.add_scalar('time_sample', times_sample[-1], iter);
-#             writer.add_scalar('time_opt', times_opt[-1], iter);
-
+            
+            # Save latest ##################################################
+            self.save_checkpoint(model_logname, best_reward, rewards, losses, losses_clip, losses_V, losses_entropy, stds, times_sample, times_opt)
+                
         if use_multiprocess:
             pool_of_workers.close()
 
