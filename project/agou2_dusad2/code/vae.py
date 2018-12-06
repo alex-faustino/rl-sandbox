@@ -38,11 +38,11 @@ class VAE(nn.Module):
             nn.ReLU(),
         ).to(self.device)
         
-        self.mu = nn.Linear(self.conv_sizes[1]*5*5, self.z_size).to(self.device)
-        self.logvar = nn.Linear(self.conv_sizes[1]*5*5, self.z_size).to(self.device)
+        self.mu = nn.Linear(self.conv_sizes[3]*2*2, self.z_size).to(self.device)
+        self.logvar = nn.Linear(self.conv_sizes[3]*2*2, self.z_size).to(self.device)
         
         self.decoder = nn.Sequential(
-            nn.Linear(self.z_size,4*self.conv_sizes[1]),
+            nn.Linear(self.z_size,4*self.conv_sizes[3]),
             Reshape((-1,  4*self.conv_sizes[3], 1, 1)),
             nn.ConvTranspose2d(4*self.conv_sizes[3], self.conv_sizes[2], kernel_size=5, stride=2),
             nn.ReLU(),
