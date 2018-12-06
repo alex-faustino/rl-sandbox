@@ -92,6 +92,8 @@ class attitudeDynamics(core.Env):
         high = np.array([1.0, 1.0, 1.0, 1.0, self.MAX_VEL, self.MAX_VEL, self.MAX_VEL])
         low = -high
         self.observation_space = spaces.Box(low=low, high=high)
+        self.observation_dim = 7
+        self.action_dim = 3
         high = np.array([self.torque_max, self.torque_max, self.torque_max])
         low = -high
         self.action_space = spaces.Box(low=low, high=high)

@@ -6,7 +6,7 @@ Created on Thu Sep  6 02:14:59 2018
 """
 #from joblib import Parallel, delayed
 import gym,sys
-import attitudeDynamics
+import sat_mujocoenv
 import numpy as np
 
 from collections import namedtuple

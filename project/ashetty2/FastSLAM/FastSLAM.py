@@ -11,17 +11,17 @@ Q = np.diag([0.1, np.deg2rad(1.0)])**2
 R = np.diag([1.0, np.deg2rad(20.0)])**2
 
 #  Simulation parameter
-Qsim = 0*np.diag([0.3, np.deg2rad(2.0)])**2
+Qsim = np.diag([0.3, np.deg2rad(2.0)])**2
 Rsim = np.diag([0.5, np.deg2rad(10.0)])**2
 #OFFSET_YAWRATE_NOISE = 0.05*np.random.uniform(-1,1,1)[0]
 #OFFSET_YAWRATE_NOISE = 0.05*(1 if np.random.random() < 0.5 else -1)
-OFFSET_YAWRATE_NOISE = 0.001*0
+OFFSET_YAWRATE_NOISE = 0.001
 
 BOX_HALF_SIZE = 20.0
 TRAJ_AMP = 0.5*0
 TRAJ_FREQ = 2.0
 INIT_YAW = TRAJ_AMP*TRAJ_FREQ
-TRAJ_XLIM = [-1.0, 1.0]
+TRAJ_XLIM = [-1.0, 10.0]
 TRAJ_YLIM = [-TRAJ_AMP-1.0, TRAJ_AMP+1.0]
 PLT_XLIM = [TRAJ_XLIM[0]-BOX_HALF_SIZE, TRAJ_XLIM[1]+BOX_HALF_SIZE]
 PLT_YLIM = [TRAJ_YLIM[0]-BOX_HALF_SIZE, TRAJ_YLIM[1]+BOX_HALF_SIZE]
@@ -30,12 +30,12 @@ TIME_OFFSET = 50.0
 LM_BOX_SIZE = 8.0
 N_LM = 5
 
-MAX_ACTION_DEG = 5.0  #maximum possible action per step
+MAX_ACTION_DEG = 10.0  #maximum possible action per step
 MAX_RANGE = 40.0  # maximum observation range
 M_DIST_TH = 2.0  # Threshold of Mahalanobis distance for data association.
 STATE_SIZE = 3  # State size [x,y,yaw]
 LM_SIZE = 2  # LM srate size [x,y]
-N_PARTICLE = 1  # number of particle
+N_PARTICLE = 20  # number of particle
 NTH = N_PARTICLE / 1.0  # Number of particle for re-sampling
 
 BIN_SIZE = 15.0  #degrees
@@ -61,10 +61,12 @@ class FastSLAM(gym.Env):
 
 
 	DT = 0.1  # time tick [s]
+	observation_dim = 2*N_LM + 2
+	action_dim = 1
 
 	def __init__(self):
 		self.state = None
-		self.reward_type = 'Error'
+# 		self.reward_type = 'Covariance'
 
 	def step(self, action):
 
@@ -79,7 +81,7 @@ class FastSLAM(gym.Env):
 		self.xTrue, self.z, self.xDR, self.ud = self.observation(self.xTrue, self.xDR, self.u, self.RFID)
 		self.particles = self.fast_slam2(self.particles, self.ud, self.z)
 		self.xEst = self.calc_final_state(self.particles)
-		self.xEst = self.xTrue
+		#self.xEst = self.xTrue
 		self.x_state = self.xEst[0: STATE_SIZE]
 		#add state varaibles to info
 		info = {}
@@ -93,7 +95,8 @@ class FastSLAM(gym.Env):
 		self.hxTrue = np.hstack((self.hxTrue, self.xTrue))
 
 		#calculate reward based on pose error
-		reward = self.get_reward_LM()		
+		#reward = self.get_reward_LM()
+		reward = self.get_reward()
 
 		#get state vector
 		self.state = self.get_obs_fixedLM()
@@ -103,12 +106,20 @@ class FastSLAM(gym.Env):
 		#return info
 
 
+	def copy(self):
+		c = gym.make('FastSLAM-v0')
+		c.state = None
+# 		c.reward_type = 'Covariance'
+		return c
+
 	def reset(self):
 
 		self.time = 0.0
 
 		self.theta = 0.0
 
+		self.amp_scale = np.random.uniform(-1.0,1.0,1)[0]
+        
 		self.xEst = np.matrix(np.zeros((STATE_SIZE, 1)))		
 		self.xTrue = np.matrix(np.zeros((STATE_SIZE, 1)))
 		self.xDR = np.matrix(np.zeros((STATE_SIZE, 1)))  # Dead reckoning
@@ -273,11 +284,10 @@ class FastSLAM(gym.Env):
 	def get_obs(self):
 
 		n_bins = int(360/BIN_SIZE)
-		n_landmarks = np.ones(n_bins)*1000
-		closest_dists = np.ones(n_bins)*1000
+		n_landmarks = -1.0*np.ones(n_bins)#*1000
+		closest_dists = -1.0*np.ones(n_bins)#*1000
 	
 		lmSeen = self.particles[0].lmSeen
-
 		for ilm in lmSeen:
 			lmx, lmy = 0.0, 0.0
 			for ip in range(N_PARTICLE):
@@ -321,7 +331,7 @@ class FastSLAM(gym.Env):
 			lmx, lmy = 0.0, 0.0
 			for ip in range(N_PARTICLE):
 				lmx += self.particles[ip].w * self.particles[ip].lm[ilm,0]
-				lmy += self.particles[ip].w * self.particles[ip].lm[ilm,1]			
+				lmy += self.particles[ip].w * self.particles[ip].lm[ilm,1]
 			lmx -= self.x_state[0]
 			lmy -= self.x_state[1]
 
@@ -338,28 +348,29 @@ class FastSLAM(gym.Env):
 
 	def get_reward(self):
 
-		if self.reward_type is 'Error':
+# 		if self.reward_type is 'Error':
 
-			pos_error = np.linalg.norm((self.x_state-self.xTrue)[0:2])
-			yaw_error = np.abs( (self.x_state-self.xTrue)[2] )
-			if yaw_error > np.pi:
-				yaw_error = 2*np.pi - yaw_error
-			yaw_error = np.rad2deg(yaw_error)
+# 			pos_error = np.linalg.norm((self.x_state-self.xTrue)[0:2])
+# 			yaw_error = np.abs( (self.x_state-self.xTrue)[2] )
+# 			if yaw_error > np.pi:
+# 				yaw_error = 2*np.pi - yaw_error
+# 			yaw_error = np.rad2deg(yaw_error)
 
-			r = 1 / ( pos_error + ALPHA*yaw_error + 1e-3)
-			return r.item(0)/100.0
+# 			r = 1 / ( pos_error + ALPHA*yaw_error + 1e-3)
+# 			return r.item(0)/100.0
 
-		elif self.reward_type is 'Covariance':
+# 		elif self.reward_type is 'Covariance':
 			
-			x_cov, y_cov, yaw_cov = self.get_particle_covariance()					
+		x_cov, y_cov, yaw_cov = self.get_particle_covariance()
 
-			pos_cov = np.sqrt(x_cov**2 + y_cov**2)# + np.random.randn()*R[0,0]
-			yaw_cov = np.var(yaw_cov)# + np.random.randn()*R[1,1]
+		pos_cov = np.sqrt(x_cov**2 + y_cov**2)# + np.random.randn()*R[0,0]
+		yaw_cov = np.var(yaw_cov)# + np.random.randn()*R[1,1]
 
-			r = 1 / ( pos_cov + ALPHA*yaw_cov + 1e-3)
-			return r/100.0
-		
-		return
+		r = 1 / ( pos_cov + ALPHA*yaw_cov + 1e-3)
+		return r/100.0
+        
+# 		print('Unknown reward type!')
+# 		return
 
 	def get_reward_LM(self):
 
@@ -457,18 +468,18 @@ class FastSLAM(gym.Env):
 		s = math.sin(self.pi_2_pi(particle.yaw + b))
 		c = math.cos(self.pi_2_pi(particle.yaw + b))
 
-		#particle.lm[lm_id, 0] = particle.x + r * c
-		#particle.lm[lm_id, 1] = particle.y + r * s
+		particle.lm[lm_id, 0] = particle.x + r * c
+		particle.lm[lm_id, 1] = particle.y + r * s
 
 		#remove later
-		particle.lm[lm_id, 0] = self.RFID[lm_id, 0]
-		particle.lm[lm_id, 1] = self.RFID[lm_id, 1]
+		#particle.lm[lm_id, 0] = self.RFID[lm_id, 0]
+		#particle.lm[lm_id, 1] = self.RFID[lm_id, 1]
 
 		# covariance
 		Gz = np.matrix([[c, -r * s],
 				[s, r * c]])
 
-		particle.lmP[2 * lm_id:2 * lm_id + 2] = 0 * Gz * Q * Gz.T
+		particle.lmP[2 * lm_id:2 * lm_id + 2] = Gz * Q * Gz.T
 
 		particle.lmSeen.append(lm_id)
 
@@ -545,7 +556,7 @@ class FastSLAM(gym.Env):
 			invS = np.linalg.inv(S)
 		except np.linalg.linalg.LinAlgError:
 			#add later
-			#print("Singular!")
+			print("Singular!")
 			return 1.0
 
 		num = math.exp(-0.5 * dz.T * invS * dz)
