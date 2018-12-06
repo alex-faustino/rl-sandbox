@@ -37,6 +37,10 @@ class PPOAgent(object):
         self.net = Net(self.env.observation_dim, self.env.action_dim)
         self.optimizer = torch.optim.Adam(self.net.parameters())
 
+    def save_model(self, desc):
+        torch.save(self.net.state_dict(), 'saved_models/' + desc + '.pth')
+        print('==== model saved ====')
+        
     def action_greedy(self, s):
         with torch.no_grad():
             (V, mu, std) = self.net(torch.from_numpy(s))
@@ -54,7 +58,7 @@ class PPOAgent(object):
             r = np.zeros(horizon+1)
             log_pi = np.zeros(horizon+1)
             V = np.zeros(horizon+1)
-
+          
             s_next = env.state
             for t in range(horizon+1):
                 s[t,:] = s_next
@@ -62,7 +66,6 @@ class PPOAgent(object):
                 dist = torch.distributions.normal.Normal(mu_t, std_t)
                 a[t] = dist.sample().numpy()
                 log_pi[t] = dist.log_prob(a[t]).sum()
-
                 (s_next, r[t], done, info) = env.step(a[t])
 
             delta = r[:-1] + gamma * V[1:] - V[:-1]
@@ -91,7 +94,7 @@ class PPOAgent(object):
         np.random.seed(pid + t)
         torch.manual_seed(pid + t)
 
-    def train(self, gamma, lamb, number_of_actors, number_of_iterations, horizon, number_of_epochs, minibatch_size, logstd_initial, logstd_final, epsilon, use_multiprocess=True):
+    def train(self, description, load_model, gamma, lamb, number_of_actors, number_of_iterations, horizon, number_of_epochs, minibatch_size, logstd_initial, logstd_final, epsilon, use_multiprocess=True):
         if use_multiprocess:
             number_of_workers = os.cpu_count()
             pool_of_workers = Pool(number_of_workers, self._seed_worker, (int(time.time()),))
@@ -103,6 +106,8 @@ class PPOAgent(object):
             env.reset()
             envs.append(env)
 
+        best_reward = 0.0
+            
         rewards = []
         losses = []
         losses_clip = []
@@ -112,6 +117,9 @@ class PPOAgent(object):
         times_sample = []
         times_opt = []
 
+        if load_model is not '':
+            self.net.load_state_dict(torch.load('saved_models/' + load_model + '.pth'))
+        
 #         writer = SummaryWriter('logdir/' + log_prefix + '-' + datetime.datetime.now().isoformat())
 
         for iter in range(number_of_iterations):
@@ -141,14 +149,20 @@ class PPOAgent(object):
                 datasets = []
                 for actor in range(number_of_actors):
                     datasets.append(self._run_actor_for_training(self.net, envs[actor], horizon, gamma, lamb))
-
+                    
             with torch.no_grad():
                 # datasets looks like [{'s': s0, 'a': a0, ...}, {'s': s1, 'a': a1, ...}, ...]
                 # we want {'s': cat(s0, s1, ...), 'a': cat(a0, a1, ...), ...}
                 data = {k: torch.cat([d[k] for d in datasets]) for k in datasets[0].keys()}
 
-                rewards.append(torch.mean(data['r']).item())
+                tmp_r = torch.mean(data['r']).item()
+                print(iter, tmp_r)
+                rewards.append(tmp_r)
 
+                if tmp_r > best_reward:
+                    self.save_model(description)
+                    best_reward = tmp_r
+                
             end_time = time.time()
             times_sample.append(end_time - start_time)
 
@@ -167,7 +181,6 @@ class PPOAgent(object):
                 # Sample a subset of the data (minibatch)
                 sampled_indexes = random.sample(range(len(dataset)), minibatch_size)
                 (s, a, old_log_pi, V_targ, A) = dataset[sampled_indexes]
-                print(dataset[sampled_indexes])
                 (V, mu, std) = self.net(s)
                 dist = torch.distributions.normal.Normal(mu, std)
                 log_pi = dist.log_prob(a).sum(dim=1)
