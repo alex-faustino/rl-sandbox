@@ -86,14 +86,22 @@ class PPOAgent(object):
         return torch.min(A * ratio, A * torch.clamp(ratio, 1 - epsilon, 1 + epsilon))
 
     def _seed_worker(self, t):
+        # Be sure to seed ALL random number generators that you
+        # plan to use, with a number that is unique for each worker.
         pid = os.getpid()
         random.seed(pid + t)
         np.random.seed(pid + t)
         torch.manual_seed(pid + t)
 
-    def train(self, log_prefix, gamma, lamb, number_of_actors, number_of_iterations, horizon, number_of_epochs, minibatch_size, logstd_initial, logstd_final, epsilon, use_multiprocess=True):
+    def train(self, log_prefix, gamma, lamb, number_of_actors, number_of_iterations, horizon, number_of_epochs, minibatch_size, logstd_initial, logstd_final, epsilon, use_multiprocess=True, number_of_workers=None):
         if use_multiprocess:
-            number_of_workers = os.cpu_count()
+            if number_of_workers is None:
+                # Create a pool of as many workers as there are cores.
+                number_of_workers = os.cpu_count()
+            else:
+                assert (number_of_workers > 0) and isinstance(number_of_workers, int), 'number_of_workers, if defined, must be a positive integer'
+            # The function _seed_worker is called with the argument
+            # (int(time.time()),) as each worker is initialized.
             pool_of_workers = Pool(number_of_workers, self._seed_worker, (int(time.time()),))
 
         envs = []
@@ -115,12 +123,6 @@ class PPOAgent(object):
         writer = SummaryWriter('logdir/' + log_prefix + '-' + datetime.datetime.now().isoformat())
 
         for iter in range(number_of_iterations):
-            # Standard deviation annealing ##################################
-
-            #w_std = (iter / number_of_iterations)
-            #std = math.exp((1 - w_std) * logstd_initial + w_std * logstd_final) * torch.ones(self.env.action_dim).double()
-            #stds.append(std.item())
-
             # Sampling ######################################################
 
             # It's important to measure real-time (time.time()) and not cpu time
@@ -128,11 +130,12 @@ class PPOAgent(object):
             # the timer won't count what's done on the other CPUs.
             start_time = time.time()
             if use_multiprocess:
-                # If you create the pool outside torch.no_grad(), you'll get
-                # an error, because no_grad() isn't preserved for workers that
-                # have already been created.
+                # Allocate actors to workers and simulate.
                 #
-                # The torch.multiprocessing may handle these sorts of issues.
+                # If you call torch.no_grad() outside _run_actor_for_training, you
+                # will get an error, because no_grad() is not preserved for workers
+                # that have already been created. (The torch.multiprocessing module
+                # may handle these sorts of issues.)
                 datasets = pool_of_workers.starmap(
                     self._run_actor_for_training,
                     [(self.net, envs[actor], horizon, gamma, lamb) for actor in range(number_of_actors)]
