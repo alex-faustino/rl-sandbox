@@ -74,7 +74,7 @@ class VAE(nn.Module):
 
     def kl_loss(self, logvar, mu):
         kl_loss = -0.5 * torch.sum(1 + logvar - mu**2 - torch.exp(logvar), 1)
-        kl_loss = torch.max(kl_loss, torch.FloatTensor([self.kl_tolerance*self.z_size]).expand_as(kl_loss)).cuda(self.device))
+        kl_loss = torch.max(kl_loss, torch.FloatTensor([self.kl_tolerance*self.z_size]).expand_as(kl_loss).cuda(self.device))
         kl_loss = torch.mean(kl_loss)
         return kl_loss  
     
