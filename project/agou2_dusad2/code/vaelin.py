@@ -25,19 +25,20 @@ class VAELin(nn.Module):
         
         super(VAELin, self).__init__()
         
+        self.inter_size = 800
         self.encoder = nn.Sequential(
             Reshape((-1, 3*64*64)),
-            nn.Linear(3*64*64, 400),
+            nn.Linear(3*64*64, self.inter_size),
             nn.ReLU()
         ).to(self.device)
         
-        self.mu = nn.Linear(400, self.z_size).to(self.device)
-        self.logvar = nn.Linear(400, self.z_size).to(self.device)
+        self.mu = nn.Linear(self.inter_size, self.z_size).to(self.device)
+        self.logvar = nn.Linear(self.inter_size, self.z_size).to(self.device)
         
         self.decoder = nn.Sequential(
-            nn.Linear(self.z_size, 400),
+            nn.Linear(self.z_size, self.inter_size),
             nn.ReLU(),
-            nn.Linear(400, 3*64*64),
+            nn.Linear(self.inter_size, 3*64*64),
             Reshape((-1, 3,64,64)),
             nn.Sigmoid()
         ).to(self.device)
@@ -66,5 +67,5 @@ class VAELin(nn.Module):
     def loss(self, original, decoded, mu, logvar):
         kl =  self.kl_loss(logvar, mu)
         recon = self.reconstruction_loss(original, decoded)
-        return kl + recon
+        return kl + recon, kl, recon
     
