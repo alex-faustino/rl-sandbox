@@ -5,13 +5,14 @@ from tensorboardX import SummaryWriter
 from multiprocessing import Pool
 
 class Net(torch.nn.Module):
-    def __init__(self, observation_dim, action_dim):
+
+    def __init__(self, observation_dim, action_dim,inner_layer = 10):
         super(Net, self).__init__()
-        self.V_fc1 = torch.nn.Linear(observation_dim, 10).double()
-        self.V_fc2 = torch.nn.Linear(10, 10).double()
-        self.V_fc3 = torch.nn.Linear(10, 1).double()
-        self.mu_fc3 = torch.nn.Linear(10, action_dim).double()
-        self.std_fc3 = torch.nn.Linear(10, action_dim).double()
+        self.V_fc1 = torch.nn.Linear(observation_dim, inner_layer).double()
+        self.V_fc2 = torch.nn.Linear(inner_layer, inner_layer).double()
+        self.V_fc3 = torch.nn.Linear(inner_layer, 1).double()
+        self.mu_fc3 = torch.nn.Linear(inner_layer, action_dim).double()
+        self.std_fc3 = torch.nn.Linear(inner_layer, action_dim).double()
 
     def forward(self, x):
         """
@@ -20,8 +21,8 @@ class Net(torch.nn.Module):
         V: scalar value function
         mu: mean of action distribution
         """
-        x = torch.tanh(self.V_fc1(x))
-        x = torch.tanh(self.V_fc2(x))
+        x = torch.relu(self.V_fc1(x))
+        x = torch.relu(self.V_fc2(x))
         V = self.V_fc3(x)
         mu = self.mu_fc3(x)
         std = self.std_fc3(x)
@@ -34,7 +35,7 @@ class PPOAgent(object):
         self.reset()
 
     def reset(self):
-        self.net = Net(self.env.observation_dim, self.env.action_dim)
+        self.net = Net(self.env.observation_dim, self.env.action_dim,10)
         self.optimizer = torch.optim.Adam(self.net.parameters())
 
     def action_greedy(self, s):
@@ -47,7 +48,9 @@ class PPOAgent(object):
             (V, mu, std) = self.net(torch.from_numpy(s))
             return V.item()
 
-    def _run_actor_for_training(self, net, env, horizon, gamma, lamb):
+    def _run_actor_for_training(self, net, env, horizon, gamma, lamb,i,act):
+        if((i%10 == 0) & (act == 0) ):#& (i != 0)
+            print("percent done: ",i)
         with torch.no_grad():
             s = np.zeros((horizon+1, env.observation_dim))
             a = np.zeros((horizon+1, env.action_dim))
@@ -55,7 +58,7 @@ class PPOAgent(object):
             log_pi = np.zeros(horizon+1)
             V = np.zeros(horizon+1)
 
-            s_next = env.s
+            s_next = env.x
             for t in range(horizon+1):
                 s[t,:] = s_next
                 (V[t], mu_t, std_t) = net(torch.from_numpy(s[t]))
@@ -115,6 +118,7 @@ class PPOAgent(object):
         #writer = SummaryWriter('logdir' + log_prefix + '-' + datetime.datetime.now().isoformat())
         writer = SummaryWriter();
         for iter in range(number_of_iterations):
+            percent_done = (iter/number_of_iterations*100)
             # Standard deviation annealing ##################################
 
             #w_std = (iter / number_of_iterations)
@@ -135,12 +139,12 @@ class PPOAgent(object):
                 # The torch.multiprocessing may handle these sorts of issues.
                 datasets = pool_of_workers.starmap(
                     self._run_actor_for_training,
-                    [(self.net, envs[actor], horizon, gamma, lamb) for actor in range(number_of_actors)]
+                    [(self.net, envs[actor], horizon, gamma, lamb,percent_done,actor) for actor in range(number_of_actors)]
                 )
             else:
                 datasets = []
                 for actor in range(number_of_actors):
-                    datasets.append(self._run_actor_for_training(self.net, envs[actor], horizon, gamma, lamb))
+                    datasets.append(self._run_actor_for_training(self.net, envs[actor], horizon, gamma, lamb,percent_done,actor))
 
             with torch.no_grad():
                 # datasets looks like [{'s': s0, 'a': a0, ...}, {'s': s1, 'a': a1, ...}, ...]

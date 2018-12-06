@@ -20,7 +20,7 @@ import xml.etree.ElementTree
 
 class Sat_mujocoEnv:
     
-    def __init__(self, maxabs_torque=10,t_horizon = 3600, target_state = np.array([0,0,0,1,0,0,0]), w_mag = 2.5e-3 , w_tumble = None, Noise = None,visualize = False):
+    def __init__(self, maxabs_torque=10, target_state = np.array([0,0,0,1,0,0,0]), w_mag = 2.5e-3 , w_tumble = None, Noise = None,visualize = False):
 
         self.model = load_model_from_path(os.path.join(os.getcwd(),'Satellite.xml'))
         self.sim = MjSim(self.model)
@@ -33,8 +33,7 @@ class Sat_mujocoEnv:
         self.action_max = maxabs_torque*np.ones([3,1])
         self.w_init_mag = w_mag;
         self.target = target_state
-        self.t_hor = t_horizon
-        #render = render
+        
         if (w_tumble == None):
             self.w_tumble = self.w_init_mag*2;
         if (Noise != None):
@@ -64,7 +63,7 @@ class Sat_mujocoEnv:
             reward = -1e5
             self.reset()
         else:
-            reward = np.linalg.norm(obs - self.target) - np.linalg.norm(action)
+            reward = -100*np.linalg.norm(obs - self.target) - 100*np.linalg.norm(action)
         return reward,reset
             
         
@@ -77,17 +76,15 @@ class Sat_mujocoEnv:
             action_noise[1] = math.cos(t / 10.) * Dy
             action_noise[2] = math.cos(t / 10.) * Dz
         '''
-
-        self.a = np.clip(a,-self.action_max,self.action_max)    
-        self.sim.data.ctrl[0] = a[0]
+        self.a = a
+        #a = np.clip(a,-self.action_max,self.action_max)    
+        self.sim.data.ctrl[0] = self.a[0]
+        self.sim.data.ctrl[1] = self.a[1]
+        self.sim.data.ctrl[2] = self.a[2]
         self.t += self.dt
         self.sim.step(self.dt)
         self.x = self.get_obs();
         reward,reset_ = self.get_reward(self.x,self.a)
-        if self.t >= self.t_hor:
-            self.reset()
-            return (self.x, 0, done)
-        
         if(reset_):
             self.x = self.get_obs();
         if(render):
@@ -97,7 +94,6 @@ class Sat_mujocoEnv:
     def copy(self):
         c = Sat_mujocoEnv()
         c.s = self.x.copy()
-        c.t_hor = self.t_hor
         return c
     
     def reset(self):
