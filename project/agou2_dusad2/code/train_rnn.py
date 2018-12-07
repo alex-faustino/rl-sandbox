@@ -15,7 +15,6 @@ from torch.utils.data import DataLoader
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu") # PyTorch v0.4.0
 vae = VAELin(z_size=16, device=device).to(device)
-
 loaded = torch.load(VAE_PATH)
 vae.load_state_dict(loaded['model_state_dict'])
 #%%
@@ -26,8 +25,8 @@ loader = DataLoader(dataset, batch_size=batch_size)
 #%%
 def to_latent(batch_frames, vae):
     frames = batch_frames.reshape((batch_size, RNN_SAMPLE_SIZE, 3, HEIGHT, WIDTH))
-    latent_seq = vae(franes)[3]
-    latent_seqs = latent_seq.reshape((batch_size, RNN_SAMPLE_SIZE, LATENT_SIZE))
+    latent_seq = vae(frames)[3]
+    latent_seqs = latent_seq.reshape((batch_size, RNN_SAMPLE_SIZE, 16))
     return latent_seqs
 
 #%%
