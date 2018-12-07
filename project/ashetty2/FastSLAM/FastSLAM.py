@@ -20,7 +20,7 @@ BOX_HALF_SIZE = 20.0
 TRAJ_AMP = 0.2*0
 TRAJ_FREQ = 2.0
 INIT_YAW = TRAJ_AMP*TRAJ_FREQ
-TRAJ_XLIM = [-1.0, 10.0]
+TRAJ_XLIM = [-1.0, 15.0]
 TRAJ_YLIM = [-TRAJ_AMP-2.0, TRAJ_AMP+2.0]
 PLT_XLIM = [TRAJ_XLIM[0]-BOX_HALF_SIZE, TRAJ_XLIM[1]+BOX_HALF_SIZE]
 PLT_YLIM = [TRAJ_YLIM[0]-BOX_HALF_SIZE, TRAJ_YLIM[1]+BOX_HALF_SIZE]
@@ -30,7 +30,7 @@ LM_BOX_SIZE = 8.0
 N_LM = 3
 
 MAX_ACTION_DEG = 10.0  #maximum possible action per step
-MAX_RANGE = 30.0  # maximum observation range
+MAX_RANGE = 40.0  # maximum observation range
 M_DIST_TH = 2.0  # Threshold of Mahalanobis distance for data association.
 STATE_SIZE = 3  # State size [x,y,yaw]
 LM_SIZE = 2  # LM srate size [x,y]
@@ -94,8 +94,8 @@ class FastSLAM(gym.Env):
 		self.hxTrue = np.hstack((self.hxTrue, self.xTrue))
 
 		#calculate reward based on pose error
-		#reward = self.get_reward_LM()
-		reward = self.get_reward()
+		reward = self.get_reward_LM()
+		#reward = self.get_reward()
 
 		#get state vector
 		self.state = self.get_obs_fixedLM()
@@ -278,6 +278,7 @@ class FastSLAM(gym.Env):
         
 		plt.xlim(PLT_XLIM)
 		plt.ylim(PLT_YLIM)
+		plt.gca().set_aspect('equal', adjustable='box')
 		plt.grid(True)
 		return
 
@@ -665,7 +666,8 @@ class FastSLAM(gym.Env):
 		if dt < 0:
 			u *= 0
 
-		return u
+# 		return u
+		return 2*u
 
 
 	def observation(self, xTrue, xd, u, RFID):

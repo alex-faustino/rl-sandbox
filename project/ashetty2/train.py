@@ -22,7 +22,7 @@ request = service.instances().stop(project=project, zone=zone, instance=instance
 env = gym.make('FastSLAM-v0')
 agent = hw6_ppo.PPOAgent(env)
 
-save_model = 'case3'
+save_model = 'case3_LM'
 load_model = ''
 
 gamma = 0.99
