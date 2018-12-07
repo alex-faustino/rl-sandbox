@@ -20,7 +20,7 @@ BOX_HALF_SIZE = 20.0
 TRAJ_AMP = 0.2*0
 TRAJ_FREQ = 2.0
 INIT_YAW = TRAJ_AMP*TRAJ_FREQ
-TRAJ_XLIM = [-1.0, 15.0]
+TRAJ_XLIM = [-1.0, 11.0]
 TRAJ_YLIM = [-TRAJ_AMP-2.0, TRAJ_AMP+2.0]
 PLT_XLIM = [TRAJ_XLIM[0]-BOX_HALF_SIZE, TRAJ_XLIM[1]+BOX_HALF_SIZE]
 PLT_YLIM = [TRAJ_YLIM[0]-BOX_HALF_SIZE, TRAJ_YLIM[1]+BOX_HALF_SIZE]
@@ -94,8 +94,8 @@ class FastSLAM(gym.Env):
 		self.hxTrue = np.hstack((self.hxTrue, self.xTrue))
 
 		#calculate reward based on pose error
-		reward = self.get_reward_LM()
-		#reward = self.get_reward()
+		#reward = self.get_reward_LM()
+		reward = self.get_reward()
 
 		#get state vector
 		self.state = self.get_obs_fixedLM()
@@ -340,8 +340,8 @@ class FastSLAM(gym.Env):
 			newx = lmx*np.cos(self.x_state[2]) + lmy*np.sin(self.x_state[2])
 			newy = -lmx*np.sin(self.x_state[2]) + lmy*np.cos(self.x_state[2])
 
-			lm_pos[ilm*2] = newx# / PLT_XLIM[1]
-			lm_pos[ilm*2+1] = newy# / PLT_YLIM[1]
+			lm_pos[ilm*2] = newx / MAX_RANGE
+			lm_pos[ilm*2+1] = newy / MAX_RANGE
 
 		state = np.hstack(( lm_pos, np.cos(self.theta), np.sin(self.theta) ))
 
@@ -667,7 +667,7 @@ class FastSLAM(gym.Env):
 			u *= 0
 
 # 		return u
-		return 2*u
+		return 1.5*u
 
 
 	def observation(self, xTrue, xd, u, RFID):

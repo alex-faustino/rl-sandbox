@@ -108,7 +108,7 @@ class PPOAgent(object):
         np.random.seed(pid + t)
         torch.manual_seed(pid + t)
 
-    def train(self, save_model, load_model, gamma, lamb, number_of_actors, number_of_iterations, horizon, number_of_epochs, minibatch_size, logstd_initial, logstd_final, epsilon, use_multiprocess=True):
+    def train(self, save_model, load_model, load_vars, gamma, lamb, number_of_actors, number_of_iterations, horizon, number_of_epochs, minibatch_size, logstd_initial, logstd_final, epsilon, use_multiprocess=True):
         if use_multiprocess:
             number_of_workers = os.cpu_count()
             pool_of_workers = Pool(number_of_workers, self._seed_worker, (int(time.time()),))
@@ -131,20 +131,22 @@ class PPOAgent(object):
         times_opt = []
 
         if load_model is not '':
-            PATH = 'saved_models/' + load_model + '.pth'
+            PATH = 'saved_models/' + load_model + '_best.pth'
             checkpoint = torch.load(PATH)
             self.net.load_state_dict(checkpoint['model_state_dict'])
             self.net.train()
             
-            best_reward = checkpoint['best_reward']
-            rewards = checkpoint['rewards']
-            losses = checkpoint['losses']
-            losses_clip = checkpoint['losses_clip']
-            losses_V = checkpoint['losses_V']
-            losses_entropy = checkpoint['losses_entropy']
-            stds = checkpoint['stds']
-            times_sample = checkpoint['times_sample']
-            times_opt = checkpoint['times_opt']
+            if load_vars is True:
+                best_reward = checkpoint['best_reward']
+                rewards = checkpoint['rewards']
+                losses = checkpoint['losses']
+                losses_clip = checkpoint['losses_clip']
+                losses_V = checkpoint['losses_V']
+                losses_entropy = checkpoint['losses_entropy']
+                stds = checkpoint['stds']
+                times_sample = checkpoint['times_sample']
+                times_opt = checkpoint['times_opt']
+                
             print('==== model ' + load_model + ' loaded ====')
                 
         if save_model is '':

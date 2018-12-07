@@ -22,13 +22,14 @@ request = service.instances().stop(project=project, zone=zone, instance=instance
 env = gym.make('FastSLAM-v0')
 agent = hw6_ppo.PPOAgent(env)
 
-save_model = 'case3_LM'
-load_model = ''
+save_model = 'case3'
+load_model = 'case3_LM'
+load_vars = False
 
 gamma = 0.99
 lamb = 0.95
 number_of_actors = 40
-number_of_iterations = 50
+number_of_iterations = 100
 horizon = 100
 number_of_epochs = 100
 minibatch_size = 64
@@ -40,6 +41,7 @@ use_multiprocess = True
 res = agent.train(
     save_model,
     load_model,
+    load_vars,
     gamma,
     lamb,
     number_of_actors,
