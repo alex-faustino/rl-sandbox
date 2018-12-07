@@ -1,7 +1,7 @@
 
 import numpy as np
 import importlib
-import tqdm
+from tqdm import tqdm
 import matplotlib.pyplot as plt
 from matplotlib import animation
 import gym
@@ -9,16 +9,14 @@ import torch
 import torch.nn as nn
 from torchvision.transforms import Compose, ToTensor, ToPILImage
 from torchsummary import summary
-from vaelin import VAELin
-from vae import VAE
+from model.vaelin import VAELin
+from model.vae import VAE
 from dataset import VAEDataset
 from torch.utils.data import DataLoader, random_split
 
 from PIL import Image
 
 from constants import *
-
-
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu") # PyTorch v0.4.0
 # model = VAE(conv_sizes=[4,8,16,32], device=device).to(device)
@@ -34,7 +32,6 @@ batch_size = 32
 train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=2)
 test_loader = DataLoader(test_data, batch_size=batch_size, shuffle=True, num_workers=2)
 train_iter = len(train_data)//batch_size
-
 
 losses = []
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)

@@ -55,7 +55,7 @@ class VAE(nn.Module):
         ).to(self.device)
         
         
-    def forward(self, original):
+    def forward(self, original, encode=False):
         encoded = self.encoder(original)
         encoded = encoded.view(-1, self.conv_sizes[3]*2*2)
         
@@ -64,7 +64,9 @@ class VAE(nn.Module):
         sigma = torch.exp(logvar/2.0)
         eps = torch.randn(self.batch_size, self.z_size).cuda(device=self.device)
         z = mu + sigma * eps
-        
+        if encode:
+            return z
+
         decoded = self.decoder(z)
         
         return original, decoded, encoded, z, mu, logvar

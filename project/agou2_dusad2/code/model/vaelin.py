@@ -17,28 +17,28 @@ class Reshape(nn.Module):
 
 
 class VAELin(nn.Module):
-    def __init__(self, z_size=LATENT_SIZE,  batch_size=1, device=None):
-        self.z_size=z_size
-        self.batch_size=batch_size
+    def __init__(self, z_size=LATENT_SIZE, inner_size=400, batch_size=1, device=None):
+        self.z_size = z_size
+        self.inner_size = inner_size
+        self.batch_size = batch_size
         self.device = device
         self.kl_tolerance = 0.5
         
         super(VAELin, self).__init__()
         
-        self.inter_size = 800
         self.encoder = nn.Sequential(
             Reshape((-1, 3*64*64)),
-            nn.Linear(3*64*64, self.inter_size),
+            nn.Linear(3*64*64, self.inner_size),
             nn.ReLU()
         ).to(self.device)
         
-        self.mu = nn.Linear(self.inter_size, self.z_size).to(self.device)
-        self.logvar = nn.Linear(self.inter_size, self.z_size).to(self.device)
+        self.mu = nn.Linear(self.inner_size, self.z_size).to(self.device)
+        self.logvar = nn.Linear(self.inner_size, self.z_size).to(self.device)
         
         self.decoder = nn.Sequential(
-            nn.Linear(self.z_size, self.inter_size),
+            nn.Linear(self.z_size, self.inner_size),
             nn.ReLU(),
-            nn.Linear(self.inter_size, 3*64*64),
+            nn.Linear(self.inner_size, 3*64*64),
             Reshape((-1, 3,64,64)),
             nn.Sigmoid()
         ).to(self.device)
