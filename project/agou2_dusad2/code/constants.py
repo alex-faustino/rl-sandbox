@@ -7,3 +7,6 @@ NUM_EPISODES = 20
 NUM_STEPS = 1000
 
 LATENT_SIZE = 32
+
+VAE_PATH = './model/vae.tar'
+
