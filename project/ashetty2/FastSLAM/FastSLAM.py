@@ -340,8 +340,9 @@ class FastSLAM(gym.Env):
 			newx = lmx*np.cos(self.x_state[2]) + lmy*np.sin(self.x_state[2])
 			newy = -lmx*np.sin(self.x_state[2]) + lmy*np.cos(self.x_state[2])
 
-			lm_pos[ilm*2] = newx / MAX_RANGE
-			lm_pos[ilm*2+1] = newy / MAX_RANGE
+			if np.sqrt(newx**2 + newy**2) < MAX_RANGE:
+				lm_pos[ilm*2] = newx / MAX_RANGE
+				lm_pos[ilm*2+1] = newy / MAX_RANGE
 
 		state = np.hstack(( lm_pos, np.cos(self.theta), np.sin(self.theta) ))
 
