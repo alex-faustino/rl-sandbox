@@ -53,12 +53,12 @@ class Particle:
 		self.lmP = np.matrix(np.zeros((N_LM * LM_SIZE, LM_SIZE)))
 		self.lmSeen = []
 
-class FastSLAM1(gym.Env):
+class FastSLAM2(gym.Env):
 
 
 	DT = 0.1  # time tick [s]
-	observation_dim = 2*N_LM + 2
-	action_dim = 1
+	observation_dim = 2*N_LM + 4
+	action_dim = 2
 
 	def __init__(self):
 		self.state = None
@@ -67,7 +67,8 @@ class FastSLAM1(gym.Env):
 
 		action = np.clip(action, -np.deg2rad(MAX_ACTION_DEG), np.deg2rad(MAX_ACTION_DEG))
 
-		self.theta += action
+		self.theta1 += action[0]
+		self.theta2 += action[1]
 
 		self.time += self.DT
 		self.u = self.calc_input(self.time)
@@ -100,14 +101,19 @@ class FastSLAM1(gym.Env):
 		return self.state, reward, False, info
 
 	def copy(self):
-		c = gym.make('FastSLAM-v1')
+		c = gym.make('FastSLAM-v2')
 		c.state = None
 		return c
 
 	def reset(self):
 
 		self.time = 0.0
-		self.theta = 0.0
+		
+		#self.theta1 = np.deg2rad(FOV/2.0)
+		#self.theta2 = -np.deg2rad(FOV/2.0)
+		self.theta1 = np.deg2rad(0.0)
+		self.theta2 = np.deg2rad(180.0)
+
 		self.xEst = np.matrix(np.zeros((STATE_SIZE, 1)))		
 		self.xTrue = np.matrix(np.zeros((STATE_SIZE, 1)))
 		self.xDR = np.matrix(np.zeros((STATE_SIZE, 1)))  # Dead reckoning
@@ -138,11 +144,16 @@ class FastSLAM1(gym.Env):
 			d = math.sqrt(dx**2 + dy**2)
 			angle = math.atan2(dy, dx) - self.xTrue[2, 0]
 
-			delta = np.abs( np.arctan2(dy,dx) - self.pi_2_pi(self.xTrue[2,0] + self.theta) )
-			if delta > np.pi:
-				delta = 2*np.pi - delta
+			delta1 = np.abs( np.arctan2(dy,dx) - self.pi_2_pi(self.xTrue[2,0] + self.theta1) )
+			if delta1 > np.pi:
+				delta1 = 2*np.pi - delta1
 
-			if d <= MAX_RANGE and np.rad2deg(delta)<=(FOV/2.0):
+			delta2 = np.abs( np.arctan2(dy,dx) - self.pi_2_pi(self.xTrue[2,0] + self.theta2) )
+			if delta2 > np.pi:
+				delta2 = 2*np.pi - delta2
+
+
+			if d <= MAX_RANGE and ( np.rad2deg(delta1)<=(FOV/2.0) or np.rad2deg(delta2)<=(FOV/2.0) ):
 				dn = d + np.random.randn() * Qsim[0, 0]  # add noise
 				anglen = angle + np.random.randn() * Qsim[1, 1]  # add noise
 				zi = np.matrix([dn, self.pi_2_pi(anglen), i])
@@ -177,22 +188,33 @@ class FastSLAM1(gym.Env):
 
 			plt.plot(self.xEst[0], self.xEst[1], "xk")
 
-		#plot FOV
 		x0, y0 = self.xTrue.item(0), self.xTrue.item(1)
-		theta1 = self.xTrue.item(2) + self.theta + np.deg2rad(FOV/2.0)
-		x1 = x0 + MAX_RANGE*np.cos(theta1)
-		y1 = y0 + MAX_RANGE*np.sin(theta1)
-		theta2 = self.xTrue.item(2) + self.theta - np.deg2rad(FOV/2.0)
-		x2 = x0 + MAX_RANGE*np.cos(theta2)
-		y2 = y0 + MAX_RANGE*np.sin(theta2)
-
-		thetas = np.arange(theta2, theta1, np.deg2rad(1.0))
-		xs = x0 + MAX_RANGE*np.cos(thetas)
-		ys = y0 + MAX_RANGE*np.sin(thetas)
-        
+		#plot FOV for theta1
+		t1 = self.xTrue.item(2) + self.theta1 + np.deg2rad(FOV/2.0)
+		x1 = x0 + MAX_RANGE*np.cos(t1)
+		y1 = y0 + MAX_RANGE*np.sin(t1)
+		t2 = self.xTrue.item(2) + self.theta1 - np.deg2rad(FOV/2.0)
+		x2 = x0 + MAX_RANGE*np.cos(t2)
+		y2 = y0 + MAX_RANGE*np.sin(t2)
+		ts = np.arange(t2, t1, np.deg2rad(1.0))
+		xs = x0 + MAX_RANGE*np.cos(ts)
+		ys = y0 + MAX_RANGE*np.sin(ts)
 		plt.plot([x0,x1], [y0,y1], 'g-')
 		plt.plot([x0,x2], [y0,y2], 'g-')
 		plt.scatter(xs, ys, s=1.0, c='g')
+		#plot FOV for theta2
+		t1 = self.xTrue.item(2) + self.theta2 + np.deg2rad(FOV/2.0)
+		x1 = x0 + MAX_RANGE*np.cos(t1)
+		y1 = y0 + MAX_RANGE*np.sin(t1)
+		t2 = self.xTrue.item(2) + self.theta2 - np.deg2rad(FOV/2.0)
+		x2 = x0 + MAX_RANGE*np.cos(t2)
+		y2 = y0 + MAX_RANGE*np.sin(t2)
+		ts = np.arange(t2, t1, np.deg2rad(1.0))
+		xs = x0 + MAX_RANGE*np.cos(ts)
+		ys = y0 + MAX_RANGE*np.sin(ts)
+		plt.plot([x0,x1], [y0,y1], 'y-')
+		plt.plot([x0,x2], [y0,y2], 'y-')
+		plt.scatter(xs, ys, s=1.0, c='y')
 
 		plt.title('Time: ' + str(round(self.time, 2)))
 		plt.xlim([-MAX_RANGE,N_BLOCKS*ROAD_BLOCK_LENGTH+MAX_RANGE])
@@ -210,21 +232,32 @@ class FastSLAM1(gym.Env):
 			plt.plot(self.state[ilm*2], self.state[ilm*2+1], "*b")
 
 		x0, y0 = 0.0, 0.0
-		theta1 = self.theta + np.deg2rad(FOV/2.0)
-		x1 = x0 + MAX_RANGE*np.cos(theta1)
-		y1 = y0 + MAX_RANGE*np.sin(theta1)
-		theta2 = self.theta - np.deg2rad(FOV/2.0)
-		x2 = x0 + MAX_RANGE*np.cos(theta2)
-		y2 = y0 + MAX_RANGE*np.sin(theta2)
-
-		thetas = np.arange(theta2, theta1, np.deg2rad(1.0))
-		xs = x0 + MAX_RANGE*np.cos(thetas)
-		ys = y0 + MAX_RANGE*np.sin(thetas)
-        
+		t1 = self.theta1 + np.deg2rad(FOV/2.0)
+		x1 = x0 + MAX_RANGE*np.cos(t1)
+		y1 = y0 + MAX_RANGE*np.sin(t1)
+		t2 = self.theta1 - np.deg2rad(FOV/2.0)
+		x2 = x0 + MAX_RANGE*np.cos(t2)
+		y2 = y0 + MAX_RANGE*np.sin(t2)
+		ts = np.arange(t2, t1, np.deg2rad(1.0))
+		xs = x0 + MAX_RANGE*np.cos(ts)
+		ys = y0 + MAX_RANGE*np.sin(ts)
 		plt.plot([x0,x1], [y0,y1], 'g-')
 		plt.plot([x0,x2], [y0,y2], 'g-')
 		plt.scatter(xs, ys, s=1.0, c='g')
-        
+
+		t1 = self.theta2 + np.deg2rad(FOV/2.0)
+		x1 = x0 + MAX_RANGE*np.cos(t1)
+		y1 = y0 + MAX_RANGE*np.sin(t1)
+		t2 = self.theta2 - np.deg2rad(FOV/2.0)
+		x2 = x0 + MAX_RANGE*np.cos(t2)
+		y2 = y0 + MAX_RANGE*np.sin(t2)
+		ts = np.arange(t2, t1, np.deg2rad(1.0))
+		xs = x0 + MAX_RANGE*np.cos(ts)
+		ys = y0 + MAX_RANGE*np.sin(ts)
+		plt.plot([x0,x1], [y0,y1], 'y-')
+		plt.plot([x0,x2], [y0,y2], 'y-')
+		plt.scatter(xs, ys, s=1.0, c='y')
+
 		plt.xlim([-1.0, 1.0])
 		plt.ylim([-1.0, 1.0])
 		plt.gca().set_aspect('equal', adjustable='box')
@@ -253,7 +286,7 @@ class FastSLAM1(gym.Env):
 				lm_pos[ilm*2] = newx / MAX_RANGE
 				lm_pos[ilm*2+1] = newy / MAX_RANGE
 
-		state = np.hstack(( lm_pos, np.cos(self.theta), np.sin(self.theta) ))
+		state = np.hstack(( lm_pos, np.cos(self.theta1), np.sin(self.theta1), np.cos(self.theta2), np.sin(self.theta2) ))
 
 		return state
 
@@ -288,7 +321,7 @@ class FastSLAM1(gym.Env):
 			lm_state[ilm*2] = lm_pos[lm_ranks[ilm]*2]
 			lm_state[ilm*2+1] = lm_pos[lm_ranks[ilm]*2+1]
         
-		state = np.hstack(( lm_state, np.cos(self.theta), np.sin(self.theta) ))
+		state = np.hstack(( lm_state, np.cos(self.theta1), np.sin(self.theta1), np.cos(self.theta2), np.sin(self.theta2) ))
 
 		return state
 
@@ -327,11 +360,15 @@ class FastSLAM1(gym.Env):
 			d = math.sqrt(dx**2 + dy**2)
 			angle = math.atan2(dy, dx) - self.xTrue[2, 0]
 
-			delta = np.abs( np.arctan2(dy,dx) - self.pi_2_pi(self.xTrue[2,0] + self.theta) )
-			if delta > np.pi:
-				delta = 2*np.pi - delta
+			delta1 = np.abs( np.arctan2(dy,dx) - self.pi_2_pi(self.xTrue[2,0] + self.theta1) )
+			if delta1 > np.pi:
+				delta1 = 2*np.pi - delta1
 
-			if d <= MAX_RANGE and np.rad2deg(delta)<=(FOV/2.0):
+			delta2 = np.abs( np.arctan2(dy,dx) - self.pi_2_pi(self.xTrue[2,0] + self.theta2) )
+			if delta2 > np.pi:
+				delta2 = 2*np.pi - delta2
+
+			if d <= MAX_RANGE and (np.rad2deg(delta1)<=(FOV/2.0) or np.rad2deg(delta2)<=(FOV/2.0)):
 				r += 1.0	
 		return r
 
@@ -621,11 +658,15 @@ class FastSLAM1(gym.Env):
 			d = math.sqrt(dx**2 + dy**2)
 			angle = math.atan2(dy, dx) - xTrue[2, 0]
 
-			delta = np.abs( np.arctan2(dy,dx) - self.pi_2_pi(xTrue[2,0] + self.theta) )
-			if delta > np.pi:
-				delta = 2*np.pi - delta
+			delta1 = np.abs( np.arctan2(dy,dx) - self.pi_2_pi(xTrue[2,0] + self.theta1) )
+			if delta1 > np.pi:
+				delta1 = 2*np.pi - delta1
 
-			if d <= MAX_RANGE and np.rad2deg(delta)<=(FOV/2.0):
+			delta2 = np.abs( np.arctan2(dy,dx) - self.pi_2_pi(xTrue[2,0] + self.theta2) )
+			if delta2 > np.pi:
+				delta2 = 2*np.pi - delta2
+
+			if d <= MAX_RANGE and (np.rad2deg(delta1)<=(FOV/2.0) or np.rad2deg(delta2)<=(FOV/2.0)):
 				dn = d + np.random.randn() * Qsim[0, 0]  # add noise
 				anglen = angle + np.random.randn() * Qsim[1, 1]  # add noise
 				zi = np.matrix([dn, self.pi_2_pi(anglen), i])
