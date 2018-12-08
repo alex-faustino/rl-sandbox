@@ -93,7 +93,8 @@ class FastSLAM1(gym.Env):
 		#reward = self.get_reward()
 
 		#get state vector
-		self.state = self.get_obs_fixedLM()
+		#self.state = self.get_obs_fixedLM()
+		self.state = self.get_obs_nearest()
 
 		return self.state, reward, False, info
 
@@ -148,13 +149,14 @@ class FastSLAM1(gym.Env):
 					self.particles[ip] = self.add_new_lm(self.particles[ip], zi, Q)
 
 		#get state vector
-		self.state = self.get_obs_fixedLM()
+		#self.state = self.get_obs_fixedLM()
+		self.state = self.get_obs_nearest()
 
 		return self.state
 
 	def render_world(self):
 
-		fig = plt.figure(figsize=(4,4))
+		fig = plt.figure(figsize=(8,8))
 		ax = fig.add_subplot(111)
         
 		plt.plot(self.RFID[:, 0], self.RFID[:, 1], "*k")
@@ -192,43 +194,10 @@ class FastSLAM1(gym.Env):
 		plt.scatter(xs, ys, s=1.0, c='g')
 
 		plt.title('Time: ' + str(round(self.time, 2)))
-		plt.xlim([0.0,N_BLOCKS*ROAD_BLOCK_LENGTH])
+		plt.xlim([-MAX_RANGE,N_BLOCKS*ROAD_BLOCK_LENGTH+MAX_RANGE])
 		plt.ylim([-(BOX_HALF_WIDTH+ROAD_HALF_WIDTH),(BOX_HALF_WIDTH+ROAD_HALF_WIDTH)])
 		plt.gca().set_aspect('equal', adjustable='box')
 		plt.grid(True)
-
-		return
-
-	def render_obs(self):
-
-		fig = plt.figure(figsize=(8,8))
-		ax = fig.add_subplot(111, projection='polar')
-
-		#theta = np.arange(0.0, 360.0, BIN_SIZE) + BIN_SIZE/2.0
-		ptheta, prange = np.zeros((1,0)), np.zeros((1,0))
-		n_bins = int(360/BIN_SIZE)
-		for ibin in range(n_bins):
-			if self.state[ibin]==0:
-				continue
-			
-			for il in range(int(self.state[ibin])):
-				#print(ibin, il, ptheta.shape, 
-				ptheta = np.hstack(( ptheta, np.arange(ibin*BIN_SIZE, (ibin+1)*BIN_SIZE, 0.1)[None,:] ))
-				prange = np.hstack(( prange, np.ones(( 1, int(BIN_SIZE/0.1) ))*(self.state[n_bins+ibin] + il*1) ))
-
-		ax.scatter(np.deg2rad(ptheta), prange, s=1.0)
-		
-		sr = np.linspace(0.0, MAX_RANGE, 1000)
-		st1 = np.ones(sr.shape)*(self.theta + np.deg2rad(FOV/2.0))
-		st2 = np.ones(sr.shape)*(self.theta - np.deg2rad(FOV/2.0))
-		st = np.hstack(( st1, st2 ))
-		sr = np.hstack(( sr, sr ))
-		ax.scatter(st, sr, s=10.0)
-
-		ax.set_rmax(MAX_RANGE)
-		ax.set_xticks(np.deg2rad(np.arange(0,360,BIN_SIZE)))
-		ax.set_rticks(np.arange(0, MAX_RANGE, 10))
-		ax.grid(True)
 
 		return
 
@@ -255,53 +224,13 @@ class FastSLAM1(gym.Env):
 		plt.plot([x0,x2], [y0,y2], 'g-')
 		plt.scatter(xs, ys, s=1.0, c='g')
         
-		plt.xlim(PLT_XLIM)
-		plt.ylim(PLT_YLIM)
+		plt.xlim([-1.0, 1.0])
+		plt.ylim([-1.0, 1.0])
 		plt.gca().set_aspect('equal', adjustable='box')
 		plt.grid(True)
 		return
 
 
-	def get_obs(self):
-
-		n_bins = int(360/BIN_SIZE)
-		n_landmarks = -1.0*np.ones(n_bins)#*1000
-		closest_dists = -1.0*np.ones(n_bins)#*1000
-	
-		lmSeen = self.particles[0].lmSeen
-		for ilm in lmSeen:
-			lmx, lmy = 0.0, 0.0
-			for ip in range(N_PARTICLE):
-				lmx += self.particles[ip].w * self.particles[ip].lm[ilm,0]
-				lmy += self.particles[ip].w * self.particles[ip].lm[ilm,1]
-			lmx -= self.x_state[0]
-			lmy -= self.x_state[1]
-
-			newx = lmx*np.cos(self.x_state[2]) + lmy*np.sin(self.x_state[2])
-			newy = -lmx*np.sin(self.x_state[2]) + lmy*np.cos(self.x_state[2])
-
-			phi = np.rad2deg(np.arctan2(newy, newx))
-			if phi<0:
-				phi += 360.0
-
-			bin_number = int( phi / BIN_SIZE )
-			
-			#add lm to bin
-			n_landmarks[bin_number] += 1
-
-			#check if lm is closest
-			d_lm = np.sqrt(newx**2 + newy**2)
-			if d_lm < closest_dists[bin_number]:
-				closest_dists[bin_number] = d_lm
-
-		#x_cov, y_cov, yaw_cov = self.get_particle_covariance() 
-		#state = np.hstack(( n_landmarks, closest_dists, self.theta, x_cov, y_cov, yaw_cov ))
-
-		#state = np.hstack(( n_landmarks, closest_dists, self.theta+np.deg2rad(FOV/2.0), self.theta-np.deg2rad(FOV/2.0) ))
-		state = np.hstack(( n_landmarks, closest_dists, np.cos(self.theta), np.sin(self.theta) ))
-
-		return state
-		
 	def get_obs_fixedLM(self):
 
 		lm_pos = np.ones(2*N_LM)*1000
@@ -327,6 +256,40 @@ class FastSLAM1(gym.Env):
 
 		return state
 
+	def get_obs_nearest(self):
+
+		lm_pos = np.ones(2*N_LM)*1000
+		#lm_pos = np.ones(2*N_LM)*0
+
+		lm_dists = np.ones(N_LM)*1000
+        
+		lmSeen = self.particles[0].lmSeen
+		for ilm in lmSeen:
+			lmx, lmy = 0.0, 0.0
+			for ip in range(N_PARTICLE):
+				lmx += self.particles[ip].w * self.particles[ip].lm[ilm,0]
+				lmy += self.particles[ip].w * self.particles[ip].lm[ilm,1]
+			lmx -= self.x_state[0]
+			lmy -= self.x_state[1]
+
+			newx = lmx*np.cos(self.x_state[2]) + lmy*np.sin(self.x_state[2])
+			newy = -lmx*np.sin(self.x_state[2]) + lmy*np.cos(self.x_state[2])
+
+			lm_dists[ilm] = np.sqrt(newx**2 + newy**2)
+            
+			if np.sqrt(newx**2 + newy**2) < MAX_RANGE:
+				lm_pos[ilm*2] = newx / MAX_RANGE
+				lm_pos[ilm*2+1] = newy / MAX_RANGE
+
+		lm_state = np.ones(2*N_LM)*1000
+		lm_ranks = np.argsort(lm_dists)
+		for ilm in range(N_LM):
+			lm_state[ilm*2] = lm_pos[lm_ranks[ilm]*2]
+			lm_state[ilm*2+1] = lm_pos[lm_ranks[ilm]*2+1]
+        
+		state = np.hstack(( lm_state, np.cos(self.theta), np.sin(self.theta) ))
+
+		return state
 
 	def get_reward(self):
 
