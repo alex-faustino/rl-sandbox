@@ -1,0 +1,82 @@
+import torch
+import torch.nn as nn
+import numpy as np
+import torch.nn.functional as F
+
+def logsumexp(inputs, dim=None, keepdim=False):
+    return (inputs - F.log_softmax(inputs)).mean(dim, keepdim=keepdim)
+
+
+class GMM(nn.Module):
+    def __init__(self, n_mixtures, hidden_size, latent_space_dim):
+        super(GMM, self).__init__()
+        self.n_mixtures = n_mixtures
+        self.net = nn.Linear(hidden_size, (latent_space_dim*2 + 1)*n_mixtures)
+        self.stride = latent_space_dim*n_mixtures
+        self.latent_space_dim = latent_space_dim
+        self.hidden_size = hidden_size
+    
+    def lognormal(self, batch, mus, logstd):
+      return -0.5 * ((batch - mus) / torch.exp(logstd)) ** 2 - logstd - np.log(np.sqrt(2.0 * np.pi))
+
+    def loss(self, batch, mus, logsigmas, logpis):
+        loss = logpis + self.lognormal(batch, mus, logsigmas)
+        loss = logsumexp(loss, 1, True)
+        return -loss.mean(loss)
+
+    def forward(self, input):
+        out = self.net(input)
+        mus = out[:, :self.stride]
+        logsigmas = out[:, self.stride:2*self.stride]
+        logpis = out[:, -self.n_mixtures:]
+        return mus, logsigmas, logpis
+
+
+
+class MDRNN(nn.Module):
+    def __init__(self, batch_size=100, 
+        sequence_length=1000, 
+        hidden_space_dim = 256, 
+        action_space_dim=2, 
+        latent_space_dim=8, 
+        num_mixtures=5, 
+        rnn_type="lstm", 
+        n_layers=1, 
+        device=None):
+
+        super(MDRNN, self).__init__()
+        
+        self.rnn_type = rnn_type
+        
+        self.batch_size = batch_size
+        self.sequence_length = sequence_length
+        self.n_layers = n_layers
+        self.hidden_space_dim = hidden_space_dim
+        
+        self.latent_space_dim = latent_space_dim
+        self.action_space_dim = action_space_dim
+        self.num_mixtures = num_mixtures
+        
+        self.device = device
+        
+        self.input_shape = latent_space_dim + action_space_dim
+        self.output_shape = latent_space_dim
+
+        self.hidden = None
+
+        self.rnn = nn.LSTM(latent_space_dim + action_space_dim, hidden_space_dim, n_layers)
+        self.gmm = GMM(num_mixtures, hidden_space_dim, latent_space_dim)
+        
+    
+    def forward(self, latents, actions):
+        inputs = torch.cat([actions, latents], -1)
+        print()
+        next = self.rnn(inputs, None) # hidden_state is zero 
+        mus, logsigmas, logpis = self.gmm(next[0])
+        return mus, logsigmas, logpis, next
+
+    def loss(self, batch, mus, logsigmas, logpis):
+        return self.gmm.loss(batch, mus, logsigmas, logpis)
+
+    
+
