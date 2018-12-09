@@ -1,8 +1,5 @@
-# HW3:: Deep Q-Learning
+# HW4:: Grid World via tabular policy gradient descent
 
-
-
-### Algorithm 1: deep Q-learning with experience replay. Mnih et al. (2015)
 
 
 
