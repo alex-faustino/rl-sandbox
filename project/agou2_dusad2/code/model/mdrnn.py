@@ -28,8 +28,6 @@ class GMM(nn.Module):
 
     def forward(self, input):
         out = self.net(input)
-
-        print(input.shape, out.shape)
         mus = out[:, :,  :self.stride]
         mus = mus.view(mus.shape[0], mus.shape[1], -1, self.latent_space_dim)
 
@@ -49,8 +47,7 @@ class MDRNN(nn.Module):
         latent_space_dim=8, 
         num_mixtures=5, 
         rnn_type="lstm", 
-        n_layers=1, 
-        device=None):
+        n_layers=1):
 
         super(MDRNN, self).__init__()
         
@@ -65,23 +62,20 @@ class MDRNN(nn.Module):
         self.action_space_dim = action_space_dim
         self.num_mixtures = num_mixtures
         
-        self.device = device
         
         self.input_shape = latent_space_dim + action_space_dim
         self.output_shape = latent_space_dim
 
-        self.hidden = None
 
         self.rnn = nn.LSTM(latent_space_dim + action_space_dim, hidden_space_dim, n_layers)
         self.gmm = GMM(num_mixtures, hidden_space_dim, latent_space_dim)
         
     
-    def forward(self, latents, actions):
+    def forward(self, latents, actions, prev_rnn_hidden=None):
         inputs = torch.cat([actions, latents], -1)
-        print()
-        next = self.rnn(inputs, None) # hidden_state is zero 
-        mus, logsigmas, logpis = self.gmm(next[0])
-        return mus, logsigmas, logpis, next
+        rnn_out, rnn_hidden = self.rnn(inputs, prev_rnn_hidden) # hidden_state is zero 
+        mus, logsigmas, logpis = self.gmm(rnn_out)
+        return mus, logsigmas, logpis, rnn_out, rnn_hidden
 
     def loss(self, next_states, mus, logsigmas, logpis):
         return self.gmm.loss(next_states, mus, logsigmas, logpis)
