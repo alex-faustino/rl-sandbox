@@ -8,7 +8,7 @@ NUM_STEPS = 1000
 
 LATENT_SIZE = 32
 
-VAE_PATH = './model/vae.tar'
+VAE_PATH = './checkpoints/vae.tar'
 
 RNN_DATASET_SIZE=10
 RNN_SAMPLE_SIZE=100

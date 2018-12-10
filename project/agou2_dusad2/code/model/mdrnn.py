@@ -2,9 +2,9 @@ import torch
 import torch.nn as nn
 import numpy as np
 import torch.nn.functional as F
+from torch.distributions.normal import Normal
 
-def logsumexp(inputs, dim=None, keepdim=False):
-    return (inputs - F.log_softmax(inputs)).mean(dim, keepdim=keepdim)
+
 
 
 class GMM(nn.Module):
@@ -15,20 +15,28 @@ class GMM(nn.Module):
         self.stride = latent_space_dim*n_mixtures
         self.latent_space_dim = latent_space_dim
         self.hidden_size = hidden_size
-    
-    def lognormal(self, batch, mus, logstd):
-      return -0.5 * ((batch - mus) / torch.exp(logstd)) ** 2 - logstd - np.log(np.sqrt(2.0 * np.pi))
 
     def loss(self, batch, mus, logsigmas, logpis):
-        loss = logpis + self.lognormal(batch, mus, logsigmas)
-        loss = logsumexp(loss, 1, True)
-        return -loss.mean(loss)
+        sigmas = torch.exp(logsigmas)
+        batch = batch.unsqueeze(-2)
+        dist = Normal(mus, sigmas)
+        
+        batch_log_probs = dist.log_prob(batch)
+        batch_log_probs = logpis + torch.sum(batch_log_probs, dim=-1)
+        log_prob = torch.logsumexp(batch_log_probs, dim=-1, keepdim=True)
+        return -log_prob.mean()
 
     def forward(self, input):
         out = self.net(input)
-        mus = out[:, :self.stride]
-        logsigmas = out[:, self.stride:2*self.stride]
-        logpis = out[:, -self.n_mixtures:]
+
+        print(input.shape, out.shape)
+        mus = out[:, :,  :self.stride]
+        mus = mus.view(mus.shape[0], mus.shape[1], -1, self.latent_space_dim)
+
+        logsigmas = out[:, :,  self.stride:2*self.stride]
+        logsigmas = logsigmas.view(logsigmas.shape[0], logsigmas.shape[1], -1, self.latent_space_dim)
+
+        logpis = out[:, :, -self.n_mixtures:]
         return mus, logsigmas, logpis
 
 
@@ -75,8 +83,8 @@ class MDRNN(nn.Module):
         mus, logsigmas, logpis = self.gmm(next[0])
         return mus, logsigmas, logpis, next
 
-    def loss(self, batch, mus, logsigmas, logpis):
-        return self.gmm.loss(batch, mus, logsigmas, logpis)
+    def loss(self, next_states, mus, logsigmas, logpis):
+        return self.gmm.loss(next_states, mus, logsigmas, logpis)
 
     
 
