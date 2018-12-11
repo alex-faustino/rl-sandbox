@@ -52,8 +52,7 @@ def to_latent(vae, frame):
     return latent_seq.squeeze()
 
 def get_action(latent, solution, hidden=None):
-    w_latent = solution[:len(latent)]
-    w_hidden = solution[len(latent):-1]
+    w= solution[:-1]
     b = solution[-1]
 
     latent = latent.cpu().numpy()
@@ -61,9 +60,10 @@ def get_action(latent, solution, hidden=None):
         hidden_size = len(solution) - len(latent) - 1
         hidden = np.zeros(hidden_size)
     else:
-        hidden = torch.cat(hidden[0], hidden[1]).cpu().numpy()
+        hidden = torch.cat([hidden[0], hidden[1]], -1).float().detach().squeeze(1).view(-1).cpu().numpy()
 
-    res = w_latent @ latent + w_hidden @ hidden + b
+    stacked_features = np.hstack([latent, hidden])
+    res = w @stacked_features  + b
     return np.tanh(res)
 
 def get_loss(solution):
@@ -79,9 +79,8 @@ def get_loss(solution):
             frame = ToTensor()(im)
             latent = to_latent(vae, frame)
             action = get_action(latent, solution, old_rnn_hidden)
-            _, _, _, _, rnn_hidden = rnn(latent.unsqueeze(0).unsqueeze(0), torch.tensor([[[action]]]), old_rnn_hidden)
+            _, _, _, _, rnn_hidden = rnn(latent.unsqueeze(0).unsqueeze(0), torch.tensor([[[action]]]).float(), old_rnn_hidden)
             old_rnn_hidden = rnn_hidden
-            print(type(action))
             state, reward, done, _ = env.step([action])
             if state[0] > max_pos:
                 max_pos = state[0]
@@ -92,16 +91,13 @@ def get_loss(solution):
     loss = -rewards
     return loss
 
-param_size = LATENT_SIZE + 32 + 1
+env = gym.make("MountainCarContinuous-v0")
+param_size = LATENT_SIZE + 32*2*5 + 1
 init_params = param_size*[0]
 init_sigma = 1
 popsize = 64
 es = CMAES(init_params, init_sigma, {'popsize':popsize})
 #%%
 es.optimize(get_loss)
+env.close()
 
-
-#%%
-
-
-#%%
