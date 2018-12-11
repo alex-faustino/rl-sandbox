@@ -23,11 +23,13 @@ Similarly also install pendulum env
 
 1) Adaptive_Policy_transfer_v1.py : Adaptive Meta learning policy transfer code for Pendulum domain
 
-2) ppo_standalone.py: PPO code for source ans target domain
+2) ppo_standalone.py: PPO code for source and target domain
 
 ## CartPole Results
 
-policytransfer_transfer.py: Adaptive Meta learning policy transfer + Policy Learning code for Cartpole domain
+1) policytransfer_transfer.py: Adaptive Meta learning policy transfer + Policy Learning code for Cartpole domain
+
+2) PolicyGradient_standalone.py: PG code for source and target domain
 
 
 
