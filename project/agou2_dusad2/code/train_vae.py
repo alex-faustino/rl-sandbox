@@ -47,8 +47,6 @@ for epoch in range(num_epochs):
             optimizer.step()
             progress.set_postfix(avg_loss=sum(losses[-(batch_idx+1):])/(batch_idx+1))
 
-torch.save(model.state_dict(), VAE_PATH)
-
 torch.save({
     'epoch': epoch,
     'model_state_dict': model.state_dict(),

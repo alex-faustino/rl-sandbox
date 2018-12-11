@@ -48,7 +48,7 @@ class MDRNN(nn.Module):
         latent_space_dim=LATENT_SIZE,
         num_mixtures=RNN_NUM_MIXTURES, 
         rnn_type="lstm", 
-        n_layers=1):
+        n_layers=RNN_NUM_LAYERS):
 
         super(MDRNN, self).__init__()
         
