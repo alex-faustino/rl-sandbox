@@ -3,14 +3,8 @@
 ----------
 ## Refrences:
 
-@article{Schulman2017,
-archivePrefix = {arXiv},
-arxivId = {1707.06347},
-author = {Schulman, John and Wolski, Filip and Dhariwal, Prafulla and Radford, Alec and Klimov, Oleg},
-eprint = {1707.06347},
-month = {jul},
-title = {{Proximal Policy Optimization Algorithms}},
-url = {https://arxiv.org/abs/1707.06347},
-year = {2017}
-}
+[1] Park, H.-W., Wensing, P. M., and Kim, S. High-speed bounding with the mit cheetah 2: Control
+design and experiments. The International Journal of Robotics Research 36, 2 (2017), 167-192.
 
+[2] Schulman, J., Wolski, F., Dhariwal, P., Radford, A., and Klimov, O. Proximal Policy
+Optimization Algorithms.
