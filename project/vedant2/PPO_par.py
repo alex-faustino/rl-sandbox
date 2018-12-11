@@ -3,6 +3,8 @@ import random, collections, math, time, datetime, os
 import numpy as np
 from tensorboardX import SummaryWriter
 from multiprocessing import Pool
+import matplotlib.pyplot as plt
+
 
 class Net(torch.nn.Module):
 
@@ -35,7 +37,7 @@ class PPOAgent(object):
         self.reset()
 
     def reset(self):
-        self.net = Net(self.env.observation_dim, self.env.action_dim,10)
+        self.net = Net(self.env.observation_dim, self.env.action_dim,50)
         self.optimizer = torch.optim.Adam(self.net.parameters())
 
     def action_greedy(self, s):
@@ -57,7 +59,7 @@ class PPOAgent(object):
             r = np.zeros(horizon+1)
             log_pi = np.zeros(horizon+1)
             V = np.zeros(horizon+1)
-
+            env.reset(True)
             s_next = env.x
             for t in range(horizon+1):
                 s[t,:] = s_next
@@ -66,11 +68,12 @@ class PPOAgent(object):
                 a[t] = dist.sample().numpy()
                 log_pi[t] = dist.log_prob(a[t]).sum()
 
-                (s_next, r[t], done) = env.step(a[t])
-
+                (s_next, r[t], done, _) = env.step(a[t])
+            #plt.plot(r)
+            #plt.show()
             delta = r[:-1] + gamma * V[1:] - V[:-1]
             V_targ = delta
-
+            
             A = np.zeros(horizon+1)
             A[-1] = 0
             for t in reversed(range(horizon)):
@@ -200,6 +203,7 @@ class PPOAgent(object):
             times_opt.append(end_time - start_time)
 
             writer.add_scalar('reward', rewards[-1], iter);
+            writer.add_scalar('avrage_reward', np.mean(rewards), iter);
             writer.add_scalar('loss', losses[-1], iter);
             writer.add_scalar('loss_clip', losses_clip[-1], iter);
             writer.add_scalar('loss_V', losses_V[-1], iter);

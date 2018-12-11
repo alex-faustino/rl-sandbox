@@ -11,6 +11,12 @@ Created on Sun Dec  2 15:46:26 2018
 
 @author: vedant2
 """
+
+
+from gym import core, spaces
+from gym.utils import seeding
+
+
 import mujoco_py
 from mujoco_py import load_model_from_xml,load_model_from_path, MjSim, MjViewer
 import math
@@ -18,28 +24,43 @@ import os
 import numpy as np
 import xml.etree.ElementTree
 
-class Sat_mujocoEnv:
-    
-    def __init__(self, maxabs_torque=10, target_state = np.array([0,0,0,1,0,0,0]), w_mag = 2.5e-3 , w_tumble = None, Noise = None,visualize = False):
 
+class Sat_mujocoEnv: #fixed target
+    
+    def __init__(self,t_hor = 1000, maxabs_torque=10,dt = 10, target_state = np.array([1,0,0,0,0,0,0]), w_mag = 2.5e-3 , w_tumble = None, Noise = None,visualize = False):
+        
+        
+        
         self.model = load_model_from_path(os.path.join(os.getcwd(),'Satellite.xml'))
         self.sim = MjSim(self.model)
         if visualize:
             self.viewer = MjViewer(self.sim)
         self.t = 0
-        self.dt = 10
+        self.dt = dt
+        self.step_num = 0
         self.action_dim = 3;
         self.observation_dim = 7;
-        self.action_max = maxabs_torque*np.ones([3,1])
+        self.action_max = maxabs_torque
         self.w_init_mag = w_mag;
-        self.target = target_state
+       
+        self.max_nstep = t_hor;
+        self.target = target_state;
         
         if (w_tumble == None):
-            self.w_tumble = self.w_init_mag*2;
+            self.w_tumble = 25.0 * self.w_init_mag;
+        else:
+            self.w_tumble = w_tumble;
         if (Noise != None):
             self.noise_dim = 6;
         self.x = self.set_init()
 
+        high = np.array([1.0, 1.0, 1.0, 1.0, self.w_tumble, self.w_tumble, self.w_tumble])
+        low = -high
+        self.observation_space = spaces.Box(low=low, high=high)
+        
+        high = np.array([self.action_max, self.action_max, self.action_max])
+        low = -high
+        self.action_space = spaces.Box(low=low, high=high)
         
     def set_init(self):
         q_init = np.random.rand(4)
@@ -56,14 +77,32 @@ class Sat_mujocoEnv:
 
         return np.concatenate((q,w))
     
+    
+    '''
+    def drift_traj(self):
+    '''    
+        
     def get_reward(self,obs,action):
         reset = False
         if (np.linalg.norm(obs[4:])>self.w_tumble):
             reset = True
-            reward = -1e5
+            reward = -9.0e2
             self.reset()
+
         else:
-            reward = -100*np.linalg.norm(obs - self.target) - 100*np.linalg.norm(action)
+            if(self.target.ndim ==1):
+                reward = 1 
+                reward -= 1*((self.step_num/self.max_nstep)**2)*((1*np.linalg.norm(obs[0:4]- self.target[0:4]))**(2)) 
+                reward -= 2*((self.step_num/self.max_nstep)**2)*((10*(np.linalg.norm(obs[4:] - self.target[4:]))/self.w_init_mag)**(4))
+                #reward -= 1*((self.step_num/self.max_nstep)**2)*((1*np.linalg.norm(obs[0:4]- self.target[0:4]))**(1/5)) 
+                #reward -= 2*((self.step_num/self.max_nstep)**2)*((10*(np.linalg.norm(obs[4:] - self.target[4:]))/self.w_init_mag)**(1/5))
+                reward -= 1*np.linalg.norm(action)
+            else:
+                reward = -1*((np.linalg.norm(obs[0:4]- self.target[self.step_num][0:4])**4))  -1*(1000*(np.linalg.norm(obs[4:] - self.target[self.step_num][4:])**4)) - 1*np.linalg.norm(action)
+        #print(reward)
+        if(self.step_num > self.max_nstep):
+            reset = True
+            self.reset()           
         return reward,reset
             
         
@@ -76,26 +115,36 @@ class Sat_mujocoEnv:
             action_noise[1] = math.cos(t / 10.) * Dy
             action_noise[2] = math.cos(t / 10.) * Dz
         '''
-        self.a = a
-        #a = np.clip(a,-self.action_max,self.action_max)    
+        #self.a = a
+        self.a = np.clip(a,-self.action_max,self.action_max)    
         self.sim.data.ctrl[0] = self.a[0]
         self.sim.data.ctrl[1] = self.a[1]
         self.sim.data.ctrl[2] = self.a[2]
+        self.step_num += 1
         self.t += self.dt
-        self.sim.step(self.dt)
+        self.sim.step()
         self.x = self.get_obs();
         reward,reset_ = self.get_reward(self.x,self.a)
         if(reset_):
             self.x = self.get_obs();
         if(render):
             self.viewer.render()
-        return self.x, reward ,done
+        
+            
+        return self.x, reward ,done , {}
     
     def copy(self):
         c = Sat_mujocoEnv()
         c.s = self.x.copy()
         return c
     
-    def reset(self):
+    def reset(self,change_mass_prop = False):
+        '''
+        if(change_mass_prop):
+            sim.model.body_inertia[0][0] = np.clip(np.random.rand() , 0.1,10.0)
+            sim.model.body_inertia[0][1] = np.clip(np.random.rand() , 0.1,10.0)
+            sim.model.body_inertia[0][2] = np.clip(np.random.rand() , 0.1,10.0)
+        '''
         self.x = self.set_init()
+        self.step_num = 0
         return self.x

@@ -1,6 +1,6 @@
-<mujoco model="SASA">
-    <compiler angle="degree" coordinate="local" inertiafromgeom="true"/>
-    <option gravity="0 0 0" integrator="RK4" timestep="1" />
+<mujoco model="Satellite">
+    <compiler angle="radian" coordinate="local" inertiafromgeom="true"/>
+    <option gravity="0 0 0" integrator="RK4" timestep="10" />
     <worldbody>
         <body name="satellite" pos="0 0 0.0">
             <joint axis="1 0 0" damping="0.0" name="BASE_DOF" pos="0 0 0" type="free"/>

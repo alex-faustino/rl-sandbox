@@ -48,9 +48,10 @@ class SASAEnv(mujoco_env.MujocoEnv, utils.EzPickle):
 
 class SASAmujocoEnv:
     
-    def __init__(self,Noise = None):
+    def __init__(self,Noise = None,params = None):
 
         #model = load_model_from_xml(MODEL_XML)
+        self.Params = params
         model = load_model_from_path(os.path.join(os.getcwd(),'SASA.xml'))
         sim = MjSim(model)
         viewer = MjViewer(sim)
@@ -65,6 +66,7 @@ class SASAmujocoEnv:
         
         action_noise = len(sim.data.ctrl)
         if (Noise != None):
+            for x in Noise['Freq']:
             action_noise[0] = math.cos(t / 10.) * Dx#math.cos(t / 10.) * 
             action_noise[1] = math.cos(t / 10.) * Dy
             action_noise[2] = math.cos(t / 10.) * Dz
@@ -80,7 +82,7 @@ class SASAmujocoEnv:
         if(render):
             viewer.render()
         
-    def reset(self,full_reset = False, sym_params):
+    def reset(self,full_reset_params = False):
         if full_reset:
             env_discp = xml.etree.ElementTree.parse('SASA.xml')
             root = env_discp.getroot()
