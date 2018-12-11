@@ -63,39 +63,58 @@ class Sat_mujocoEnv: #fixed target
         self.action_space = spaces.Box(low=low, high=high)
         
     def set_init(self):
-        q_init = np.random.rand(4)
+        q_init = 2*np.random.rand(4) -1
         q_init = q_init/np.linalg.norm(q_init)
-        w_init = np.random.rand(3)
+        w_init = 2*np.random.rand(3)-1
         w_init = (w_init/np.linalg.norm(w_init))*self.w_init_mag
         self.sim.data.qpos[3:] = q_init;
         self.sim.data.qvel[3:] = w_init
-        return  np.concatenate((q_init,w_init))      
+        self.sim.forward()
+        self.x = np.concatenate((q_init,w_init))   
+        return self.x    
             
     def get_obs(self):
         q = self.sim.data.qpos[3:]
         w = self.sim.data.qvel[3:]
-
-        return np.concatenate((q,w))
+        self.x = np.concatenate((q,w))
+        return self.x
     
     
     '''
     def drift_traj(self):
     '''    
+    def detumble(self,obs):
+        if( ((np.linalg.norm(obs[4:] ))< (self.w_init_mag/5)) ):# & (np.linalg.norm(obs[0])>np.cos(0.035))
+            return 1
+        else:
+            return 0
+    def terminal(self,obs):
+        if(self.detumble(obs) & (np.linalg.norm(obs[0])>np.cos(0.035))):
+            return 20.0
+        else:
+            return 0.0
         
     def get_reward(self,obs,action):
         reset = False
         if (np.linalg.norm(obs[4:])>self.w_tumble):
             reset = True
-            reward = -9.0e2
+            reward = -2.0e2
             self.reset()
 
         else:
             if(self.target.ndim ==1):
-                reward = 1 
-                reward -= 1*((self.step_num/self.max_nstep)**2)*((1*np.linalg.norm(obs[0:4]- self.target[0:4]))**(2)) 
-                reward -= 2*((self.step_num/self.max_nstep)**2)*((10*(np.linalg.norm(obs[4:] - self.target[4:]))/self.w_init_mag)**(4))
-                #reward -= 1*((self.step_num/self.max_nstep)**2)*((1*np.linalg.norm(obs[0:4]- self.target[0:4]))**(1/5)) 
-                #reward -= 2*((self.step_num/self.max_nstep)**2)*((10*(np.linalg.norm(obs[4:] - self.target[4:]))/self.w_init_mag)**(1/5))
+                reward = 0
+                reward += self.terminal(obs)
+                reward += 5*((self.step_num/self.max_nstep)**2)*((1*np.linalg.norm(obs[0]))**(2))*self.detumble(obs)# - self.target[0:4]
+                '''
+                reward += 1*((self.step_num/self.max_nstep)**2)*((1*np.linalg.norm(obs[0]))**(1))# - self.target[0:4]
+                reward -= 1*((self.step_num/self.max_nstep)**2)*((10*(np.linalg.norm(obs[4:] ))/self.w_init_mag)**(1))#- self.target[4:]
+                #reward += 2*((self.step_num/self.max_nstep)**2)*((1*np.linalg.norm(obs[0]))**(2))# - self.target[0:4]
+                reward -= 10*((self.step_num/self.max_nstep)**2)*((10*(np.linalg.norm(obs[4:] ))/self.w_init_mag)**(2))#- self.target[4:]
+                '''
+                #reward -= 1*((self.step_num/self.max_nstep)**2)*((10*(np.linalg.norm(obs[4:] ))/self.w_init_mag)**(2))/self.max_nstep#- self.target[4:]
+                #reward += np.exp(1/((np.linalg.norm(obs[0] )+1e-7)))
+                reward += np.exp(1e-6/((np.linalg.norm(obs[4:] ))/self.w_init_mag))
                 reward -= 1*np.linalg.norm(action)
             else:
                 reward = -1*((np.linalg.norm(obs[0:4]- self.target[self.step_num][0:4])**4))  -1*(1000*(np.linalg.norm(obs[4:] - self.target[self.step_num][4:])**4)) - 1*np.linalg.norm(action)

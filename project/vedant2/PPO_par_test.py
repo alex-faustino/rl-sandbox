@@ -14,22 +14,22 @@ import PPO_par as ppo
 
 gamma = 0.99
 lamb = 0.95
-number_of_actors =25
+number_of_actors =10
 number_of_iterations = 100
-horizon = 1500
-number_of_epochs = 100
+horizon = 1000
+number_of_epochs = 50
 minibatch_size = 500
 logstd_initial = -1 #-0.7
 logstd_final = -2 # -1.6
 epsilon = 0.1
 use_multiprocess = False
 
-horizon = 1500 #steps
+horizon = 1000*2 #steps
 maxabs_torque=1.0e-2
-dt = 10
+dt = 10/2
 target_state = np.array([1,0,0,0,0,0,0]) # [q_0,q_1,q_2,q_3,w_0,w_1,w_2]
 w_mag = 4e-2
-w_tumble = 1
+w_tumble = 8e-2
 Noise = None
 render = False
 
