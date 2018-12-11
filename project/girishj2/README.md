@@ -9,5 +9,7 @@ Source Policy: DDPG/PPO
 
 perform the minimal installation of gym with 
 
-git clone https://
+git clone https://github.com/compdyn/598rl/tree/master/project/girishj2/project_girishj2.git
+
+cd gym_
 
