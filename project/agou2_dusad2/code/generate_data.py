@@ -19,6 +19,7 @@ for ep in tqdm(range(NUM_EPISODES)):
     actions = []
     rewards = []
     state = env.reset()
+    max_pos = -0.4
     for step in range(NUM_STEPS):
         im = env.render(mode='rgb_array')
         im = Image.fromarray(im).resize((HEIGHT, WIDTH), Image.BILINEAR)
@@ -28,13 +29,15 @@ for ep in tqdm(range(NUM_EPISODES)):
         actions.append(action)
 
         state, reward, done, _ = env.step(action)
+        if state[0] > max_pos:
+            max_pos = state[0]
+            reward += 10
         rewards.append(reward)
     
     rewards = np.array(rewards, dtype=float)
     frames = np.array(frames, dtype=np.uint8)
     actions = np.array(actions, dtype=float)
     
-    print(rewards.shape, frames.shape)
     filename = os.path.join(ROLLOUT_DIR, str(random_int)+".npz")
     np.savez_compressed(filename, frames=frames, actions=actions, rewards=rewards)
 
