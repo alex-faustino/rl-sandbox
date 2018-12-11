@@ -20,9 +20,9 @@ class Net(torch.nn.Module):
         V: scalar value function
         mu: mean of action distribution
         """
-        x = torch.nn.LeakyReLU(self.V_fc1(x))
-        x = torch.nn.LeakyReLU(self.V_fc2(x))
-        x = torch.nn.LeakyReLU(self.V_fc3(x))
+        x = torch.tanh(self.V_fc1(x))
+        x = torch.tanh(self.V_fc2(x))
+        x = torch.tanh(self.V_fc3(x))
         #x = torch.leakyrelu(self.V_fc4(x))
         V = self.V_fc4(x)
         mu = self.mu_fc4(x)

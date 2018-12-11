@@ -56,7 +56,7 @@ class FastSLAM2(gym.Env):
 
 
 	DT = 0.1  # time tick [s]
-	observation_dim = 2*N_LM + 4
+	observation_dim = 2*3 + 4
 	action_dim = 2
 
 	def __init__(self):
@@ -322,7 +322,7 @@ class FastSLAM2(gym.Env):
 				lm_state[ilm*2] = lm_pos[lm_ranks[ilm]*2] / lm_dists[lm_ranks[ilm]]
 				lm_state[ilm*2+1] = lm_pos[lm_ranks[ilm]*2+1] / lm_dists[lm_ranks[ilm]]
         
-		state = np.hstack(( lm_state, np.cos(self.theta1), np.sin(self.theta1), np.cos(self.theta2), np.sin(self.theta2) ))
+		state = np.hstack(( lm_state[0:6], np.cos(self.theta1), np.sin(self.theta1), np.cos(self.theta2), np.sin(self.theta2) ))
 
 		return state
 
