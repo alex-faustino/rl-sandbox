@@ -40,7 +40,7 @@ class GMM(nn.Module):
 
 
 
-class MDRNN(nn.Module):
+class MDNRNN(nn.Module):
     def __init__(self,
         sequence_length=1000, 
         hidden_space_dim=RNN_HIDDEN_SIZE,
@@ -50,7 +50,7 @@ class MDRNN(nn.Module):
         rnn_type="lstm", 
         n_layers=RNN_NUM_LAYERS):
 
-        super(MDRNN, self).__init__()
+        super(MDNRNN, self).__init__()
         
         self.rnn_type = rnn_type
         
@@ -86,5 +86,8 @@ class MDRNN(nn.Module):
     def loss(self, next_states, mus, logsigmas, logpis):
         return self.gmm.loss(next_states, mus, logsigmas, logpis)
 
-    
-
+def sample_gmm(mus, logsigmas, logpis):
+    mu, logsigma, logpi = mus[0,-1], logsigmas[0,-1], logpis[0,-1]
+    choice = torch.distributions.categorical.Categorical(F.softmax(logpi, dim=0)).sample()
+    dist = torch.distributions.normal.Normal(mu[choice], logsigma[choice].exp())
+    return dist.sample()
