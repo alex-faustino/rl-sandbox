@@ -9,5 +9,5 @@ Source Policy: DDPG/PPO
 
 perform the minimal installation of gym with 
 
-git clone 
+git clone https://
 
