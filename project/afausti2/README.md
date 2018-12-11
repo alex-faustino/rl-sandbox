@@ -7,7 +7,7 @@ Reddy, Siddharth, Sergey Levine, and Anca Dragan. "Shared Autonomy via Deep Rein
 
 Javdani, Shervin, Siddhartha S. Srinivasa, and J. Andrew Bagnell. "Shared autonomy via hindsight optimization." [arXiv preprint](https://arxiv.org/abs/1503.07619) (2015).
 
-### Work Plan
-1. Implement/recreate Reddy et al. experiment.
-2. Perform experiment with different online learning algorithm.
-3. TBD if time allows...
+### Dependencies
+- Tensorflow 1.3.0
+- Baselines 0.1.4
+- Gym 0.9.1
