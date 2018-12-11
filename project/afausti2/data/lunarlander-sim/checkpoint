@@ -1,0 +1,2 @@
+model_checkpoint_path: "laggy_pilot_goal_decoder.tf"
+all_model_checkpoint_paths: "laggy_pilot_goal_decoder.tf"
