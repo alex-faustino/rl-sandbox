@@ -1,3 +1,0 @@
-Environment Maker:                             Environment_Maker = lambda : robotBulletEnv(gui=False, time_step = 0.01, robot_urdf = robot_urdf, t_res = 20,
-                                                                        controllable_joints=[3,4], control_mode = p.TORQUE_CONTROL))
-

@@ -1,3 +1,0 @@
-Environment Maker: run_ppo_experiment(num_loops = 50, Environment_Maker = lambda : robotBulletEnv(gui=False, time_step = 0.01, 
-                                                                                robot_urdf = robot_urdf)).ipython_display()
-

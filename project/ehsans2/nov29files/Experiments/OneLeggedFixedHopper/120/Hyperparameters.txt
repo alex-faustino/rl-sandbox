@@ -1,3 +1,0 @@
-Environment Maker:                             Environment_Maker = lambda : robotBulletEnv(gui=False, time_step = 0.2, robot_urdf = robot_urdf, t_res = 48,
-                                                                        controllable_joints=controllable_joints, control_mode = p.VELOCITY_CONTROL))
-
