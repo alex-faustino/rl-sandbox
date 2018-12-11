@@ -22,10 +22,10 @@ from resample_vae import VAEResampler
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu") # PyTorch v0.4.0
 
 # load dataset
-all_data = VAEDataset(size=1000, transform=ToTensor())
+all_data = VAEDataset(size=VAE_FULL_DATASET_SIZE, transform=ToTensor())
 
 vae_sample_weights = VAEResampler(all_data).get_sample_weights()
-sampler = WeightedRandomSampler(vae_sample_weights, num_samples=100, replacement=True)
+sampler = WeightedRandomSampler(vae_sample_weights, num_samples=VAE_USE_DATASET_SIZE, replacement=True)
 train_loader = DataLoader(all_data, batch_size=VAE_BATCH_SIZE, sampler=sampler, num_workers=2)
 
 model = VAELin(z_size=LATENT_SIZE, device=device).to(device)
