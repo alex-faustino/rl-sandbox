@@ -27,3 +27,6 @@ RNN_ACTION_SIZE = 1
 RNN_NUM_MIXTURES = 5
 RNN_TYPE = "lstm"
 RNN_NUM_LAYERS = 2
+
+# con training
+CON_PATH = './checkpoints/con.npz'

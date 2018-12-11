@@ -100,4 +100,4 @@ es = CMAES(init_params, init_sigma, {'popsize':popsize})
 #%%
 es.optimize(get_loss)
 env.close()
-
+np.savez_compressed(CON_PATH, agent=es.ask()[0])
