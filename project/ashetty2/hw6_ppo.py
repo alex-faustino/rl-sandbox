@@ -8,9 +8,10 @@ class Net(torch.nn.Module):
         super(Net, self).__init__()
         self.V_fc1 = torch.nn.Linear(observation_dim, 100).double()
         self.V_fc2 = torch.nn.Linear(100, 100).double()
-        self.V_fc3 = torch.nn.Linear(100, 1).double()
-        self.mu_fc3 = torch.nn.Linear(100, action_dim).double()
-        self.std_fc3 = torch.nn.Linear(100, action_dim).double()
+        self.V_fc3 = torch.nn.Linear(100, 100).double()
+        self.V_fc4 = torch.nn.Linear(100, 1).double()
+        self.mu_fc4 = torch.nn.Linear(100, action_dim).double()
+        self.std_fc4 = torch.nn.Linear(100, action_dim).double()
 
     def forward(self, x):
         """
@@ -19,11 +20,13 @@ class Net(torch.nn.Module):
         V: scalar value function
         mu: mean of action distribution
         """
-        x = torch.tanh(self.V_fc1(x))
-        x = torch.tanh(self.V_fc2(x))
-        V = self.V_fc3(x)
-        mu = self.mu_fc3(x)
-        std = self.std_fc3(x)
+        x = torch.nn.LeakyReLU(self.V_fc1(x))
+        x = torch.nn.LeakyReLU(self.V_fc2(x))
+        x = torch.nn.LeakyReLU(self.V_fc3(x))
+        #x = torch.leakyrelu(self.V_fc4(x))
+        V = self.V_fc4(x)
+        mu = self.mu_fc4(x)
+        std = self.std_fc4(x)
         std = torch.sigmoid(std) # adding a small number to std may improve robustness
         return (V, mu, std)
 

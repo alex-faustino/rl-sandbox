@@ -9,7 +9,7 @@ import torch
 
 import gym.spaces
 import gym
-import FastSLAM
+import FastSLAM2
 import hw6_ppo
 
 credentials = GoogleCredentials.get_application_default()
@@ -19,18 +19,18 @@ zone = 'us-central1-c'
 instance = 'instance-2'
 request = service.instances().stop(project=project, zone=zone, instance=instance)
 
-env = gym.make('FastSLAM-v0')
+env = gym.make('FastSLAM-v2')
 agent = hw6_ppo.PPOAgent(env)
 
-save_model = 'case3_LM'
+save_model = 'case5_LM'
 load_model = ''
 load_vars = False
 
 gamma = 0.99
 lamb = 0.95
 number_of_actors = 40
-number_of_iterations = 100
-horizon = 100
+number_of_iterations = 400
+horizon = 230
 number_of_epochs = 100
 minibatch_size = 64
 logstd_initial = -1 #-0.7

@@ -31,7 +31,7 @@ MAX_RANGE = 10.0  # maximum observation range
 
 STATE_SIZE = 3  # State size [x,y,yaw]
 LM_SIZE = 2  # LM srate size [x,y]
-N_PARTICLE = 20  # number of particle
+N_PARTICLE = 1  # number of particle
 NTH = N_PARTICLE / 1.0  # Number of particle for re-sampling
 
 FOV = 30.0  # field of view of range sensor [deg]
@@ -75,7 +75,7 @@ class FastSLAM(gym.Env):
 		self.xTrue, self.z, self.xDR, self.ud = self.observation(self.xTrue, self.xDR, self.u, self.RFID)
 		self.particles = self.fast_slam2(self.particles, self.ud, self.z)
 		self.xEst = self.calc_final_state(self.particles)
-		#self.xEst = self.xTrue
+		self.xEst = self.xTrue
 		self.x_state = self.xEst[0: STATE_SIZE]
 		#add state varaibles to info
 		info = {}
@@ -166,11 +166,11 @@ class FastSLAM(gym.Env):
 				plt.plot([self.xEst[0, 0], self.RFID[lmid, 0]], [self.xEst[1, 0], self.RFID[lmid, 1]], "-k")
 
 			for i in range(N_PARTICLE):
-				plt.plot(self.particles[i].x, self.particles[i].y, ".r")
+# 				plt.plot(self.particles[i].x, self.particles[i].y, ".r")
 				plt.plot(self.particles[i].lm[:, 0], self.particles[i].lm[:, 1], "xb")
 
-			plt.plot(np.array(self.hxTrue[0, :]).flatten(), np.array(self.hxTrue[1, :]).flatten(), "-b")
-			plt.plot(np.array(self.hxDR[0, :]).flatten(), np.array(self.hxDR[1, :]).flatten(), "-k")
+# 			plt.plot(np.array(self.hxTrue[0, :]).flatten(), np.array(self.hxTrue[1, :]).flatten(), "-b")
+# 			plt.plot(np.array(self.hxDR[0, :]).flatten(), np.array(self.hxDR[1, :]).flatten(), "-k")
 			plt.plot(np.array(self.hxEst[0, :]).flatten(), np.array(self.hxEst[1, :]).flatten(), "-r")
 
 			plt.plot(self.xEst[0], self.xEst[1], "xk")
@@ -257,10 +257,10 @@ class FastSLAM(gym.Env):
 
 	def get_obs_nearest(self):
 
-		lm_pos = np.ones(2*N_LM)*1000
+		lm_pos = np.ones(2*N_LM)*1000.0
 		#lm_pos = np.ones(2*N_LM)*0
 
-		lm_dists = np.ones(N_LM)*1000
+		lm_dists = np.ones(N_LM)*1000.0
         
 		lmSeen = self.particles[0].lmSeen
 		for ilm in lmSeen:
@@ -276,16 +276,18 @@ class FastSLAM(gym.Env):
 
 			lm_dists[ilm] = np.sqrt(newx**2 + newy**2)
             
-			if np.sqrt(newx**2 + newy**2) < MAX_RANGE:
-				lm_pos[ilm*2] = newx / MAX_RANGE
-				lm_pos[ilm*2+1] = newy / MAX_RANGE
+			if lm_dists[ilm] < MAX_RANGE:
+				lm_pos[ilm*2] = newx# / MAX_RANGE
+				lm_pos[ilm*2+1] = newy# / MAX_RANGE
 
-		lm_state = np.ones(2*N_LM)*1000
+		lm_state = np.ones(2*N_LM)*1000.0
 		lm_ranks = np.argsort(lm_dists)
+
 		for ilm in range(N_LM):
-			lm_state[ilm*2] = lm_pos[lm_ranks[ilm]*2]
-			lm_state[ilm*2+1] = lm_pos[lm_ranks[ilm]*2+1]
-        
+			if lm_dists[lm_ranks[ilm]] < MAX_RANGE:
+				lm_state[ilm*2] = lm_pos[lm_ranks[ilm]*2] / lm_dists[lm_ranks[ilm]]
+				lm_state[ilm*2+1] = lm_pos[lm_ranks[ilm]*2+1] / lm_dists[lm_ranks[ilm]] 
+
 		state = np.hstack(( lm_state, np.cos(self.theta), np.sin(self.theta) ))
 
 		return state
@@ -416,14 +418,14 @@ class FastSLAM(gym.Env):
 		particle.lm[lm_id, 1] = particle.y + r * s
 
 		#remove later
-		#particle.lm[lm_id, 0] = self.RFID[lm_id, 0]
-		#particle.lm[lm_id, 1] = self.RFID[lm_id, 1]
+		particle.lm[lm_id, 0] = self.RFID[lm_id, 0]
+		particle.lm[lm_id, 1] = self.RFID[lm_id, 1]
 
 		# covariance
 		Gz = np.matrix([[c, -r * s],
 				[s, r * c]])
 
-		particle.lmP[2 * lm_id:2 * lm_id + 2] = Gz * Q * Gz.T
+		particle.lmP[2 * lm_id:2 * lm_id + 2] = 0 * Gz * Q * Gz.T
 
 		particle.lmSeen.append(lm_id)
 
@@ -500,7 +502,7 @@ class FastSLAM(gym.Env):
 			invS = np.linalg.inv(S)
 		except np.linalg.linalg.LinAlgError:
 			#add later
-			print("Singular!")
+			#print("Singular!")
 			return 1.0
 
 		num = math.exp(-0.5 * dz.T * invS * dz)
