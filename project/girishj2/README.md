@@ -11,5 +11,13 @@ perform the minimal installation of gym with
 
 git clone https://github.com/compdyn/598rl/tree/master/project/girishj2/project_girishj2.git
 
-cd gym_
+cd project_girishj2/gym-CartpoleEnv
+
+pip install -e.
+
+Similarly also install pendulum env
+
+# Files
+
+
 
