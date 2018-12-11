@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 
 class Net(torch.nn.Module):
 
-    def __init__(self, observation_dim, action_dim,inner_layer = 10):
+    def __init__(self, observation_dim, action_dim,inner_layer = 25):
         super(Net, self).__init__()
         self.V_fc1 = torch.nn.Linear(observation_dim, inner_layer).double()
         self.V_fc2 = torch.nn.Linear(inner_layer, inner_layer).double()

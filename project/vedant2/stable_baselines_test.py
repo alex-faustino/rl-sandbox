@@ -17,11 +17,11 @@ import time
 
 a = time.time()
 horizon = 1500 #steps
-maxabs_torque=1.0e-1
-dt = 10
+maxabs_torque=2.50e-3
+dt = 5
 target_state = np.array([1,0,0,0,0,0,0]) # [q_0,q_1,q_2,q_3,w_0,w_1,w_2]
 w_mag = 4e-2
-w_tumble = 1
+w_tumble = 1e-1
 Noise = None
 render = False
 
@@ -30,18 +30,18 @@ env = sat_mujocoenv.Sat_mujocoEnv(horizon,maxabs_torque, dt ,
                      w_tumble , Noise ,render )
 env = DummyVecEnv([lambda: env])  # The algorithms require a vectorized environment to run
 
-model = algorithm(MlpPolicy, env, verbose=2)
-model.learn(total_timesteps=50000)
+model = algorithm(MlpPolicy, env, verbose=0)
+model.learn(total_timesteps=1000000)
 b = time.time()
 print("Done Training!")
 print('It took : ', b-a,' secs')
-Final_run_nstep = 1500
+Final_run_nstep = 1000
 rewards = np.ones([Final_run_nstep])
 obs_list = np.zeros([Final_run_nstep+1,env.envs[0].observation_dim])
 action_list = np.zeros([Final_run_nstep+1,env.envs[0].action_dim])
 
 obs = env.reset()
-for i in range(1500):
+for i in range(Final_run_nstep):
     action, _states = model.predict(obs)
     obs, rewards[i], dones, info = env.step(action)
     obs_list[i+1] = obs

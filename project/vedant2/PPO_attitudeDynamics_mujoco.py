@@ -35,7 +35,7 @@ torch.manual_seed(seed)
 TrainingRecord = namedtuple('TrainingRecord', ['ep', 'reward'])
 Transition = namedtuple('Transition', ['s', 'a', 'a_log_p', 'r', 's_'])
 torch.set_default_tensor_type('torch.DoubleTensor')
-inner_neuron = 10
+inner_neuron = 100
 class ActorCriticNet(nn.Module):
 
 
@@ -182,11 +182,11 @@ def main():
     #env.seed(seed)
     
     horizon = 1500 #steps
-    maxabs_torque=1.0e-2
-    dt = 10
+    maxabs_torque=2.50e-3
+    dt = 5
     target_state = np.array([1,0,0,0,0,0,0]) # [q_0,q_1,q_2,q_3,w_0,w_1,w_2]
     w_mag = 4e-2
-    w_tumble = 1
+    w_tumble = 1e-1
     Noise = None
     render = False
     
@@ -200,9 +200,9 @@ def main():
     agent = Agent()
     last_state = []
     training_records = []
-    running_reward = -1000
+    running_reward = -10000
     state = env.reset()
-    for i_ep in range(10000):
+    for i_ep in range(2000):
         score = 0
         
         state = env.reset()
@@ -213,7 +213,7 @@ def main():
         for t in range(1500):
             
             action, action_log_prob = agent.select_action(state)
-            state_, reward, done = env.step(action.numpy()[0])
+            state_, reward, done,_ = env.step(action.numpy()[0])
             if render:
                 env.render()
             if agent.store(Transition(state, action[0].tolist(), action_log_prob[0].tolist(), (reward + 1/8), state_)):
@@ -244,7 +244,7 @@ def main():
             plt.show()
                     #print("Solved! Moving average score is now {}!".format(running_reward))
             #render = 1
-        if running_reward >-20:
+        if running_reward >1e4:
             end = 1
         if end:    
             #env.close()
