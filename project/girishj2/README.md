@@ -4,3 +4,10 @@ I plan to extend the part of results presented in ICRA-2018. In previous paper w
 Experiments: Hopper-v1/HalfCheetah-v1/Ant-v1 ( using OpenAI RoboSchool )
 Source Policy: DDPG/PPO
 
+
+# Installation
+
+perform the minimal installation of gym with 
+
+git clone 
+
