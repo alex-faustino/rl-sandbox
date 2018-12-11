@@ -11,3 +11,5 @@ Javdani, Shervin, Siddhartha S. Srinivasa, and J. Andrew Bagnell. "Shared autono
 - Tensorflow 1.3.0
 - Baselines 0.1.4
 - Gym 0.9.1
+- Box2D 2.3.2
+- box2D-py 2.3.8
