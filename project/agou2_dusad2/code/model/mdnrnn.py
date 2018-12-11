@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-import torch.nn.MSELoss as mse_loss
 import numpy as np
 import torch.nn.functional as F
 from torch.distributions.normal import Normal
@@ -37,7 +36,7 @@ class GMM(nn.Module):
         logsigmas = out[:, :,  self.stride:2*self.stride]
         logsigmas = logsigmas.view(logsigmas.shape[0], logsigmas.shape[1], -1, self.latent_space_dim)
 
-        logpis = out[:, :, -self.n_mixtures + model_reward:]
+        logpis = out[:, :, -(self.n_mixtures + self.model_reward):-1]
         
         reward = None
         if self.model_reward:
@@ -87,11 +86,11 @@ class MDNRNN(nn.Module):
     def forward(self, latents, actions, prev_rnn_hidden=None):
         inputs = torch.cat([actions, latents], -1)
         rnn_out, rnn_hidden = self.rnn(inputs, prev_rnn_hidden) # hidden_state is zero 
-        mus, logsigmas, logpis = self.gmm(rnn_out)
-        return mus, logsigmas, logpis, rnn_out, rnn_hidden
+        mus, logsigmas, logpis, predicted_rewards = self.gmm(rnn_out)
+        return mus, logsigmas, logpis, rnn_out, rnn_hidden, predicted_rewards
     
     def reward_loss(self, real_reward, predicted_reward):
-        return mse_loss()(predicted_reward, real_reward)
+        return nn.MSELoss()(predicted_reward, real_reward)
     
     def loss(self, next_states, mus, logsigmas, logpis, real_rewards=None, predicted_rewards=None):
         gmm_loss = self.gmm.loss(next_states, mus, logsigmas, logpis) 

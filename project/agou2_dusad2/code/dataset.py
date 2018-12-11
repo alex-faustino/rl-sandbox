@@ -37,6 +37,7 @@ class RNNDataset(Dataset):
         episodes = [ep for ep in os.listdir(ROLLOUT_DIR) if '.npz' in ep]
         self.frame_seqs = []
         self.action_seqs = []
+        self.reward_seqs = []
         num_seq = 0
         for episode in episodes:
             
@@ -48,6 +49,11 @@ class RNNDataset(Dataset):
             self.frame_seqs.append(frames)
             actions = saved['actions']
             self.action_seqs.append(actions)
+            
+            rewards = saved['rewards']
+            self.reward_seqs.append(rewards)
+            
+        self.reward_seqs = np.array(self.reward_seqs)
         self.frame_seqs = np.array(self.frame_seqs)
         self.action_seqs = np.array(self.action_seqs)
 
@@ -58,8 +64,10 @@ class RNNDataset(Dataset):
         sample_idx = np.random.randint(0, len(self.frame_seqs[idx]) - self.sample_size)
         sample = {
             'frame_seq': self.frame_seqs[idx, sample_idx:sample_idx + self.sample_size],
-            'action_seq': self.action_seqs[idx, sample_idx:sample_idx + self.sample_size]
+            'action_seq': self.action_seqs[idx, sample_idx:sample_idx + self.sample_size],
+            'reward_seq': self.reward_seqs[idx, sample_idx:sample_idx + self.sample_size]
         }
+        
         if self.transform:
             sample = self.transform(sample)
         return sample
@@ -70,6 +78,6 @@ class MultiToTensor:
     '''
 
     def __call__(self, sample):
-        frame_seq, action_seq = sample['frame_seq'], sample['action_seq']
+        frame_seq, action_seq, reward_seq = sample['frame_seq'], sample['action_seq'], sample['reward_seq']
         frame_seq = torch.from_numpy(frame_seq).permute((0,3,1,2)).float().div(255)
-        return {'frame_seq': frame_seq, 'action_seq': action_seq}
+        return {'frame_seq': frame_seq, 'action_seq': action_seq,'reward_seq': reward_seq}

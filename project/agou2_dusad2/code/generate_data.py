@@ -6,15 +6,18 @@ import os
 from constants import ROLLOUT_DIR, NUM_EPISODES, NUM_STEPS, HEIGHT, WIDTH
 from PIL import Image
 
+from tqdm import tqdm
+
 if not os.path.exists(ROLLOUT_DIR):
     os.makedirs(ROLLOUT_DIR)
 
 env = gym.make('MountainCar-v0')
 
-for ep in range(NUM_EPISODES):
+for ep in tqdm(range(NUM_EPISODES)):
     random_int = random.randint(0, 2**31-1)
     frames = []
     actions = []
+    rewards = []
     state = env.reset()
     for step in range(NUM_STEPS):
         im = env.render(mode='rgb_array')
@@ -24,11 +27,16 @@ for ep in range(NUM_EPISODES):
         action = env.action_space.sample()
         actions.append(action)
 
-        env.step(action)
+        state, reward, done, _ = env.step(action)
+        rewards.append(reward)
+    
+    rewards = np.array(rewards, dtype=float)
     frames = np.array(frames, dtype=np.uint8)
     actions = np.array(actions, dtype=float)
+    
+    print(rewards.shape, frames.shape)
     filename = os.path.join(ROLLOUT_DIR, str(random_int)+".npz")
-    np.savez_compressed(filename, frames=frames, actions=actions)
+    np.savez_compressed(filename, frames=frames, actions=actions, rewards=rewards)
 
 env.close()
 

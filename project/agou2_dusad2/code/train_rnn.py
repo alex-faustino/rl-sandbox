@@ -21,7 +21,7 @@ loaded = torch.load(VAE_PATH, map_location=device)
 vae.load_state_dict(loaded['model_state_dict'])
 #%%
 
-model = MDNRNN().to(device)
+model = MDNRNN(model_reward=True).to(device)
 #%%
 def to_latent(batch_frames, vae):
     frames = batch_frames.reshape((RNN_BATCH_SIZE, RNN_SEQ_LEN, 3, HEIGHT, WIDTH))
@@ -40,14 +40,17 @@ for epoch in range(RNN_EPOCHS):
             optimizer.zero_grad()
             frame_seqs = batch['frame_seq'].to(device).float() # (BATCHSIZE, SEQ_LEN, 3, 64, 64)
             action_seqs = batch['action_seq'].to(device).float().unsqueeze(2) # (BATCHSIZE, SEQ_LEN)
+            reward_seqs =  batch['reward_seq'].to(device).float()
+
             latent_seqs = to_latent(frame_seqs, vae) # (BATCHSIZE, SEQ_LEN, LATENT_SIZE)
 
             curr_latent = latent_seqs[:,:-1]
             curr_actions = action_seqs[:,:-1]
             next_latent = latent_seqs[:,1:]
-            mus, logsigmas, logpis, rnn_out, rnn_hidden = model(curr_latent, curr_actions, old_rnn_hidden)
-
-            loss = model.loss(next_latent, mus, logsigmas, logpis)
+            mus, logsigmas, logpis, rnn_out, rnn_hidden, predicted_rewards = model(curr_latent, curr_actions, old_rnn_hidden)
+            
+            # print(next_latent.shape,  mus.shape, logsigmas.shape, logpis.shape, reward_seqs[:, :-1].shape, predicted_rewards.shape)
+            loss = model.loss(next_latent, mus, logsigmas, logpis, reward_seqs[:, :-1], predicted_rewards)
             loss.backward()
             losses.append(loss.detach().cpu().numpy())
             optimizer.step()
