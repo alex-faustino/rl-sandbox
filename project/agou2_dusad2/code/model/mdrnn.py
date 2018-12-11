@@ -54,6 +54,12 @@ class MDRNN(nn.Module):
         
         self.rnn_type = rnn_type
         
+        models = {
+            "lstm": nn.LSTM,
+            "rnn": nn.RNN,
+            "gru": nn.GRU
+        }
+        
         self.sequence_length = sequence_length
         self.n_layers = n_layers
         self.hidden_space_dim = hidden_space_dim
@@ -67,7 +73,7 @@ class MDRNN(nn.Module):
         self.output_shape = latent_space_dim
 
 
-        self.rnn = nn.LSTM(latent_space_dim + action_space_dim, hidden_space_dim, n_layers)
+        self.rnn = models[rnn_type](latent_space_dim + action_space_dim, hidden_space_dim, n_layers)
         self.gmm = GMM(num_mixtures, hidden_space_dim, latent_space_dim)
         
     
