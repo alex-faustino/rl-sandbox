@@ -8,7 +8,7 @@ from constants import *
 from torchvision.transforms import ToTensor
 
 class VAEDataset(Dataset):
-    def __init__(self, rollout_dir=ROLLOUT_DIR, size=VAE_DATASET_SIZE, transform=None):
+    def __init__(self, rollout_dir=ROLLOUT_DIR, size=VAE_FULL_DATASET_SIZE, transform=None):
         self.transform=transform
         self.frames = np.zeros((size, HEIGHT, WIDTH, 3), dtype=np.uint8)
         episodes = [ep for ep in os.listdir(ROLLOUT_DIR) if '.npz' in ep]

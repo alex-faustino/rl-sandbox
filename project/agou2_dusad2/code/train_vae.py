@@ -12,35 +12,31 @@ from torchsummary import summary
 from model.vaelin import VAELin
 from model.vae import VAE
 from dataset import VAEDataset
-from torch.utils.data import DataLoader, random_split
+from torch.utils.data import DataLoader, random_split, WeightedRandomSampler
 
 from PIL import Image
 
 from constants import *
+from resample_vae import VAEResampler
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu") # PyTorch v0.4.0
-# model = VAE(conv_sizes=[4,8,16,32], device=device).to(device)
-model = VAELin(z_size=16, device=device).to(device)
 
-dataset = VAEDataset(transform=Compose([
-        ToTensor()
-    ]))
+# load dataset
+all_data = VAEDataset(size=1000, transform=ToTensor())
 
-train_data, test_data = random_split(dataset, [9000, 1000])
+vae_sample_weights = VAEResampler(all_data).get_sample_weights()
+sampler = WeightedRandomSampler(vae_sample_weights, num_samples=100, replacement=True)
+train_loader = DataLoader(all_data, batch_size=VAE_BATCH_SIZE, sampler=sampler, num_workers=2)
 
-batch_size = 32
-train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=2)
-test_loader = DataLoader(test_data, batch_size=batch_size, shuffle=True, num_workers=2)
-train_iter = len(train_data)//batch_size
-
+model = VAELin(z_size=LATENT_SIZE, device=device).to(device)
 losses = []
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
-num_epochs = 10
+num_epochs = VAE_EPOCHS
 
 for epoch in range(num_epochs):
-    with tqdm(total=train_iter) as bar:
-        for batch_idx, train_batch in enumerate(train_loader):
+    with tqdm(enumerate(train_loader), total=len(train_loader)) as progress:
+        for batch_idx, train_batch in progress:
             train_batch = train_batch.to(device)
             optimizer.zero_grad()
             original, decoded, encoded, z, mu, logvar = model.forward(train_batch)
@@ -49,8 +45,7 @@ for epoch in range(num_epochs):
             losses.append(loss.detach().cpu().numpy())
             loss.backward()
             optimizer.step()
-            bar.update(1)
-            bar.set_postfix(avg_loss=sum(losses[-(batch_idx+1):])/(batch_idx+1))
+            progress.set_postfix(avg_loss=sum(losses[-(batch_idx+1):])/(batch_idx+1))
 
 torch.save(model.state_dict(), VAE_PATH)
 
