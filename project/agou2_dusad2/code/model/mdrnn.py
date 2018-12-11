@@ -4,6 +4,7 @@ import numpy as np
 import torch.nn.functional as F
 from torch.distributions.normal import Normal
 
+from constants import *
 
 
 
@@ -40,12 +41,12 @@ class GMM(nn.Module):
 
 
 class MDRNN(nn.Module):
-    def __init__(self, batch_size=100, 
+    def __init__(self,
         sequence_length=1000, 
-        hidden_space_dim = 256, 
-        action_space_dim=2, 
-        latent_space_dim=8, 
-        num_mixtures=5, 
+        hidden_space_dim=RNN_HIDDEN_SIZE,
+        action_space_dim=1, 
+        latent_space_dim=LATENT_SIZE,
+        num_mixtures=RNN_NUM_MIXTURES, 
         rnn_type="lstm", 
         n_layers=1):
 
@@ -53,7 +54,6 @@ class MDRNN(nn.Module):
         
         self.rnn_type = rnn_type
         
-        self.batch_size = batch_size
         self.sequence_length = sequence_length
         self.n_layers = n_layers
         self.hidden_space_dim = hidden_space_dim

@@ -31,7 +31,7 @@ class VAEDataset(Dataset):
         return sample
 
 class RNNDataset(Dataset):
-    def __init__(self, rollout_dir=ROLLOUT_DIR, size=RNN_DATASET_SIZE, sample_size=RNN_SAMPLE_SIZE, transform=None):
+    def __init__(self, rollout_dir=ROLLOUT_DIR, size=RNN_DATASET_SIZE, sample_size=RNN_SEQ_LEN, transform=None):
         self.transform = transform
         self.sample_size = sample_size
         episodes = [ep for ep in os.listdir(ROLLOUT_DIR) if '.npz' in ep]

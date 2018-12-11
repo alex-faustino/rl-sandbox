@@ -24,9 +24,9 @@ loader = DataLoader(dataset, batch_size=batch_size)
 
 #%%
 def to_latent(batch_frames, vae):
-    frames = batch_frames.reshape((batch_size, RNN_SAMPLE_SIZE, 3, HEIGHT, WIDTH))
+    frames = batch_frames.reshape((batch_size, RNN_SEQ_LEN, 3, HEIGHT, WIDTH))
     latent_seq = vae(frames)[3]
-    latent_seqs = latent_seq.reshape((batch_size, RNN_SAMPLE_SIZE, 16))
+    latent_seqs = latent_seq.reshape((batch_size, RNN_SEQ_LEN, 16))
     return latent_seqs
 
 #%%
