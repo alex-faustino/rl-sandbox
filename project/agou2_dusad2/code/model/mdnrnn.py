@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.MSELoss as mse_loss
 import numpy as np
 import torch.nn.functional as F
 from torch.distributions.normal import Normal
@@ -9,13 +10,14 @@ from constants import *
 
 
 class GMM(nn.Module):
-    def __init__(self, n_mixtures, hidden_size, latent_space_dim):
+    def __init__(self, n_mixtures, hidden_size, latent_space_dim, model_reward=False):
         super(GMM, self).__init__()
         self.n_mixtures = n_mixtures
-        self.net = nn.Linear(hidden_size, (latent_space_dim*2 + 1)*n_mixtures)
+        self.net = nn.Linear(hidden_size, (latent_space_dim*2 + 1)*n_mixtures + model_reward)
         self.stride = latent_space_dim*n_mixtures
         self.latent_space_dim = latent_space_dim
         self.hidden_size = hidden_size
+        self.model_reward = model_reward
 
     def loss(self, batch, mus, logsigmas, logpis):
         sigmas = torch.exp(logsigmas)
@@ -35,8 +37,13 @@ class GMM(nn.Module):
         logsigmas = out[:, :,  self.stride:2*self.stride]
         logsigmas = logsigmas.view(logsigmas.shape[0], logsigmas.shape[1], -1, self.latent_space_dim)
 
-        logpis = out[:, :, -self.n_mixtures:]
-        return mus, logsigmas, logpis
+        logpis = out[:, :, -self.n_mixtures + model_reward:]
+        
+        reward = None
+        if self.model_reward:
+            reward = out[:, :, -1]
+        
+        return mus, logsigmas, logpis, reward
 
 
 
@@ -48,7 +55,8 @@ class MDNRNN(nn.Module):
         latent_space_dim=LATENT_SIZE,
         num_mixtures=RNN_NUM_MIXTURES, 
         rnn_type="lstm", 
-        n_layers=RNN_NUM_LAYERS):
+        n_layers=RNN_NUM_LAYERS,
+        model_reward = False):
 
         super(MDNRNN, self).__init__()
         
@@ -74,17 +82,24 @@ class MDNRNN(nn.Module):
 
 
         self.rnn = models[rnn_type](latent_space_dim + action_space_dim, hidden_space_dim, n_layers)
-        self.gmm = GMM(num_mixtures, hidden_space_dim, latent_space_dim)
-        
+        self.gmm = GMM(num_mixtures, hidden_space_dim, latent_space_dim, model_reward)
     
     def forward(self, latents, actions, prev_rnn_hidden=None):
         inputs = torch.cat([actions, latents], -1)
         rnn_out, rnn_hidden = self.rnn(inputs, prev_rnn_hidden) # hidden_state is zero 
         mus, logsigmas, logpis = self.gmm(rnn_out)
         return mus, logsigmas, logpis, rnn_out, rnn_hidden
-
-    def loss(self, next_states, mus, logsigmas, logpis):
-        return self.gmm.loss(next_states, mus, logsigmas, logpis)
+    
+    def reward_loss(self, real_reward, predicted_reward):
+        return mse_loss()(predicted_reward, real_reward)
+    
+    def loss(self, next_states, mus, logsigmas, logpis, real_rewards=None, predicted_rewards=None):
+        gmm_loss = self.gmm.loss(next_states, mus, logsigmas, logpis) 
+        rewards_loss = 0
+        if real_rewards is not None:
+            rewards_loss = self.reward_loss(real_rewards, predicted_rewards)
+        loss = gmm_loss + rewards_loss
+        return loss
 
 def sample_gmm(mus, logsigmas, logpis):
     mu, logsigma, logpi = mus[0,-1], logsigmas[0,-1], logpis[0,-1]
