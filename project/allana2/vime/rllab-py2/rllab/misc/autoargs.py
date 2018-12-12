@@ -104,9 +104,8 @@ def new_from_args(_):
                     else:
                         params[arg_name] = val
                     if not silent:
-                        print colorize(
-                            "using argument %s with value %s" % (arg_name, val),
-                            "yellow")
+                        print(argname,val)
+                        print colorize("using argument %s with value %s" % (arg_name,val),"yellow")
         return cls(*args, **params)
     return _new_from_args
 

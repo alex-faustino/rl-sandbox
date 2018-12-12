@@ -11,6 +11,3 @@ The actual method is by approximate variational inference, rather than a simple 
 
 # Proposed Contribution
 The term ![equation](https://latex.codecogs.com/gif.latex?\eta) is a hyperparameter of the VIME algorithm. My project will involve replacing intrinsic reward with the Entropic Value at Risk (EVaR). In using EVaR, we choose ![equation](https://latex.codecogs.com/gif.latex?\eta) as the optimization parameter. In-so-doing, we achieve an uppder bound to the original intrinsic reward expression for the same value of ![equation](https://latex.codecogs.com/gif.latex?\eta). Moreover, we also gain positive homogeneity and tranlsation invariance with respect to the reward model. As a result, the expected performance of the algorithm is expected to be more robust to the designer changing the rewards in the environment by the same linear transformation.
-
-# Setup
-Requires the use of Python 2.7 as well as the Mujoco license. You need to download the Python 2 version of the rllab github repo and install that instead of the rllab github repo. You may need to move files to run from initialization and you will almost certainly have to work around package dependencies that have since changed the SPELLING of some operations. It can be frustrating.

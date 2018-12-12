@@ -481,7 +481,14 @@ class BatchPolopt(RLAlgorithm):
 
             # Add KL ass intrinsic reward to external reward
             for i in xrange(len(paths)):
-                paths[i]['rewards'] = paths[i]['rewards'] + self.eta * kls[i]
+                for z in np.arange(0.1,1000,0.1):
+                      placeholder = 1/z * (np.log(np.mean(np.exp(z*paths[i]['rewards'] ) ) ) + kls[i] )
+                      if z == 0.1:
+                          littlestPlaceholder = placeholder
+                      littlestPlaceholder = np.minimum(placeholder,littlestPlaceholder)
+                paths[i]['rewards'] = littlestPlaceholder
+#                paths[i]['rewards'] = paths[i]['rewards'] + self.eta * kls[i]+0.5
+#                paths[i]['rewards'] = paths[i]['rewards'] + self.eta * kls[i]
 
             # Discount eta
             self.eta *= self.eta_discount
