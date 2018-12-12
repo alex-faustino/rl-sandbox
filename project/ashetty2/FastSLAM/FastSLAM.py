@@ -1,4 +1,3 @@
-from IPython import display
 import gym
 from gym import error, spaces, utils
 from gym.utils import seeding
@@ -7,37 +6,35 @@ import math
 import matplotlib.pyplot as plt
 
 # Fast SLAM covariance
-Q = np.diag([0.1, np.deg2rad(1.0)])**2
+Q = np.diag([0.001, np.deg2rad(0.1)])**2
 R = np.diag([1.0, np.deg2rad(20.0)])**2
 
 #  Simulation parameter
 Qsim = 0*np.diag([0.3, np.deg2rad(2.0)])**2
-Rsim = np.diag([0.5, np.deg2rad(10.0)])**2
+Rsim = 0*np.diag([0.5, np.deg2rad(10.0)])**2
 #OFFSET_YAWRATE_NOISE = 0.05*np.random.uniform(-1,1,1)[0]
-OFFSET_YAWRATE_NOISE = 0.05*(1 if np.random.random() < 0.5 else -1)
+#OFFSET_YAWRATE_NOISE = 0.05*(1 if np.random.random() < 0.5 else -1)
+OFFSET_YAWRATE_NOISE = 0.001
 
-BOX_HALF_SIZE = 20.0
-TRAJ_AMP = 0.5
-TRAJ_FREQ = 2.0
-INIT_YAW = TRAJ_AMP*TRAJ_FREQ
-TRAJ_XLIM = [-1.0, 10.0]
-TRAJ_YLIM = [-TRAJ_AMP-1.0, TRAJ_AMP+1.0]
-PLT_XLIM = [TRAJ_XLIM[0]-BOX_HALF_SIZE, TRAJ_XLIM[1]+BOX_HALF_SIZE]
-PLT_YLIM = [TRAJ_YLIM[0]-BOX_HALF_SIZE, TRAJ_YLIM[1]+BOX_HALF_SIZE]
 TIME_OFFSET = 3.0
 
-LM_BOX_SIZE = 8.0
-N_LM = 10
+BOX_HALF_WIDTH = 6.0
+ROAD_HALF_WIDTH = 2.0
+ROAD_BLOCK_LENGTH = 10.0
 
-MAX_RANGE = 40.0  # maximum observation range
-M_DIST_TH = 2.0  # Threshold of Mahalanobis distance for data association.
+LM_BOX_HALF_SIZE = 2.0
+N_BLOCKS = 1
+N_LM = 3
+
+MAX_ACTION_DEG = 10.0  #maximum possible action per step
+MAX_RANGE = 10.0  # maximum observation range
+
 STATE_SIZE = 3  # State size [x,y,yaw]
 LM_SIZE = 2  # LM srate size [x,y]
-N_PARTICLE = 20  # number of particle
+N_PARTICLE = 1  # number of particle
 NTH = N_PARTICLE / 1.0  # Number of particle for re-sampling
 
-BIN_SIZE = 5.0  #degrees
-FOV = 45.0  # field of view of range sensor [deg]
+FOV = 30.0  # field of view of range sensor [deg]
 
 ALPHA = 0.1
 
@@ -47,7 +44,7 @@ class Particle:
 		self.w = 1.0 / N_PARTICLE
 		self.x = 0.0
 		self.y = 0.0
-		self.yaw = INIT_YAW
+		self.yaw = 0.0
 		self.P = np.eye(3)
 		# landmark x-y positions
 		self.lm = np.matrix(np.zeros((N_LM, LM_SIZE)))
@@ -59,12 +56,15 @@ class FastSLAM(gym.Env):
 
 
 	DT = 0.1  # time tick [s]
+	observation_dim = 2*N_LM + 2
+	action_dim = 1
 
 	def __init__(self):
 		self.state = None
-		self.reward_type = 'Error'
 
 	def step(self, action):
+
+		action = np.clip(action, -np.deg2rad(MAX_ACTION_DEG), np.deg2rad(MAX_ACTION_DEG))
 
 		self.theta += action
 
@@ -75,6 +75,7 @@ class FastSLAM(gym.Env):
 		self.xTrue, self.z, self.xDR, self.ud = self.observation(self.xTrue, self.xDR, self.u, self.RFID)
 		self.particles = self.fast_slam2(self.particles, self.ud, self.z)
 		self.xEst = self.calc_final_state(self.particles)
+		self.xEst = self.xTrue
 		self.x_state = self.xEst[0: STATE_SIZE]
 		#add state varaibles to info
 		info = {}
@@ -88,43 +89,42 @@ class FastSLAM(gym.Env):
 		self.hxTrue = np.hstack((self.hxTrue, self.xTrue))
 
 		#calculate reward based on pose error
-		reward = self.get_reward()		
+		reward = self.get_reward_LM()
+		#reward = self.get_reward()
 
 		#get state vector
-		self.state = self.get_obs()
+		#self.state = self.get_obs_fixedLM()
+		self.state = self.get_obs_nearest()
 
 		return self.state, reward, False, info
-		#return info
 
+	def copy(self):
+		c = gym.make('FastSLAM-v0')
+		c.state = None
+		return c
 
 	def reset(self):
 
 		self.time = 0.0
-
 		self.theta = 0.0
-
 		self.xEst = np.matrix(np.zeros((STATE_SIZE, 1)))		
 		self.xTrue = np.matrix(np.zeros((STATE_SIZE, 1)))
 		self.xDR = np.matrix(np.zeros((STATE_SIZE, 1)))  # Dead reckoning
-		self.xEst[2], self.xTrue[2], self.xDR[2] = INIT_YAW, INIT_YAW, INIT_YAW
 		self.x_state = self.xEst[0: STATE_SIZE]
-
 		self.hxEst = self.xEst
 		self.hxTrue = self.xTrue
 		self.hxDR = self.xTrue
 
-		#arrange RFID
-		find_lmc = True
-		while find_lmc:
-			lmcx = np.random.uniform(PLT_XLIM[0]+LM_BOX_SIZE/2.0, PLT_XLIM[1]-LM_BOX_SIZE/2.0,1)
-			lmcy = np.random.uniform(PLT_YLIM[0]+LM_BOX_SIZE/2.0, PLT_YLIM[1]-LM_BOX_SIZE/2.0,1)
-			if (lmcx>=(TRAJ_XLIM[0]-LM_BOX_SIZE/2.0)) and (lmcx<=(TRAJ_XLIM[1]+LM_BOX_SIZE/2.0)) and (lmcy>=(TRAJ_YLIM[0]-LM_BOX_SIZE/2.0)) and (lmcy<=(TRAJ_YLIM[1]+LM_BOX_SIZE/2.0)):
-				continue
-			else:
-				find_lmc = False
+		lmx_lims = [LM_BOX_HALF_SIZE, ROAD_BLOCK_LENGTH-LM_BOX_HALF_SIZE]
+		lmy_lims = [ROAD_HALF_WIDTH+LM_BOX_HALF_SIZE, ROAD_HALF_WIDTH+BOX_HALF_WIDTH-LM_BOX_HALF_SIZE]
+		lmx, lmy = np.zeros((0,1)), np.zeros((0,1))
 
-		lmx = np.random.uniform(lmcx-LM_BOX_SIZE/2.0,lmcx+LM_BOX_SIZE/2.0,N_LM)[:,None]
-		lmy = np.random.uniform(lmcy-LM_BOX_SIZE/2.0,lmcy+LM_BOX_SIZE/2.0,N_LM)[:,None]
+		lmcx = np.random.uniform(lmx_lims[0], lmx_lims[1], 1)
+		lmcy = (1 if np.random.random() < 0.5 else -1)*np.random.uniform(lmy_lims[0], lmy_lims[1], 1)
+
+		lmx = np.random.uniform(lmcx-LM_BOX_HALF_SIZE,lmcx+LM_BOX_HALF_SIZE,int(N_LM/N_BLOCKS))[:,None]
+		lmy = np.random.uniform(lmcy-LM_BOX_HALF_SIZE,lmcy+LM_BOX_HALF_SIZE,int(N_LM/N_BLOCKS))[:,None]
+
 		self.RFID = np.hstack((lmx, lmy))
 
 		self.particles = [Particle(N_LM) for i in range(N_PARTICLE)]
@@ -135,7 +135,12 @@ class FastSLAM(gym.Env):
 			dy = self.RFID[i, 1] - self.xTrue[1, 0]
 			d = math.sqrt(dx**2 + dy**2)
 			angle = math.atan2(dy, dx) - self.xTrue[2, 0]
-			if d <= MAX_RANGE:
+
+			delta = np.abs( np.arctan2(dy,dx) - self.pi_2_pi(self.xTrue[2,0] + self.theta) )
+			if delta > np.pi:
+				delta = 2*np.pi - delta
+
+			if d <= MAX_RANGE and np.rad2deg(delta)<=(FOV/2.0):
 				dn = d + np.random.randn() * Qsim[0, 0]  # add noise
 				anglen = angle + np.random.randn() * Qsim[1, 1]  # add noise
 				zi = np.matrix([dn, self.pi_2_pi(anglen), i])
@@ -143,13 +148,16 @@ class FastSLAM(gym.Env):
 					self.particles[ip] = self.add_new_lm(self.particles[ip], zi, Q)
 
 		#get state vector
-		self.state = self.get_obs()
+		#self.state = self.get_obs_fixedLM()
+		self.state = self.get_obs_nearest()
 
 		return self.state
 
 	def render_world(self):
 
-		plt.figure(figsize=(8,8))
+		fig = plt.figure(figsize=(8,4))
+		ax = fig.add_subplot(111)
+        
 		plt.plot(self.RFID[:, 0], self.RFID[:, 1], "*k")
 
 		if self.time > 0.0:
@@ -158,11 +166,11 @@ class FastSLAM(gym.Env):
 				plt.plot([self.xEst[0, 0], self.RFID[lmid, 0]], [self.xEst[1, 0], self.RFID[lmid, 1]], "-k")
 
 			for i in range(N_PARTICLE):
-				plt.plot(self.particles[i].x, self.particles[i].y, ".r")
+# 				plt.plot(self.particles[i].x, self.particles[i].y, ".r")
 				plt.plot(self.particles[i].lm[:, 0], self.particles[i].lm[:, 1], "xb")
 
-			plt.plot(np.array(self.hxTrue[0, :]).flatten(), np.array(self.hxTrue[1, :]).flatten(), "-b")
-			plt.plot(np.array(self.hxDR[0, :]).flatten(), np.array(self.hxDR[1, :]).flatten(), "-k")
+# 			plt.plot(np.array(self.hxTrue[0, :]).flatten(), np.array(self.hxTrue[1, :]).flatten(), "-b")
+# 			plt.plot(np.array(self.hxDR[0, :]).flatten(), np.array(self.hxDR[1, :]).flatten(), "-k")
 			plt.plot(np.array(self.hxEst[0, :]).flatten(), np.array(self.hxEst[1, :]).flatten(), "-r")
 
 			plt.plot(self.xEst[0], self.xEst[1], "xk")
@@ -176,106 +184,156 @@ class FastSLAM(gym.Env):
 		x2 = x0 + MAX_RANGE*np.cos(theta2)
 		y2 = y0 + MAX_RANGE*np.sin(theta2)
 
+		thetas = np.arange(theta2, theta1, np.deg2rad(1.0))
+		xs = x0 + MAX_RANGE*np.cos(thetas)
+		ys = y0 + MAX_RANGE*np.sin(thetas)
+        
 		plt.plot([x0,x1], [y0,y1], 'g-')
 		plt.plot([x0,x2], [y0,y2], 'g-')
+		plt.scatter(xs, ys, s=1.0, c='g')
 
 		plt.title('Time: ' + str(round(self.time, 2)))
-		plt.xlim(PLT_XLIM)
-		plt.ylim(PLT_YLIM)
+		plt.xlim([-MAX_RANGE,N_BLOCKS*ROAD_BLOCK_LENGTH+MAX_RANGE])
+		plt.ylim([-(BOX_HALF_WIDTH+ROAD_HALF_WIDTH),(BOX_HALF_WIDTH+ROAD_HALF_WIDTH)])
 		plt.gca().set_aspect('equal', adjustable='box')
 		plt.grid(True)
 
-		return #x0, x1, x2
-
-	def render_obs(self):
-
-		fig = plt.figure(figsize=(8,8))
-		ax = fig.add_subplot(111, projection='polar')
-
-		#theta = np.arange(0.0, 360.0, BIN_SIZE) + BIN_SIZE/2.0
-		ptheta, prange = np.zeros((1,0)), np.zeros((1,0))
-		n_bins = int(360/BIN_SIZE)
-		for ibin in range(n_bins):
-			if self.state[ibin]==0:
-				continue
-			
-			for il in range(int(self.state[ibin])):
-				#print(ibin, il, ptheta.shape, 
-				ptheta = np.hstack(( ptheta, np.arange(ibin*BIN_SIZE, (ibin+1)*BIN_SIZE, 0.1)[None,:] ))
-				prange = np.hstack(( prange, np.ones(( 1, int(BIN_SIZE/0.1) ))*(self.state[n_bins+ibin] + il*1) ))
-
-		ax.scatter(np.deg2rad(ptheta), prange, s=1.0)
-		ax.set_rmax(MAX_RANGE)
-		ax.set_xticks(np.deg2rad(np.arange(0,360,BIN_SIZE)))
-		ax.set_rticks(np.arange(0, MAX_RANGE, 10))
-		ax.grid(True)
-
 		return
 
-	def get_obs(self):
+	def render_obs_fixedLM(self):
 
-		n_bins = int(360/BIN_SIZE)
-		n_landmarks = np.zeros(n_bins)
-		closest_dists = np.ones(n_bins)*1000
-	
+		plt.figure(figsize=(4,4))
+		
+		for ilm in range(N_LM):
+			plt.plot(self.state[ilm*2], self.state[ilm*2+1], "*b")
+
+		x0, y0 = 0.0, 0.0
+		theta1 = self.theta + np.deg2rad(FOV/2.0)
+		x1 = x0 + MAX_RANGE*np.cos(theta1)
+		y1 = y0 + MAX_RANGE*np.sin(theta1)
+		theta2 = self.theta - np.deg2rad(FOV/2.0)
+		x2 = x0 + MAX_RANGE*np.cos(theta2)
+		y2 = y0 + MAX_RANGE*np.sin(theta2)
+
+		thetas = np.arange(theta2, theta1, np.deg2rad(1.0))
+		xs = x0 + MAX_RANGE*np.cos(thetas)
+		ys = y0 + MAX_RANGE*np.sin(thetas)
+        
+		plt.plot([x0,x1], [y0,y1], 'g-')
+		plt.plot([x0,x2], [y0,y2], 'g-')
+		plt.scatter(xs, ys, s=1.0, c='g')
+        
+		plt.xlim([-1.0, 1.0])
+		plt.ylim([-1.0, 1.0])
+		plt.gca().set_aspect('equal', adjustable='box')
+		plt.grid(True)
+		return
+
+
+	def get_obs_fixedLM(self):
+
+		lm_pos = np.ones(2*N_LM)*1000
+		#lm_pos = np.ones(2*N_LM)*0
+
 		lmSeen = self.particles[0].lmSeen
-
 		for ilm in lmSeen:
 			lmx, lmy = 0.0, 0.0
 			for ip in range(N_PARTICLE):
 				lmx += self.particles[ip].w * self.particles[ip].lm[ilm,0]
-				lmy += self.particles[ip].w * self.particles[ip].lm[ilm,1]			
+				lmy += self.particles[ip].w * self.particles[ip].lm[ilm,1]
 			lmx -= self.x_state[0]
 			lmy -= self.x_state[1]
 
-			newx = lmx*np.sin(self.x_state[2]) - lmy*np.cos(self.x_state[2])
-			newy = lmx*np.cos(self.x_state[2]) + lmy*np.sin(self.x_state[2])
+			newx = lmx*np.cos(self.x_state[2]) + lmy*np.sin(self.x_state[2])
+			newy = -lmx*np.sin(self.x_state[2]) + lmy*np.cos(self.x_state[2])
 
-			phi = np.rad2deg(np.arctan2(newy, newx))
-			if phi<0:
-				phi += 360.0
+			if np.sqrt(newx**2 + newy**2) < MAX_RANGE:
+				lm_pos[ilm*2] = newx / MAX_RANGE
+				lm_pos[ilm*2+1] = newy / MAX_RANGE
 
-			bin_number = int( phi / BIN_SIZE )
-			
-			#add lm to bin
-			n_landmarks[bin_number] += 1
-
-			#check if lm is closest
-			d_lm = np.sqrt(newx**2 + newy**2)
-			if d_lm < closest_dists[bin_number]:
-				closest_dists[bin_number] = d_lm
-
-		x_cov, y_cov, yaw_cov = self.get_particle_covariance() 
-
-		state = np.hstack(( n_landmarks, closest_dists, self.theta, x_cov, y_cov, yaw_cov ))#[:,None]
+		state = np.hstack(( lm_pos, np.cos(self.theta), np.sin(self.theta) ))
 
 		return state
-		
+
+	def get_obs_nearest(self):
+
+		lm_pos = np.ones(2*N_LM)*1000.0
+		#lm_pos = np.ones(2*N_LM)*0
+
+		lm_dists = np.ones(N_LM)*1000.0
+        
+		lmSeen = self.particles[0].lmSeen
+		for ilm in lmSeen:
+			lmx, lmy = 0.0, 0.0
+			for ip in range(N_PARTICLE):
+				lmx += self.particles[ip].w * self.particles[ip].lm[ilm,0]
+				lmy += self.particles[ip].w * self.particles[ip].lm[ilm,1]
+			lmx -= self.x_state[0]
+			lmy -= self.x_state[1]
+
+			newx = lmx*np.cos(self.x_state[2]) + lmy*np.sin(self.x_state[2])
+			newy = -lmx*np.sin(self.x_state[2]) + lmy*np.cos(self.x_state[2])
+
+			lm_dists[ilm] = np.sqrt(newx**2 + newy**2)
+            
+			if lm_dists[ilm] < MAX_RANGE:
+				lm_pos[ilm*2] = newx# / MAX_RANGE
+				lm_pos[ilm*2+1] = newy# / MAX_RANGE
+
+		lm_state = np.ones(2*N_LM)*1000.0
+		lm_ranks = np.argsort(lm_dists)
+
+		for ilm in range(N_LM):
+			if lm_dists[lm_ranks[ilm]] < MAX_RANGE:
+				lm_state[ilm*2] = lm_pos[lm_ranks[ilm]*2] / lm_dists[lm_ranks[ilm]]
+				lm_state[ilm*2+1] = lm_pos[lm_ranks[ilm]*2+1] / lm_dists[lm_ranks[ilm]] 
+
+		state = np.hstack(( lm_state, np.cos(self.theta), np.sin(self.theta) ))
+
+		return state
 
 	def get_reward(self):
 
-		if self.reward_type is 'Error':
+# 		if self.reward_type is 'Error':
 
-			pos_error = np.linalg.norm((self.x_state-self.xTrue)[0:2])
-			yaw_error = np.abs( (self.x_state-self.xTrue)[2] )
-			if yaw_error > np.pi:
-				yaw_error = 2*np.pi - yaw_error
-			yaw_error = np.rad2deg(yaw_error)
+# 			pos_error = np.linalg.norm((self.x_state-self.xTrue)[0:2])
+# 			yaw_error = np.abs( (self.x_state-self.xTrue)[2] )
+# 			if yaw_error > np.pi:
+# 				yaw_error = 2*np.pi - yaw_error
+# 			yaw_error = np.rad2deg(yaw_error)
 
-			r = 1 / ( pos_error + ALPHA*yaw_error + 1e-3)
-			return r.item(0)/100.0
+# 			r = 1 / ( pos_error + ALPHA*yaw_error + 1e-3)
+# 			return r.item(0)/100.0
 
-		elif self.reward_type is 'Covariance':
+# 		elif self.reward_type is 'Covariance':
 			
-			x_cov, y_cov, yaw_cov = self.get_particle_covariance()					
+		x_cov, y_cov, yaw_cov = self.get_particle_covariance()
 
-			pos_cov = np.sqrt(x_cov**2 + y_cov**2)# + np.random.randn()*R[0,0]
-			yaw_cov = np.var(yaw_cov)# + np.random.randn()*R[1,1]
+		pos_cov = np.sqrt(x_cov**2 + y_cov**2)# + np.random.randn()*R[0,0]
+		yaw_cov = np.var(yaw_cov)# + np.random.randn()*R[1,1]
 
-			r = 1 / ( pos_cov + ALPHA*yaw_cov + 1e-3)
-			return r/100.0
-		
-		return
+		r = 1 / ( pos_cov + ALPHA*yaw_cov + 1e-3)
+		return r/100.0
+        
+# 		print('Unknown reward type!')
+# 		return
+
+	def get_reward_LM(self):
+
+		r = 0.0
+		for i in range(len(self.RFID[:, 0])):
+			dx = self.RFID[i, 0] - self.xTrue[0, 0]
+			dy = self.RFID[i, 1] - self.xTrue[1, 0]
+			d = math.sqrt(dx**2 + dy**2)
+			angle = math.atan2(dy, dx) - self.xTrue[2, 0]
+
+			delta = np.abs( np.arctan2(dy,dx) - self.pi_2_pi(self.xTrue[2,0] + self.theta) )
+			if delta > np.pi:
+				delta = 2*np.pi - delta
+
+			if d <= MAX_RANGE and np.rad2deg(delta)<=(FOV/2.0):
+				r += 1.0	
+		return r
 
 	def get_particle_covariance(self):
 		
@@ -359,11 +417,15 @@ class FastSLAM(gym.Env):
 		particle.lm[lm_id, 0] = particle.x + r * c
 		particle.lm[lm_id, 1] = particle.y + r * s
 
+		#remove later
+		particle.lm[lm_id, 0] = self.RFID[lm_id, 0]
+		particle.lm[lm_id, 1] = self.RFID[lm_id, 1]
+
 		# covariance
 		Gz = np.matrix([[c, -r * s],
 				[s, r * c]])
 
-		particle.lmP[2 * lm_id:2 * lm_id + 2] = Gz * Q * Gz.T
+		particle.lmP[2 * lm_id:2 * lm_id + 2] = 0 * Gz * Q * Gz.T
 
 		particle.lmSeen.append(lm_id)
 
@@ -435,10 +497,12 @@ class FastSLAM(gym.Env):
 		dz[1, 0] = self.pi_2_pi(dz[1, 0])
 
 		S = particle.lmP[2 * lm_id:2 * lm_id + 2]
+
 		try:
 			invS = np.linalg.inv(S)
 		except np.linalg.linalg.LinAlgError:
-			print("Singular!")
+			#add later
+			#print("Singular!")
 			return 1.0
 
 		num = math.exp(-0.5 * dz.T * invS * dz)
@@ -536,18 +600,14 @@ class FastSLAM(gym.Env):
 	def calc_input(self, time):
 
 		dt = time - TIME_OFFSET
-
-		v = np.sqrt(1 + (TRAJ_AMP*TRAJ_FREQ*np.cos(TRAJ_FREQ*dt))**2)
-		yawrate = -TRAJ_AMP*TRAJ_FREQ*TRAJ_FREQ*np.sin(TRAJ_FREQ*dt)
-
+		v = 1.5
+		yawrate = 0.0
 		u = np.matrix([v, yawrate]).T
-
 		#stay at starting point for TIME_OFFSET seconds
 		if dt < 0:
-			u *= 0
-
-		return u
-
+			return 0*u
+		else:
+			return u
 
 	def observation(self, xTrue, xd, u, RFID):
 

@@ -92,6 +92,8 @@ class attitudeDynamics(core.Env):
         high = np.array([1.0, 1.0, 1.0, 1.0, self.MAX_VEL, self.MAX_VEL, self.MAX_VEL])
         low = -high
         self.observation_space = spaces.Box(low=low, high=high)
+        self.observation_dim = 7
+        self.action_dim = 3
         high = np.array([self.torque_max, self.torque_max, self.torque_max])
         low = -high
         self.action_space = spaces.Box(low=low, high=high)
@@ -135,7 +137,7 @@ class attitudeDynamics(core.Env):
         self.state = ns_d
         terminal = self._terminal()
         reward = (-1*np.linalg.norm(ns_d[4:7]))+1*(q[0]) -np.abs(q[1])-np.abs(q[2])-np.abs(q[3]) -5*np.linalg.norm(a)#+1000*terminal
-        return (s, reward, False, {})
+        return (s, reward, False, 0)
 
     def _terminal(self):
         s = self.state
