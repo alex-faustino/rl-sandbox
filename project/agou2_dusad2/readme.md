@@ -14,3 +14,5 @@ Key Reference: https://worldmodels.github.io/
 - generate_data.py: script to generate rollouts from the environment
 - resample_vae.py: resampling scheme for making data distribution flatter while training VAE
 - train_x.py: scripts to train x
+- video: contains video visualizations from VAE and MDN-RNN
+
