@@ -4,6 +4,8 @@ Created on Thu Sep  6 02:14:59 2018
 
 @author: Vedant
 """
+
+## Making a function 
 #from joblib import Parallel, delayed
 import gym,sys
 import sat_mujocoenv
