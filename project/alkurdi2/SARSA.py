@@ -12,8 +12,8 @@ from random import random
 
 def SARSAsimagent(meta, env, hard=False): 
     [epsilon,alpha,gamma,ep_len,ep_num]= meta    
-    s_size=0
-    a_size=0
+    s_size = 0
+    a_size = 0
     if type(env.action_space)==gym.spaces.discrete.Discrete:
         a_size=env.action_space.n
     else:
@@ -23,9 +23,9 @@ def SARSAsimagent(meta, env, hard=False):
     else:
         s_size=np.prod(env.observation_space.nvec)
     reward=np.zeros(ep_num)  #sum of rewards at end of each episode
-    #Q=np.random.rand(a_size,s_size)
-    Q=np.zeros([a_size,s_size])
-
+    Q=np.random.rand(a_size,s_size)
+    #Q=np.zeros([a_size,s_size])
+    
     big_state = []
     for i in range(ep_num):
         a_store=[]
@@ -41,7 +41,7 @@ def SARSAsimagent(meta, env, hard=False):
                 a=env.action_space.sample()
         for j in range(ep_len):
             big_state.append(env.state)
-            s_t=s[0]+5*s[1] #flattened state
+            s_t=s[0]+3*s[1] #flattened state
             s_store.append(s_t)
             a_store.append(a)
             ns, r =env.step(a)#,hard)
@@ -50,7 +50,7 @@ def SARSAsimagent(meta, env, hard=False):
 
             reward[i] += r
             r_s.append(r)
-            ns_t=ns[0]+5*ns[1] 
+            ns_t=ns[0]+3*ns[1] 
             if random() > epsilon:
                 na=np.argmax(Q[:,ns_t])
             else:
