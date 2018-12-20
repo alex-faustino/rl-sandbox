@@ -97,6 +97,7 @@ class MDNRNN(nn.Module):
         rewards_loss = 0
         if real_rewards is not None:
             rewards_loss = self.reward_loss(real_rewards, predicted_rewards)
+            print( rewards_loss)
         loss = gmm_loss + rewards_loss
         return loss
 
