@@ -51,8 +51,14 @@ class PPOAgent(object):
             return V.item()
 
     def _run_actor_for_training(self, net, env, horizon, gamma, lamb,i,act):
+        #N = 10
+        #epi = (1-N)*(i/100.0)+N
+        epi = 1+20*np.cos(np.pi*i/200)
         if((i%10 == 0) & (act == 0) ):#& (i != 0)
             print("percent done: ",i)
+            
+            
+            
         with torch.no_grad():
             s = np.zeros((horizon+1, env.observation_dim))
             a = np.zeros((horizon+1, env.action_dim))
@@ -64,8 +70,12 @@ class PPOAgent(object):
             for t in range(horizon+1):
                 s[t,:] = s_next
                 (V[t], mu_t, std_t) = net(torch.from_numpy(s[t]))
-                dist = torch.distributions.normal.Normal(mu_t, std_t)
+                #print('mean : ',mu_t)
+                #print('std : ',std_t)
+                dist = torch.distributions.normal.Normal(mu_t, std_t*epi)#
+                
                 a[t] = dist.sample().numpy()
+                #print('action : ',a[t])
                 log_pi[t] = dist.log_prob(a[t]).sum()
 
                 (s_next, r[t], done, _) = env.step(a[t])

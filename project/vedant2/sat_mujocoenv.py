@@ -160,9 +160,9 @@ class Sat_mujocoEnv: #fixed target
     def reset(self,change_mass_prop = False):
         '''
         if(change_mass_prop):
-            sim.model.body_inertia[0][0] = np.clip(np.random.rand() , 0.1,10.0)
-            sim.model.body_inertia[0][1] = np.clip(np.random.rand() , 0.1,10.0)
-            sim.model.body_inertia[0][2] = np.clip(np.random.rand() , 0.1,10.0)
+            sim.model.body_inertia[0][0] = np.clip(np.random.rand() , 0.1,1.0)
+            sim.model.body_inertia[0][1] = np.clip(np.random.rand() , 0.1,1.0)
+            sim.model.body_inertia[0][2] = np.clip(np.random.rand() , 0.1,1.0)
         '''
         self.x = self.set_init()
         self.step_num = 0
