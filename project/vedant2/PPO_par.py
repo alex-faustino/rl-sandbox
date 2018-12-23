@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 
 class Net(torch.nn.Module):
 
-    def __init__(self, observation_dim, action_dim,inner_layer = 25):
+    def __init__(self, observation_dim, action_dim,inner_layer = 100):
         super(Net, self).__init__()
         self.V_fc1 = torch.nn.Linear(observation_dim, inner_layer).double()
         self.V_fc2 = torch.nn.Linear(inner_layer, inner_layer).double()
@@ -53,7 +53,7 @@ class PPOAgent(object):
     def _run_actor_for_training(self, net, env, horizon, gamma, lamb,i,act):
         #N = 10
         #epi = (1-N)*(i/100.0)+N
-        epi = 1+20*np.cos(np.pi*i/200)
+        epi = 1+200*np.cos((np.pi/2)*i/100)
         if((i%10 == 0) & (act == 0) ):#& (i != 0)
             print("percent done: ",i)
             
@@ -77,10 +77,15 @@ class PPOAgent(object):
                 a[t] = dist.sample().numpy()
                 #print('action : ',a[t])
                 log_pi[t] = dist.log_prob(a[t]).sum()
-
-                (s_next, r[t], done, _) = env.step(a[t])
+                if( t == horizon-1):
+                    #print('final')
+                    (s_next, r[t], done, _) = env.step(a[t],True)
+                else:
+                    #print(t)
+                    (s_next, r[t], done, _) = env.step(a[t])
             #plt.plot(r)
             #plt.show()
+            #print('r : ',r[:-1])
             delta = r[:-1] + gamma * V[1:] - V[:-1]
             V_targ = delta
             

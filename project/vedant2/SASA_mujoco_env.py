@@ -77,11 +77,11 @@ class SASAmujocoEnv:
         self.Ry = 0
         self.Rz = 0
         
-    def step(self,a,render = False):
+    def step(self,a,final = False, render = False):
         done = False
         #print(a)
         action_noise = np.zeros_like(self.sim.data.ctrl)
-        self.a = np.clip(a,-15000,15000)
+        self.a = np.clip(a,-1.5,1.5)
         '''
         if (self.Noise != None):
             for x in self.Noise['Freq']:
@@ -93,7 +93,11 @@ class SASAmujocoEnv:
                 action_noise[4] =  math.cos(self.t *2*np.pi* self.Fx+self.phaseXL)* self.Ry
                 action_noise[5] =  math.cos(self.t *2*np.pi* self.Fx+self.phaseXL)* self.Rz
         '''
-        action_noise[self.noise_dim:self.noise_dim+len(a)] = a
+        if (final):
+            action_noise[self.noise_dim:self.noise_dim+len(a)] = 0
+        else:
+            action_noise[self.noise_dim:self.noise_dim+len(a)] = a
+                
         self.sim.data.ctrl[:] = action_noise
         #print('action : ',self.sim.data.ctrl[:])
         self.t += self.dt
@@ -102,7 +106,13 @@ class SASAmujocoEnv:
         #print('step : ',self.step_num)
         self.sim.step()
         self.x = self.get_obs();
-        reward = self.get_reward(self.x,self.a)
+        if final:
+            for t in range(int(1e4*10)):
+                self.sim.step()
+            reward = self.get_reward(self.x,self.a)
+            #print('reward: ',reward)
+        else:
+            reward = 0;
         #if(render):
         #    self.viewer.render()
         

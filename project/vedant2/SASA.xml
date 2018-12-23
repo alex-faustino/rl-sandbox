@@ -34,13 +34,13 @@
         <motor gear="0 0 0 0 1 0" joint="BASE_DOF"/>
         <motor gear="0 0 0 0 0 1" joint="BASE_DOF"/>
         
-        <motor gear="1" joint="panelL0_rotate_x"/>
-        <motor gear="1" joint="panelL0_rotate_y"/>
-        <motor gear="1" joint="panelL0_rotate_z"/>
+        <motor gear="10000" joint="panelL0_rotate_x"/>
+        <motor gear="10000" joint="panelL0_rotate_y"/>
+        <motor gear="10000" joint="panelL0_rotate_z"/>
         
-        <motor gear="1" joint="panelR0_rotate_x"/>
-        <motor gear="1" joint="panelR0_rotate_y"/>
-        <motor gear="1" joint="panelR0_rotate_z"/>
+        <motor gear="10000" joint="panelR0_rotate_x"/>
+        <motor gear="10000" joint="panelR0_rotate_y"/>
+        <motor gear="10000" joint="panelR0_rotate_z"/>
         
     </actuator>
 </mujoco>

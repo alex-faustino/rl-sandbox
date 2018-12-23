@@ -15,10 +15,10 @@ import PPO_par as ppo
 gamma = 0.999
 lamb = 0.95
 number_of_actors =5
-number_of_iterations = 50
+number_of_iterations = 10
 
 number_of_epochs = 50
-minibatch_size = 500
+minibatch_size = 1000
 logstd_initial = -1 #-0.7
 logstd_final = -2 # -1.6
 epsilon = 0.2
@@ -84,5 +84,5 @@ plt.show()
 plt.ylabel('Angular Velocity')
 plt.xlabel('Time')
 plt.legend()
-plt.plot(s[:,4:], label='x')
+plt.plot(s[:,0:3], label='x')
 plt.show()
