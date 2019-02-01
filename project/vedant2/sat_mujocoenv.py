@@ -77,6 +77,7 @@ class Sat_mujocoEnv: #fixed target, now modifying to changing goals for curricul
             q_dev = np.cos(devaition);
             q_dir = 2*np.random.rand(3) -1;
             q_dir = q_dir/np.linalg.norm(q_dir)*(1-q_dev**2);
+            q_init = np.concatenate((q_dev,q_dir))
         q_init_e = np.matmul(self.q_skew, q_init);
         w_init = 2*np.random.rand(3)-1
         w_init = (w_init/np.linalg.norm(w_init))*self.w_init_mag
