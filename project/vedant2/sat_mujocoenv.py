@@ -25,7 +25,7 @@ import numpy as np
 import xml.etree.ElementTree
 
 
-class Sat_mujocoEnv: #fixed target
+class Sat_mujocoEnv: #fixed target, now modifying to changing goals for curriculum learning
     
     def __init__(self,t_hor = 1000, maxabs_torque=10,dt = 10, target_state = np.array([1,0,0,0,0,0,0]), w_mag = 2.5e-3 , w_tumble = None, Noise = None,visualize = False):
         
@@ -45,6 +45,13 @@ class Sat_mujocoEnv: #fixed target
        
         self.max_nstep = t_hor;
         self.target = target_state;
+        self.q_target = target_state[0:4]
+        self.w_target = target_state[4:]
+        
+        self.q_skew = np.matrix([[self.q_target[0],self.q_target[3],-self.q_target[2],-self.q_target[1]],
+                            [-self.q_target[3],self.q_target[0],self.q_target[1],-self.q_target[2]],
+                            [self.q_target[2],-self.q_target[1],self.q_target[0],-self.q_target[3]],
+                            [self.q_target[1],self.q_target[2],self.q_target[3],self.q_target[0]]])
         
         if (w_tumble == None):
             self.w_tumble = 25.0 * self.w_init_mag;
@@ -65,18 +72,22 @@ class Sat_mujocoEnv: #fixed target
     def set_init(self):
         q_init = 2*np.random.rand(4) -1
         q_init = q_init/np.linalg.norm(q_init)
+        q_init_e = np.matmul(self.q_skew, q_init);
         w_init = 2*np.random.rand(3)-1
         w_init = (w_init/np.linalg.norm(w_init))*self.w_init_mag
+        w_init_e = target_state[0:4] - w_init
         self.sim.data.qpos[3:] = q_init;
         self.sim.data.qvel[3:] = w_init
         self.sim.forward()
-        self.x = np.concatenate((q_init,w_init))   
+        self.x = np.concatenate((q_init_e,w_init_e,w_init))   
         return self.x    
             
     def get_obs(self):
         q = self.sim.data.qpos[3:]
         w = self.sim.data.qvel[3:]
-        self.x = np.concatenate((q,w))
+        q_e = np.matmul(self.q_skew, q);
+        w_e = target_state[0:4] - w
+        self.x = np.concatenate((q_e,w_e,w))
         return self.x
     
     
