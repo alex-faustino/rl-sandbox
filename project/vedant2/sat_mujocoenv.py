@@ -69,9 +69,14 @@ class Sat_mujocoEnv: #fixed target, now modifying to changing goals for curricul
         low = -high
         self.action_space = spaces.Box(low=low, high=high)
         
-    def set_init(self):
-        q_init = 2*np.random.rand(4) -1
-        q_init = q_init/np.linalg.norm(q_init)
+    def set_init(self,deviation = None):
+        if (deviation == None):
+            q_init = 2*np.random.rand(4) -1
+            q_init = q_init/np.linalg.norm(q_init)
+        else:
+            q_dev = np.cos(devaition);
+            q_dir = 2*np.random.rand(3) -1;
+            q_dir = q_dir/np.linalg.norm(q_dir)*(1-q_dev**2);
         q_init_e = np.matmul(self.q_skew, q_init);
         w_init = 2*np.random.rand(3)-1
         w_init = (w_init/np.linalg.norm(w_init))*self.w_init_mag
