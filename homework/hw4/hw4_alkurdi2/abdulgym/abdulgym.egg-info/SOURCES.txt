@@ -1,5 +1,0 @@
-abdulgym.egg-info/PKG-INFO
-abdulgym.egg-info/SOURCES.txt
-abdulgym.egg-info/dependency_links.txt
-abdulgym.egg-info/requires.txt
-abdulgym.egg-info/top_level.txt

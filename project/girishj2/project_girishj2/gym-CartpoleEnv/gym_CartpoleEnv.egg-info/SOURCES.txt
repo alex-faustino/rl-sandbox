@@ -1,6 +1,0 @@
-setup.py
-gym_CartpoleEnv.egg-info/PKG-INFO
-gym_CartpoleEnv.egg-info/SOURCES.txt
-gym_CartpoleEnv.egg-info/dependency_links.txt
-gym_CartpoleEnv.egg-info/requires.txt
-gym_CartpoleEnv.egg-info/top_level.txt

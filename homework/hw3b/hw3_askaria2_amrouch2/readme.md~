@@ -1,29 +1,0 @@
-Algorithm 1: deep Q-learning with experience replay.
-Initialize replay memory D to capacity N
-Initialize action-value function Q with random weights h
-Initialize target action-value function Q^ with weights h2 5 h
-For episode 5 1, M do
-Initialize sequence s1~f g x1 and preprocessed sequence w1~wð Þ s1
-For t 5 1,T do
-With probability e select a random action at
-otherwise select at~argmaxaQ wð Þ st ð Þ ,a; h
-Execute action at in emulator and observe reward rt and image xt 1 1
-Set stz1~st,at,xtz1 and preprocess wtz1~wð Þ stz1
-Store transition wt,at,rt,wtz1
- 	 in D
-Sample random minibatch of transitions wj,aj,rj,wjz1
-
-  from D
-Set yj~ rj if episode terminates at step jz1
-rjzc maxa0 Q^ wjz1,a0
-; h{ 
-  otherwise (
-Perform a gradient descent step on yj{Q wj,aj; h
-
-  
-  2
-with respect to the
-network parameters h
-Every C steps reset Q^~Q
-End For
-End For

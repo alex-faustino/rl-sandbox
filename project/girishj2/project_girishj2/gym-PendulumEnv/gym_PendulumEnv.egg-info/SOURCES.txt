@@ -1,5 +1,0 @@
-gym_PendulumEnv.egg-info/PKG-INFO
-gym_PendulumEnv.egg-info/SOURCES.txt
-gym_PendulumEnv.egg-info/dependency_links.txt
-gym_PendulumEnv.egg-info/requires.txt
-gym_PendulumEnv.egg-info/top_level.txt
